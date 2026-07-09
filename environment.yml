@@ -1,0 +1,29 @@
+# Conda environment for emgforge.
+#
+# fenics-dolfinx and gmsh are conda-only (not on PyPI), so this env is the
+# supported way to get the full FEM stack. After:
+#     conda env create -f environment.yml
+#     conda activate emgforge
+# install the package itself with:
+#     pip install -e .
+name: emgforge
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - fenics-dolfinx
+  - gmsh
+  - numpy
+  - scipy
+  - mpi4py
+  - matplotlib
+  - pyyaml
+  - pip
+  # Optional — the [ml] extra (learned pipeline). Uncomment to enable:
+  # - pytorch
+  # Optional — the [mri] extra (MRI-FEM forearm pipeline, mri/core). Conda-forge:
+  # - nibabel
+  # - scikit-image
+  # - trimesh
+  # - meshio
+  # (fast-simplification and pytetwild are pip-only: pip install -e ".[mri]")

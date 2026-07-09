@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emgforge"
+version = "0.1.0"
+description = "Synthetic EMG / MUAP forward-model data generation: FEM volume conductor -> SFAP -> MUAP / HD-sEMG."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Dimitrios Halatsis" }]
+keywords = [
+    "EMG", "MUAP", "electromyography", "HD-sEMG",
+    "FEM", "volume-conductor", "biomedical", "simulation",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+
+# Pip-installable runtime dependencies. NOTE: the FEM stack — `fenics-dolfinx`
+# and `gmsh` — is conda-only (not on PyPI); install it via environment.yml.
+dependencies = [
+    "numpy",
+    "scipy",
+    "mpi4py",
+    "matplotlib",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+# Learned-pipeline extra (neural-field regressors). Install with: pip install -e ".[ml]"
+ml = ["torch"]
+# MRI-FEM forearm anatomy pipeline (mri/core). Install with: pip install -e ".[mri]"
+mri = ["nibabel", "scikit-image", "trimesh", "meshio", "fast-simplification", "pytetwild"]
+
+# Two import packages live in this repo at different roots:
+#   * `emgop`          under src/   (FEM volume-conductor toolkit)
+#   * `muap_generator` at the root  (phi -> SFAP -> MUAP synthesis)
+# The "" -> "." mapping roots top-level packages at the repo root, and the
+# explicit "emgop" -> "src/emgop" entry overrides that one package to live
+# under src/. Packages are enumerated explicitly so the two roots stay
+# unambiguous.
+[tool.setuptools]
+packages = [
+    "emgop",
+    "emgop.analytical",
+    "emgop.fem",
+    "emgop.meshing",
+    "emgop.pointcloud",
+    "emgop.sampling",
+    "emgop.voxel",
+    "muap_generator",
+    "muap_generator.spatial_refactor",
+]
+
+[tool.setuptools.package-dir]
+"" = "."
+"emgop" = "src/emgop"

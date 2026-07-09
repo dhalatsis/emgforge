@@ -1,0 +1,65 @@
+# --- migration notes + results/sanity galleries: LOCAL-ONLY, never commit ---
+# (_results/ is a self-contained subfolder you can version separately)
+_migration/
+_results/
+
+# --- scratch: MRI pipeline survey, kept out of refactor/ to avoid collisions ---
+_refactor-mri/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# --- envs ---
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# --- editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- test / type / cache ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- notebooks ---
+.ipynb_checkpoints/
+
+# --- heavy / generated artifacts (regenerable — keep out of git) ---
+data/
+datasets/
+meshes/
+*.msh
+*.xdmf
+*.h5
+figures/
+*.png
+*.npz
+*.npy
+# Exception: tiny, deterministic *test fixtures* (not bulk data) must be committed.
+# Small sanity/verification fixtures opt back in with a `!` rule like this one:
+!**/golden_cylindrical.npz
+# heavy regression snapshots (regenerable)
+tests/regression/snapshots/*.json
+tests/regression/neumann_meshes/
+
+# --- configurable data root (symlink or env) ---
+/mnt_data
+
+# Local-only refactor scratch (design notes, never committed)
+_refactor/

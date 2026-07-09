@@ -1,0 +1,13 @@
+# Pip-installable runtime dependencies for emgforge.
+#
+# NOTE: the FEM stack is NOT on PyPI. `fenics-dolfinx` and `gmsh` must be
+# installed via conda (see environment.yml). The packages below are the
+# pip-installable remainder.
+numpy
+scipy
+mpi4py
+matplotlib
+pyyaml
+
+# Optional (learned pipeline / [ml] extra):
+# torch
