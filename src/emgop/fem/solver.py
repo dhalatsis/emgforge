@@ -13,6 +13,7 @@ from ufl import dx, ds
 from .constants import CONDUCTIVITY, GROUP_NAMES
 from .leadfield import GaussianSource, KSPConfig, UniformSink
 from .rotation import rotate_point_in_cylinder
+from .sigma import LayeredSigma
 
 
 class ConstrainedLinearProblem:
@@ -120,9 +121,6 @@ class FEMModel:
         self.mesh_topology.create_connectivity(self.mesh.topology.dim, 0)
         self.cell_to_vertex = self.mesh_topology.connectivity(self.mesh.topology.dim, 0)
 
-        self.V_tensor = fem.functionspace(
-            self.mesh, ("DG", 0, (self.mesh.topology.dim, self.mesh.topology.dim))
-        )
         self.V_scalar = fem.functionspace(self.mesh, ("CG", 1))
         self.V_pol = fem.functionspace(self.mesh, ("CG", self.options["source_degree"]))
 
@@ -132,19 +130,7 @@ class FEMModel:
             self.build_conductivity_map()
 
     def build_conductivity_map(self):
-        self.sigma_anisotropic = fem.Function(self.V_tensor)
-        material_map = {v: k for k, v in GROUP_NAMES.items()}
-
-        with self.sigma_anisotropic.vector.localForm() as loc_aniso:
-            for cell_index, marker in enumerate(self.cell_markers.values):
-                material = material_map[int(marker)]
-                if material == "Muscle":
-                    loc_aniso.setValuesBlocked([cell_index], self.conductivity[material].flatten())
-                else:
-                    loc_aniso.setValuesBlocked(
-                        [cell_index],
-                        (self.conductivity[material] * np.eye(self.mesh.topology.dim)).flatten(),
-                    )
+        self.sigma_anisotropic = LayeredSigma(self.conductivity)(self.mesh, self.cell_markers)
 
     def apply_pinnation(self, theta: float):
         """

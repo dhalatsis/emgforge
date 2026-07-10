@@ -39,6 +39,28 @@ def test_conductivity_param_changes_the_sigma_map(tiny_mesh):
     assert not np.allclose(sa, se)   # different muscle σ → different conductivity field
 
 
+# ---- L2: LayeredSigma builder --------------------------------------------
+
+def test_layered_sigma_reproduces_the_engine_field(solved):
+    """The injectable σ-builder produces exactly the field FEMModel builds."""
+    from emgop.fem.sigma import LayeredSigma
+
+    m, _ = solved
+    sig = LayeredSigma(m.conductivity)(m.mesh, m.cell_markers)
+    assert np.array_equal(np.asarray(sig.vector.array),
+                          np.asarray(m.sigma_anisotropic.vector.array))
+
+
+def test_sigma_map_is_anisotropic_muscle_isotropic_elsewhere(solved):
+    m, _ = solved
+    cells = np.asarray(m.sigma_anisotropic.vector.array).reshape(-1, 9)  # 3x3 per cell
+    xx, zz = cells[:, 0], cells[:, 8]
+    # analytical muscle: σ = diag(0.10, 0.10, 0.50) → anisotropic (xx != zz)
+    assert np.any(np.isclose(xx, 0.10) & np.isclose(zz, 0.50))
+    # every other tissue is isotropic (xx == zz)
+    assert np.any(np.isclose(xx, zz))
+
+
 # ---- the solve -----------------------------------------------------------
 
 def test_solve_produces_a_finite_monopole_like_field(solved, tiny_geometry):
