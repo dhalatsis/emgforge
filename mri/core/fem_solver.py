@@ -62,9 +62,10 @@ TAG_TO_MATERIAL = {
     4: "muscle",
 }
 
-# Default conductivity tensors (v1: uniform muscle anisotropy along z)
-ANISOTROPY_RATIO = 5
-SIGMA_MUSCLE_CROSS = 0.2455
+# Default conductivity tensors (v1: uniform muscle anisotropy along z).
+# ANISOTROPY_RATIO / SIGMA_MUSCLE_CROSS come from the single source of truth
+# (emgop.tissue, dolfinx-free) so this table cannot drift from the FEM/analytical ones.
+from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
 
 CONDUCTIVITY = {
     "fat_skin": 0.0379,         # isotropic (using fat value)

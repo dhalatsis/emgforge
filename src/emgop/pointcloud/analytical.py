@@ -15,17 +15,18 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict, Optional
 
-# Conductivity values from emgop.fem.constants — inlined here to avoid
-# importing the FEM package (which requires dolfinx/ufl/PETSc).
-# These are fixed physical constants for the 5-layer tissue model.
-ANISOTROPY_RATIO = 5
+# Muscle anisotropy from the single source of truth (emgop.tissue is dolfinx-free,
+# so this keeps the analytical path free of the FEM stack). The isotropic layer
+# values are the fixed 5-layer physical constants.
+from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
+
 _CONDUCTIVITY_ISO = {
     0: 0.075,       # Cancellous Bone (S/m)
     1: 0.02,        # Cortical Bone
     3: 0.0379,      # Fat
     4: 4.55e-4,     # Skin
 }
-_MUSCLE_TRANS = 0.2455                              # Muscle transverse (S/m)
+_MUSCLE_TRANS = SIGMA_MUSCLE_CROSS                  # Muscle transverse (S/m) = 0.2455
 _MUSCLE_FIBER = ANISOTROPY_RATIO * _MUSCLE_TRANS    # Muscle fiber = 1.2275
 
 
