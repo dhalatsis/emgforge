@@ -37,11 +37,13 @@ ml = ["torch"]
 # MRI-FEM forearm anatomy pipeline (mri/core). Install with: pip install -e ".[mri]"
 mri = ["nibabel", "scikit-image", "trimesh", "meshio", "fast-simplification", "pytetwild"]
 
-# Plain src-layout: every import package lives under src/.
-#   * `emgforge.synthesis`  phi -> SFAP -> MUAP synthesis (pure NumPy/SciPy)
-#   * `emgop`               FEM volume-conductor toolkit
-# The MRI anatomy pipeline (`mri/`) is still a repo-root package and is not
-# installed; folding `emgop` and `mri` into `emgforge` is tracked in the backlog.
+# Import packages in this repo:
+#   * `emgforge.synthesis`  phi -> SFAP -> MUAP synthesis (pure NumPy/SciPy)   src/
+#   * `emgop`               FEM volume-conductor toolkit                        src/
+#   * `mri`                 MRI forearm anatomy -> FEM lead field              repo root
+# Folding `emgop` and `mri` into `emgforge` is tracked in the backlog. `mri.core`
+# needs only the FEM stack; its segmentation/meshing modules pull the [mri] extra
+# lazily, at call time.
 [tool.setuptools]
 packages = [
     "emgforge",
@@ -54,10 +56,13 @@ packages = [
     "emgop.pointcloud",
     "emgop.sampling",
     "emgop.voxel",
+    "mri",
+    "mri.core",
 ]
 
 [tool.setuptools.package-dir]
 "" = "src"
+"mri" = "mri"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
