@@ -79,7 +79,6 @@ class FEMModel:
         "source_degree": 1,
         "boundary_value": 0,
         "point_source": False,  # default to Gaussian volumetric source
-        "truncated_boundary": False,
         "point_electrode": False,
         "electrode_radius": 10,
         "sampled_electrode_points": 1024,
@@ -201,7 +200,6 @@ class FEMModel:
             sigma = float(self.options.get("source_sigma", self.options.get("variance", 0.1)))
             self.source_function.interpolate(lambda x: self._gaussian_nd(x, point, sigma))
             integral = fem.assemble_scalar(fem.form(self.source_function / self.volume * dx))
-            self.adjustment_constant = integral
             self.source_function.interpolate(lambda x: self._gaussian_nd(x, point, sigma) - integral)
 
     def solve_for_point(self, point: np.ndarray, source_value: float = 1.0) -> Function:

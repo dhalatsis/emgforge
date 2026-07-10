@@ -18,13 +18,7 @@ from .sanity import (
     run_manifest_entry,
 )
 from .electrode_configs import (
-    ElectrodeType,
-    DetectionMode,
-    ElectrodeConfig,
-    sample_electrode_area,
-    compute_electrode_centers,
     compute_ground_position,
-    evaluate_detection,
     ElectrodeFEMSolver,
 )
 from .point_source import NativePointSource
@@ -48,13 +42,7 @@ __all__ = [
     "run_one",
     "run_manifest_entry",
     # Electrode configurations
-    "ElectrodeType",
-    "DetectionMode",
-    "ElectrodeConfig",
-    "sample_electrode_area",
-    "compute_electrode_centers",
     "compute_ground_position",
-    "evaluate_detection",
     "ElectrodeFEMSolver",
     # Native point source
     "NativePointSource",

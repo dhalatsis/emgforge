@@ -12,7 +12,6 @@ from dolfinx import fem
 from petsc4py.PETSc import ScalarType as default_scalar_type
 from ufl import dx
 
-from .constants import GROUP_NAMES
 from .solver import FEMModel
 from .electrode_configs import ElectrodeFEMSolver, compute_ground_position
 
