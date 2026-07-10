@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Literal, Tuple
 
 import numpy as np
-from scipy import interpolate, ndimage, optimize, signal
+from scipy import interpolate, optimize, signal
 
 
 # ---------------------------------------------------------------------------
@@ -37,38 +37,6 @@ def smooth_butterworth(
     if phi.ndim == 1:
         return _filt(phi)
     return np.stack([_filt(phi[u]) for u in range(phi.shape[0])], axis=0)
-
-
-def smooth_savgol(
-    phi: np.ndarray,
-    window_length: int = 21,
-    polyorder: int = 3,
-) -> np.ndarray:
-    """Savitzky-Golay filter."""
-    def _filt(x: np.ndarray) -> np.ndarray:
-        n = len(x)
-        wl = window_length
-        if wl >= n:
-            wl = n - 1 if n % 2 == 0 else n - 2
-        if wl < polyorder + 2:
-            return x.copy()
-        if wl % 2 == 0:
-            wl += 1
-        return signal.savgol_filter(x, wl, polyorder)
-
-    if phi.ndim == 1:
-        return _filt(phi)
-    return np.stack([_filt(phi[u]) for u in range(phi.shape[0])], axis=0)
-
-
-def smooth_gaussian(phi: np.ndarray, sigma: float = 3.0) -> np.ndarray:
-    """Gaussian smoothing."""
-    if phi.ndim == 1:
-        return ndimage.gaussian_filter1d(phi, sigma=sigma)
-    return np.stack(
-        [ndimage.gaussian_filter1d(phi[u], sigma=sigma) for u in range(phi.shape[0])],
-        axis=0,
-    )
 
 
 # ---------------------------------------------------------------------------

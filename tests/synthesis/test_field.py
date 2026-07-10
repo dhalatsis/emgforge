@@ -101,13 +101,14 @@ def test_is_insensitive_to_dz_precision():
 # Placement inside the engine
 # --------------------------------------------------------------------------
 
+# BASE carries no `denoise` key so each test can pass it explicitly.
 BASE = dict(fsamp=2048.0, w=256, csd_derivative=2, upsample_factor=2,
-            fiber_window="one_sided", tukey_alpha=0.25, smoothing=False,
+            fiber_window="one_sided", tukey_alpha=0.25,
             edge_taper_left=5, edge_taper_right=10, center_time=False,
             t_start_ms=-10.0)
 
 
-def test_engine_denoise_equals_denoising_beforehand():
+def test_engine_monopole_equals_denoising_beforehand():
     """`denoise="monopole"` must be exactly equivalent to calling denoise_field_n
     on the raw field first -- i.e. it runs BEFORE the edge taper, not after.
 
@@ -126,31 +127,60 @@ def test_engine_denoise_equals_denoising_beforehand():
     assert np.array_equal(inside, outside)
 
 
-def test_denoise_defaults_to_off():
-    """Adding the stage must not change any existing caller's numbers."""
+def test_engine_butterworth_applies_lowpass_after_the_taper():
+    """`denoise="butterworth"` is a zero-phase lowpass applied AFTER the edge taper,
+    unlike monopole (which runs before it). Pins both that butterworth is wired in and
+    its position: it must equal tapering then filtering, not filtering then tapering."""
+    rng = np.random.default_rng(5)
+    phi = monopole(depth=12.0) * (1 + 1e-2 * rng.standard_normal(Z.size))
+
+    _, engine, _ = compute_sfap_spatial(
+        phi, DZ, 60.0, 60.0, 0.0, SpatialConfig(denoise="butterworth", **BASE))
+    # reproduce the internal order by hand: taper (5 left, 10 right) THEN butterworth
+    manual = phi.copy()
+    manual[-10:] *= 0.5 * (1 + np.cos(np.pi * np.arange(10) / 10))
+    manual[:5] *= (0.5 * (1 + np.cos(np.pi * np.arange(5) / 5)))[::-1]
+    from emgforge.synthesis.preprocessing import smooth_butterworth
+    manual = smooth_butterworth(manual, 0.03, 2)
+    _, byhand, _ = compute_sfap_spatial(
+        manual, DZ, 60.0, 60.0, 0.0,
+        SpatialConfig(denoise="none", edge_taper_left=0, edge_taper_right=0,
+                      **{k: v for k, v in BASE.items()
+                         if k not in ("edge_taper_left", "edge_taper_right")}))
+    assert np.array_equal(engine, byhand)
+
+
+def test_default_denoise_is_butterworth():
+    """The unified `denoise` default is "butterworth" -- it reproduces the old
+    `smoothing=True` behaviour, so existing default-config callers are unchanged."""
     phi = monopole(depth=12.0)
-    a = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0, SpatialConfig(**BASE))[1]
-    b = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
-                             SpatialConfig(denoise="none", **BASE))[1]
-    assert np.array_equal(a, b)
+    default = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0, SpatialConfig(**BASE))[1]
+    butter = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
+                                  SpatialConfig(denoise="butterworth", **BASE))[1]
+    none = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
+                                SpatialConfig(denoise="none", **BASE))[1]
+    assert np.array_equal(default, butter)
+    assert not np.array_equal(default, none)
 
 
-def test_denoise_changes_the_sfap_on_a_noisy_field():
-    """Guard against the stage silently becoming a no-op."""
+def test_monopole_changes_the_sfap_on_a_noisy_field():
+    """Guard against the monopole stage silently becoming a no-op."""
     rng = np.random.default_rng(3)
     phi = monopole(depth=12.0) * (1 + 1e-2 * rng.standard_normal(Z.size))
-    a = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0, SpatialConfig(**BASE))[1]
-    b = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
-                             SpatialConfig(denoise="monopole", **BASE))[1]
-    assert not np.array_equal(a, b)
+    none = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
+                                SpatialConfig(denoise="none", **BASE))[1]
+    mono = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
+                                SpatialConfig(denoise="monopole", **BASE))[1]
+    assert not np.array_equal(none, mono)
 
 
-def test_denoise_is_near_a_noop_on_a_clean_analytic_field():
+def test_monopole_is_near_a_noop_on_a_clean_analytic_field():
     """On analytical φ the fit reproduces the input, so the SFAP barely moves.
     It earns its keep on FEM fields, not on these."""
     phi = monopole(depth=12.0)
-    a = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0, SpatialConfig(**BASE))[1]
-    b = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
-                             SpatialConfig(denoise="monopole", **BASE))[1]
-    r = np.corrcoef(a, b)[0, 1]
+    none = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
+                                SpatialConfig(denoise="none", **BASE))[1]
+    mono = compute_sfap_spatial(phi, DZ, 60.0, 60.0, 0.0,
+                                SpatialConfig(denoise="monopole", **BASE))[1]
+    r = np.corrcoef(none, mono)[0, 1]
     assert r > 0.99, f"r = {r:.4f}"

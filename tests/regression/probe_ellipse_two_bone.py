@@ -112,7 +112,7 @@ def _hf_frac(y, dt_ms, hf_hz=500.0):
 CONFIGS = {
     "default":     lambda: MUAPConfig(),
     "adaptive":    lambda: get_adaptive_config(),
-    "no_smooth":   lambda: MUAPConfig(smoothing_method="none"),
+    "no_smooth":   lambda: MUAPConfig(denoise="none"),
     "edge_taper":  lambda: get_truncated_input_config(),
 }
 

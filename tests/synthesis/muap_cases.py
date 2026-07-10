@@ -86,7 +86,7 @@ def run_case(c: MuapCase):
 
 def _spatial(**kw) -> SpatialConfig:
     base = dict(v=4.0, fsamp=4096.0, w=256, csd_derivative=2, upsample_factor=2,
-                smoothing=False, edge_taper_left=5, edge_taper_right=10,
+                denoise="none", edge_taper_left=5, edge_taper_right=10,
                 center_time=False, t_start_ms=-10.0)
     base.update(kw)
     return SpatialConfig(**base)

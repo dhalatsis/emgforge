@@ -232,7 +232,7 @@ def compute_muaps(
     from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi
 
     config = MUAPConfig(
-        smoothing_method="butterworth",
+        denoise="butterworth",
         butterworth_cutoff=0.03,
         butterworth_order=2,
         v=4.0,

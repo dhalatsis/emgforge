@@ -1,4 +1,4 @@
-"""Unit tests for the ``smoothing_method='auto'`` HF-aware smoothing path."""
+"""Unit tests for the ``denoise='auto'`` HF-aware smoothing path."""
 from __future__ import annotations
 
 import sys
@@ -48,7 +48,7 @@ def test_hf_fraction_noisy_is_large():
 def test_auto_smoothing_skips_clean():
     """Clean input: auto should pass through unchanged (no smoothing)."""
     phi = _clean_phi(256).reshape(1, -1)
-    cfg = MUAPConfig(smoothing_method="auto")
+    cfg = MUAPConfig(denoise="auto")
     out = _apply_smoothing(phi, cfg)
     assert np.allclose(out, phi)
 
@@ -56,7 +56,7 @@ def test_auto_smoothing_skips_clean():
 def test_auto_smoothing_filters_noisy():
     """Noisy input: auto should apply Butterworth (output differs from input)."""
     phi = _noisy_phi(256, noise_scale=1e-3).reshape(1, -1)
-    cfg = MUAPConfig(smoothing_method="auto")
+    cfg = MUAPConfig(denoise="auto")
     out = _apply_smoothing(phi, cfg)
     assert not np.allclose(out, phi)
     # Output should be smoother than input — HF fraction drops
@@ -68,7 +68,7 @@ def test_auto_smoothing_filters_noisy():
 def test_auto_smoothing_threshold_override():
     """High threshold disables auto-smoothing even on noisy input."""
     phi = _noisy_phi(256, noise_scale=1e-3).reshape(1, -1)
-    cfg = MUAPConfig(smoothing_method="auto", auto_smoothing_hf_threshold=1.0)
+    cfg = MUAPConfig(denoise="auto", auto_smoothing_hf_threshold=1.0)
     out = _apply_smoothing(phi, cfg)
     assert np.allclose(out, phi)
 
@@ -76,7 +76,7 @@ def test_auto_smoothing_threshold_override():
 def test_adaptive_config_uses_auto():
     """The recommended preset should ship with auto smoothing."""
     cfg = get_adaptive_config()
-    assert cfg.smoothing_method == "auto"
+    assert cfg.denoise == "auto"
     assert cfg.w is None  # adaptive window too
 
 
@@ -86,8 +86,8 @@ def test_auto_smoothing_via_api_clean_input():
     from emgforge.synthesis.api import generate_muap_from_phi
 
     phi = _clean_phi(256).reshape(1, -1)
-    cfg_auto = MUAPConfig(smoothing_method="auto", w=256)
-    cfg_none = MUAPConfig(smoothing_method="none", w=256)
+    cfg_auto = MUAPConfig(denoise="auto", w=256)
+    cfg_none = MUAPConfig(denoise="none", w=256)
     res_auto = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_auto)
     res_none = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_none)
     assert np.allclose(res_auto.muap, res_none.muap, atol=1e-10)
@@ -98,8 +98,8 @@ def test_auto_smoothing_via_api_noisy_input():
     from emgforge.synthesis.api import generate_muap_from_phi
 
     phi = _noisy_phi(256, noise_scale=1e-3).reshape(1, -1)
-    cfg_auto = MUAPConfig(smoothing_method="auto", w=256)
-    cfg_bw = MUAPConfig(smoothing_method="butterworth", w=256)
+    cfg_auto = MUAPConfig(denoise="auto", w=256)
+    cfg_bw = MUAPConfig(denoise="butterworth", w=256)
     res_auto = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_auto)
     res_bw = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_bw)
     assert np.allclose(res_auto.muap, res_bw.muap, atol=1e-10)

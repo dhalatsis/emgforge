@@ -24,8 +24,6 @@ from emgforge.synthesis.engines.fourier import (
 from emgforge.synthesis.preprocessing import (
     resample_centered_line,
     smooth_butterworth,
-    smooth_gaussian,
-    smooth_savgol,
     taper_edges,
     upsample_matrix,
 )
@@ -39,17 +37,16 @@ from emgforge.synthesis.preprocessing import (
 class MUAPConfig:
     """Full configuration for MUAP generation."""
 
-    # Smoothing
-    smoothing_method: Literal["butterworth", "savgol", "gaussian", "none", "auto"] = "butterworth"
+    # φ(z) denoising before synthesis. "butterworth" = zero-phase lowpass;
+    # "auto" = apply Butterworth only when φ has high-frequency content (below);
+    # "none" = pass through. The spatial engine additionally offers "monopole"
+    # (a free-position monopole fit); it is not available here.
+    denoise: Literal["none", "butterworth", "auto"] = "butterworth"
     butterworth_cutoff: float = 0.03
     butterworth_order: int = 2
-    savgol_window: int = 21
-    savgol_polyorder: int = 3
-    gaussian_sigma: float = 3.0
-    # When smoothing_method=="auto", apply Butterworth iff the input phi's
-    # high-frequency fraction exceeds this threshold. Analytical phi has HF
-    # near machine epsilon (~1e-30); FEM phi has HF in the 1e-6 .. 1e-4 range.
-    # 1e-10 cleanly separates them.
+    # When denoise=="auto", apply Butterworth iff the input phi's high-frequency
+    # fraction exceeds this threshold. Analytical phi has HF near machine epsilon
+    # (~1e-30); FEM phi has HF in the 1e-6 .. 1e-4 range. 1e-10 cleanly separates them.
     auto_smoothing_hf_threshold: float = 1e-10
     auto_smoothing_hf_freq: float = 0.3  # normalised frequency cutoff for HF
 
@@ -218,13 +215,9 @@ def _hf_fraction(phi_z: np.ndarray, hf_freq: float = 0.3) -> float:
 
 
 def _apply_smoothing(phi_mat: np.ndarray, config: MUAPConfig) -> np.ndarray:
-    if config.smoothing_method == "butterworth":
+    if config.denoise == "butterworth":
         return smooth_butterworth(phi_mat, config.butterworth_cutoff, config.butterworth_order)
-    if config.smoothing_method == "savgol":
-        return smooth_savgol(phi_mat, config.savgol_window, config.savgol_polyorder)
-    if config.smoothing_method == "gaussian":
-        return smooth_gaussian(phi_mat, config.gaussian_sigma)
-    if config.smoothing_method == "auto":
+    if config.denoise == "auto":
         # Detect HF on the first fibre as representative; all rows share dz.
         first = phi_mat[0] if phi_mat.ndim == 2 else phi_mat
         hf = _hf_fraction(first, config.auto_smoothing_hf_freq)
@@ -585,7 +578,7 @@ def get_optimal_config() -> MUAPConfig:
     analytical model across 21 depths (vs r=0.894 for the old c=0.10 o=4).
     No upsampling needed — it has negligible effect with proper smoothing.
     """
-    return MUAPConfig(smoothing_method="butterworth", butterworth_cutoff=0.03, butterworth_order=2, upsample_factor=1)
+    return MUAPConfig(denoise="butterworth", butterworth_cutoff=0.03, butterworth_order=2, upsample_factor=1)
 
 
 def get_adaptive_config(w_min: int = 256, w_max: int = 1024) -> MUAPConfig:
@@ -600,7 +593,7 @@ def get_adaptive_config(w_min: int = 256, w_max: int = 1024) -> MUAPConfig:
        defensive cap prevents adapting above the input φ's natural extent
        (FEM_AND_MESH_GUIDE.md §11).
 
-    2. **Smoothing** (Workstream A.2): ``smoothing_method="auto"`` applies
+    2. **Smoothing** (Workstream A.2): ``denoise="auto"`` applies
        Butterworth (c=0.03, o=2) iff the input φ has measurable HF
        content above ``auto_smoothing_hf_threshold`` (default 1e-10).
        Analytical inputs (HF ≈ 1e-30) skip smoothing → operator
@@ -624,7 +617,7 @@ def get_adaptive_config(w_min: int = 256, w_max: int = 1024) -> MUAPConfig:
     per-caller choice.
     """
     return MUAPConfig(
-        smoothing_method="auto",
+        denoise="auto",
         butterworth_cutoff=0.03, butterworth_order=2,
         upsample_factor=1,
         w=None, w_min=w_min, w_max=w_max,
@@ -660,7 +653,7 @@ def get_mri_config() -> MUAPConfig:
     that motivated this preset.
     """
     return MUAPConfig(
-        smoothing_method="butterworth",
+        denoise="butterworth",
         butterworth_cutoff=0.03, butterworth_order=2,
         upsample_factor=1, w=256,
         edge_taper="auto",
@@ -687,7 +680,7 @@ def get_truncated_input_config() -> MUAPConfig:
         DeprecationWarning, stacklevel=2,
     )
     return MUAPConfig(
-        smoothing_method="butterworth",
+        denoise="butterworth",
         butterworth_cutoff=0.03, butterworth_order=2,
         upsample_factor=1,
         w=256,

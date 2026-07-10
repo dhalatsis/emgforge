@@ -72,7 +72,6 @@ class SpatialConfig:
     """
 
     # φ(z) preprocessing (applied per fibre before the integral)
-    smoothing: bool = True
     butterworth_cutoff: float = 0.03      # canonical (muap_smoothness study)
     butterworth_order: int = 2
     edge_taper_left: int = 5              # cosine ramp on φ endpoints (Gibbs guard)
@@ -84,12 +83,14 @@ class SpatialConfig:
     # no gain). Set 1 only with already-fine φ (e.g. the analytical cylinder tier).
     upsample_factor: int = 2
 
-    # φ(z) denoising, applied to the RAW field before the edge taper. "monopole"
-    # replaces φ with a free-position N-monopole fit — the analytic form the field
-    # actually has — instead of lowpass-filtering it. The settled choice for FEM
-    # lead fields, where mesh-scale ripple would otherwise be amplified by the
-    # CSD's second derivative. Near a no-op on analytical φ.
-    denoise: Literal["none", "monopole"] = "none"
+    # φ(z) denoising. "butterworth" is a zero-phase lowpass applied AFTER the edge
+    # taper. "monopole" replaces φ with a free-position N-monopole fit — the analytic
+    # form the field actually has — applied to the RAW field BEFORE the taper (a taper
+    # would corrupt the tails it fits against); the settled choice for FEM lead fields,
+    # where mesh ripple is otherwise amplified by the CSD's 2nd derivative, and near a
+    # no-op on analytical φ. "none" passes through. These are mutually exclusive; the
+    # two positions are a property of each method, not a composition knob.
+    denoise: Literal["none", "butterworth", "monopole"] = "butterworth"
     denoise_n_poles: int = 3
 
     # fibre-end windows (tendon termination of the travelling wave). "one_sided"
@@ -144,7 +145,7 @@ def _preprocess_phi(phi_z: np.ndarray, dz_mm: float, cfg: SpatialConfig
         phi[-rN:] *= 0.5 * (1 + np.cos(np.pi * np.arange(rN) / rN))
     if lN > 0:
         phi[:lN] *= (0.5 * (1 + np.cos(np.pi * np.arange(lN) / lN)))[::-1]
-    if cfg.smoothing:
+    if cfg.denoise == "butterworth":
         phi = smooth_butterworth(phi, cfg.butterworth_cutoff, cfg.butterworth_order)
     if cfg.upsample_factor > 1:
         phi = upsample_cubic(phi, cfg.upsample_factor)

@@ -55,7 +55,7 @@ def main():
         v = float(d[f"{n}__v"]); posz = float(d[f"{n}__posz"])
         tg, g = d[f"{n}__golden_t_ms"], d[f"{n}__golden_sfap"]
         cfg = SpatialConfig(v=v, fsamp=FS, w=W, csd_derivative=2, upsample_factor=2,
-                            fiber_window="boxcar", smoothing=False,
+                            fiber_window="boxcar", denoise="none",
                             edge_taper_left=0, edge_taper_right=0, t_start_ms=-40.0)
         t, s, _ = compute_sfap_spatial(phi, dz, L1, L2, posz, cfg)
         sh, r, flip = best_shift_r(tg, g, t, s)

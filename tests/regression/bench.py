@@ -87,7 +87,7 @@ def _config_edge_taper(n: int = 15) -> MUAPConfig:
 def _config_no_smoothing() -> MUAPConfig:
     """No smoothing — bare Fourier pipeline. Baseline for ablation."""
     cfg = MUAPConfig()
-    cfg.smoothing_method = "none"
+    cfg.denoise = "none"
     return cfg
 
 
@@ -116,7 +116,7 @@ def _config_adaptive_w_taper() -> MUAPConfig:
 def _config_adaptive_w_no_smoothing() -> MUAPConfig:
     """Adaptive w + no smoothing. Isolates the w effect from smoothing."""
     cfg = _config_adaptive_w()
-    cfg.smoothing_method = "none"
+    cfg.denoise = "none"
     return cfg
 
 
@@ -129,7 +129,7 @@ def _config_adaptive_w_auto() -> MUAPConfig:
     FEM resilience.
     """
     cfg = _config_adaptive_w()
-    cfg.smoothing_method = "auto"
+    cfg.denoise = "auto"
     return cfg
 
 

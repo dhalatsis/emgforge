@@ -211,7 +211,7 @@ def main():
         "default": MUAPConfig(),
         "adaptive_w_auto": _adaptive_cfg_fixed_w(),
         "truncated_explicit": MUAPConfig(
-            smoothing_method="butterworth", butterworth_cutoff=0.03,
+            denoise="butterworth", butterworth_cutoff=0.03,
             butterworth_order=2, edge_taper=15,
         ),
     }

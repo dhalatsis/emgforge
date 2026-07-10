@@ -102,12 +102,9 @@ For a MUAP, repeat for each fiber and sum `E` before applying IAP and Radon.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `smoothing_method` | `'butterworth'` | `'butterworth'`, `'savgol'`, `'gaussian'`, `'none'` |
+| `denoise` | `'butterworth'` | φ(z) denoising: `'none'`, `'butterworth'` (zero-phase lowpass), `'auto'` (Butterworth only when φ has HF content). The spatial engine also offers `'monopole'`. |
 | `butterworth_cutoff` | 0.03 | Normalized cutoff frequency (0-1) |
 | `butterworth_order` | 2 | Filter order |
-| `savgol_window` | 21 | Savitzky-Golay window length (odd) |
-| `savgol_polyorder` | 3 | Polynomial order |
-| `gaussian_sigma` | 3.0 | Gaussian kernel std dev |
 | `upsample_factor` | 1 | Cubic spline upsampling factor (1=off) |
 | `edge_taper` | 0 | Cosine taper N edge samples to zero (10=MRI) |
 | `v` | 4.0 | Conduction velocity (m/s) |
@@ -122,13 +119,12 @@ For a MUAP, repeat for each fiber and sum `E` before applying IAP and Radon.
 
 ### Preset Configurations
 
-| Config | Smoothing | Window `w` | Edge taper | Use case |
-|--------|-----------|------------|------------|----------|
-| `get_optimal_config()` | BW c=0.03 o=2 | 256 (fixed) | 0 | Legacy default (back-compat) |
-| `get_fast_config()` | Savgol w=21 | 256 (fixed) | 0 | Quick evaluation |
-| `get_high_quality_config()` | BW c=0.03 o=2 | 256 (fixed) | 0 | Publication figures |
-| `get_adaptive_config()` | BW c=0.03 o=2 | **adaptive [256, 1024]** | 0 | New code with FEM/analytical inputs |
-| `get_truncated_input_config()` | BW c=0.03 o=2 | 256 (fixed) | 15 | When input φ is known-truncated |
+| Config | Denoise | Window `w` | Edge taper | Use case |
+|--------|---------|------------|------------|----------|
+| `get_optimal_config()` | `butterworth` c=0.03 o=2 | 256 (fixed) | 0 | Legacy default (back-compat) |
+| `get_adaptive_config()` | `auto` (BW c=0.03 o=2) | **adaptive [256, 1024]** | `auto` | New code with FEM/analytical inputs |
+| `get_mri_config()` | `butterworth` c=0.03 o=2 | 256 (fixed) | `auto` (15) | MRI lead fields (truncated) |
+| `get_truncated_input_config()` | `butterworth` c=0.03 o=2 | 256 (fixed) | 15 | When input φ is known-truncated |
 
 #### When to use which
 
@@ -189,7 +185,7 @@ print(f"PtP pred:   {result_pred.metrics['peak_to_peak']:.2e}")
 from muap_generator import generate_muap_from_phi, MUAPConfig
 
 config = MUAPConfig(
-    smoothing_method='butterworth',
+    denoise='butterworth',
     butterworth_cutoff=0.1,
     upsample_factor=2,
     len1_mm=60.0,

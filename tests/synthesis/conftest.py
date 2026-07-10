@@ -63,7 +63,7 @@ def golden() -> dict[str, GoldenCase]:
 # This is NOT the production recipe.
 MATCHED = dict(
     fsamp=2048.0, w=256, csd_derivative=2, upsample_factor=2,
-    fiber_window="boxcar", smoothing=False,
+    fiber_window="boxcar", denoise="none",
     edge_taper_left=0, edge_taper_right=0, t_start_ms=-40.0,
 )
 

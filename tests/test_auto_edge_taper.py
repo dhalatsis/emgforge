@@ -74,8 +74,8 @@ def test_edge_over_peak_2d_uses_worst_edge():
 def test_auto_edge_taper_skips_decayed():
     """Decayed input: auto-taper should be a no-op (taper=0 path)."""
     phi = _decayed_phi(256).reshape(1, -1)
-    cfg_auto = MUAPConfig(smoothing_method="none", edge_taper="auto")
-    cfg_none = MUAPConfig(smoothing_method="none", edge_taper=0)
+    cfg_auto = MUAPConfig(denoise="none", edge_taper="auto")
+    cfg_none = MUAPConfig(denoise="none", edge_taper=0)
     res_auto = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_auto)
     res_none = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_none)
     assert np.allclose(res_auto.muap, res_none.muap, atol=1e-12)
@@ -84,9 +84,9 @@ def test_auto_edge_taper_skips_decayed():
 def test_auto_edge_taper_applies_to_truncated():
     """Truncated input: auto-taper should match explicit edge_taper=15."""
     phi = _truncated_phi(256).reshape(1, -1)
-    cfg_auto    = MUAPConfig(smoothing_method="none", edge_taper="auto")
-    cfg_explicit = MUAPConfig(smoothing_method="none", edge_taper=15)
-    cfg_none    = MUAPConfig(smoothing_method="none", edge_taper=0)
+    cfg_auto    = MUAPConfig(denoise="none", edge_taper="auto")
+    cfg_explicit = MUAPConfig(denoise="none", edge_taper=15)
+    cfg_none    = MUAPConfig(denoise="none", edge_taper=0)
     res_auto = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_auto)
     res_explicit = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_explicit)
     res_none = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_none)
@@ -101,9 +101,9 @@ def test_auto_edge_taper_applies_to_truncated():
 def test_auto_edge_taper_threshold_override():
     """Bump the threshold above 1.0 — even truncated input shouldn't trigger."""
     phi = _truncated_phi(256).reshape(1, -1)
-    cfg = MUAPConfig(smoothing_method="none", edge_taper="auto",
+    cfg = MUAPConfig(denoise="none", edge_taper="auto",
                       auto_edge_taper_threshold=2.0)
-    cfg_none = MUAPConfig(smoothing_method="none", edge_taper=0)
+    cfg_none = MUAPConfig(denoise="none", edge_taper=0)
     res_a = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg)
     res_n = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_none)
     assert np.allclose(res_a.muap, res_n.muap, atol=1e-12)
@@ -112,9 +112,9 @@ def test_auto_edge_taper_threshold_override():
 def test_auto_edge_taper_n_override():
     """The auto-taper sample count should be configurable."""
     phi = _truncated_phi(256).reshape(1, -1)
-    cfg_n5  = MUAPConfig(smoothing_method="none", edge_taper="auto",
+    cfg_n5  = MUAPConfig(denoise="none", edge_taper="auto",
                           auto_edge_taper_n=5)
-    cfg_e5  = MUAPConfig(smoothing_method="none", edge_taper=5)
+    cfg_e5  = MUAPConfig(denoise="none", edge_taper=5)
     res_n5 = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_n5)
     res_e5 = generate_muap_from_phi(phi, dz_mm=1.0, config=cfg_e5)
     assert np.allclose(res_n5.muap, res_e5.muap, atol=1e-12), \
@@ -124,7 +124,7 @@ def test_auto_edge_taper_n_override():
 def test_invalid_edge_taper_string_raises():
     """Anything other than 'auto' or int should raise ValueError."""
     phi = _decayed_phi(256).reshape(1, -1)
-    cfg = MUAPConfig(smoothing_method="none", edge_taper="banana")
+    cfg = MUAPConfig(denoise="none", edge_taper="banana")
     with pytest.raises(ValueError):
         generate_muap_from_phi(phi, dz_mm=1.0, config=cfg)
 
@@ -136,7 +136,7 @@ def test_adaptive_config_uses_auto_taper():
     cfg = get_adaptive_config()
     assert cfg.edge_taper == "auto"
     # And the other adaptive defaults still in place
-    assert cfg.smoothing_method == "auto"
+    assert cfg.denoise == "auto"
     assert cfg.w is None
 
 
