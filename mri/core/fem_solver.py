@@ -107,6 +107,7 @@ class MRIFEMModel:
         gdim: int = 3,
         skin_shell_mm: float = 0.0,
         sigma_mode: str = "centerline",
+        conductivity: dict | None = None,
         **options,
     ):
         """
@@ -154,6 +155,11 @@ class MRIFEMModel:
 
         self.options = self.default_options.copy()
         self.options.update(options)
+
+        # Per-tissue conductivity table. `conductivity` overrides the module
+        # defaults key-by-key (matching the old monkeypatch semantics) without
+        # mutating shared global state.
+        self.conductivity = {**CONDUCTIVITY, **(conductivity or {})}
 
         # Per-muscle fiber model (v2)
         self.fiber_model = None
@@ -271,7 +277,7 @@ class MRIFEMModel:
         with self.sigma_anisotropic.vector.localForm() as loc:
             for cell_idx, marker in enumerate(self.cell_markers.values):
                 material = TAG_TO_MATERIAL.get(int(marker), "fat_skin")
-                sigma_val = CONDUCTIVITY[material]
+                sigma_val = self.conductivity[material]
 
                 if isinstance(sigma_val, np.ndarray):
                     loc.setValuesBlocked([cell_idx], sigma_val.flatten())
@@ -331,9 +337,9 @@ class MRIFEMModel:
                 # Non-muscle dispatch
                 if muscle is None:
                     if seg_label == 0:
-                        tensor = CONDUCTIVITY["fat_skin"] * np.eye(3)
+                        tensor = self.conductivity["fat_skin"] * np.eye(3)
                     else:
-                        tensor = CONDUCTIVITY["muscle"]
+                        tensor = self.conductivity["muscle"]
                 elif muscle.tissue_type != "muscle":
                     tensor = global_tensor[seg_label]
                 # Muscle dispatch by mode
@@ -490,7 +496,7 @@ class MRIFEMModel:
               f"({n_skin / max(n_fat_skin, 1) * 100:.1f}%)")
 
         # 6. Override σ for skin cells
-        skin_sigma = CONDUCTIVITY["skin"] * np.eye(3)
+        skin_sigma = self.conductivity["skin"] * np.eye(3)
         with self.sigma_anisotropic.vector.localForm() as loc:
             for ci in np.where(is_skin)[0]:
                 loc.setValuesBlocked([int(ci)], skin_sigma.flatten())

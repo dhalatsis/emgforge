@@ -72,7 +72,7 @@ class FEMModel:
         "sampled_electrode_points": 1024,
     }
 
-    def __init__(self, msh_file_path: str, gdim=3, **options):
+    def __init__(self, msh_file_path: str, gdim=3, conductivity: dict | None = None, **options):
         self.mesh, self.cell_markers, self.facet_markers = io.gmshio.read_from_msh(
             msh_file_path, MPI.COMM_WORLD, gdim=gdim
         )
@@ -83,6 +83,11 @@ class FEMModel:
 
         self.options = self.default_options.copy()
         self.options.update(options)
+
+        # Per-tissue conductivity table. `conductivity` overrides the module
+        # defaults key-by-key (matching the old monkeypatch semantics) without
+        # mutating shared global state.
+        self.conductivity = {**CONDUCTIVITY, **(conductivity or {})}
 
         self.build_model()
 
@@ -132,11 +137,11 @@ class FEMModel:
             for cell_index, marker in enumerate(self.cell_markers.values):
                 material = material_map[int(marker)]
                 if material == "Muscle":
-                    loc_aniso.setValuesBlocked([cell_index], CONDUCTIVITY[material].flatten())
+                    loc_aniso.setValuesBlocked([cell_index], self.conductivity[material].flatten())
                 else:
                     loc_aniso.setValuesBlocked(
                         [cell_index],
-                        (CONDUCTIVITY[material] * np.eye(self.mesh.topology.dim)).flatten(),
+                        (self.conductivity[material] * np.eye(self.mesh.topology.dim)).flatten(),
                     )
 
     def apply_pinnation(self, theta: float):
@@ -154,7 +159,7 @@ class FEMModel:
             for cell_index, marker in enumerate(self.cell_markers.values):
                 material = material_map[int(marker)]
                 if material == "Muscle":
-                    conductivity_tensor = CONDUCTIVITY[material]
+                    conductivity_tensor = self.conductivity[material]
                     vertices = self.mesh_topology.connectivity(3, 0).links(cell_index)
                     coordinates = self.mesh_geometry.x[vertices]
                     centroid = np.mean(coordinates, axis=0)
