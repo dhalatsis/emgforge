@@ -1,4 +1,4 @@
-"""MUAP regression gate: 20 reference MUAPs, compared byte-for-byte and by correlation.
+"""MUAP regression gate: 21 reference MUAPs, compared byte-for-byte and by correlation.
 
 This is the fast self-regression net for the synthesis engines. Unlike test_golden.py
 (which compares the spatial engine to the Fourier engine), this pins each engine to ITS
@@ -40,7 +40,7 @@ def reference():
 
 @pytest.fixture(scope="session")
 def produced():
-    """Run all 20 cases once; share the outputs across every test."""
+    """Run all 21 cases once; share the outputs across every test."""
     return {name: run_case(CASE_BY_NAME[name]) for name in CASE_NAMES}
 
 

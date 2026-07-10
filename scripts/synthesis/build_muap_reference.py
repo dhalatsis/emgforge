@@ -1,4 +1,4 @@
-"""Build the MUAP regression reference — the 20 expected outputs the test gates against.
+"""Build the MUAP regression reference — the 21 expected outputs the test gates against.
 
 The case definitions live in tests/synthesis/muap_cases.py (shared with the test); this
 script only runs them and freezes the outputs. Rerun it ONLY when a change to the MUAP

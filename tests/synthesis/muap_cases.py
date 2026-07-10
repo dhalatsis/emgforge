@@ -1,4 +1,4 @@
-"""The 20 MUAP regression cases — one source of truth, shared by the builder and the test.
+"""The 21 MUAP regression cases — one source of truth, shared by the builder and the test.
 
 Each case is a fully-specified (φ, config) input that runs through one engine to a
 MUAP. φ is built deterministically from analytic monopoles (with fixed-seed noise on
@@ -62,6 +62,7 @@ class MuapCase:
     config: Any                       # SpatialConfig | MUAPConfig
     call_kwargs: Dict[str, Any] = field(default_factory=dict)
     note: str = ""
+    posz_per_fibre: Any = None        # spatial only: a per-fibre NMJ posz (mm) sequence
 
 
 def run_case(c: MuapCase):
@@ -70,8 +71,11 @@ def run_case(c: MuapCase):
         phi = np.atleast_2d(c.phi)
         t = None
         m = None
-        for row in phi:
-            t, s, _ = compute_sfap_spatial(row, c.dz, config=c.config, **c.call_kwargs)
+        for i, row in enumerate(phi):
+            kw = dict(c.call_kwargs)
+            if c.posz_per_fibre is not None:      # each fibre gets its own NMJ position
+                kw["posz_mm"] = float(c.posz_per_fibre[i])
+            t, s, _ = compute_sfap_spatial(row, c.dz, config=c.config, **kw)
             m = s if m is None else m + s
         return np.asarray(t, float), np.asarray(m, float)
 
@@ -98,12 +102,12 @@ def _fourier(**kw):
     return replace(get_optimal_config(), **base)
 
 
-# --- the 20 cases -----------------------------------------------------------
+# --- the 21 cases -----------------------------------------------------------
 
 def _build_cases():
     C = []
 
-    # ---- spatial engine (13) ----
+    # ---- spatial engine (14) ----
     C += [
         MuapCase("spat_tukey_shallow", "spatial", mono(8.0), CYL_DZ,
                  _spatial(fiber_window="tukey"),
@@ -150,6 +154,13 @@ def _build_cases():
         MuapCase("spat_polarity_neg", "spatial", mono(12.0), CYL_DZ,
                  _spatial(fiber_window="one_sided", polarity=-1),
                  dict(len1_mm=60.0, len2_mm=60.0, posz_mm=0.0), "flipped output polarity"),
+        MuapCase("spat_multi_nmj", "spatial",
+                 np.stack([mono(d) for d in (10.0, 11.0, 12.0, 13.0, 14.0)]), CYL_DZ,
+                 _spatial(fiber_window="one_sided"),
+                 dict(len1_mm=60.0, len2_mm=60.0),
+                 "5 fibres, per-fibre NMJ scatter ±12mm — REAL temporal dispersion "
+                 "(spatial engine is physical-time native, so posz is a true time-of-flight)",
+                 posz_per_fibre=(-12.0, -6.0, 0.0, 6.0, 12.0)),
     ]
 
     # ---- fourier engine (7) ----
@@ -161,7 +172,10 @@ def _build_cases():
                  dict(posz_mm_arr=np.array([0.0])), "MRI preset, short fibre (auto edge-taper fires)"),
         MuapCase("four_multi_posz", "fourier",
                  np.stack([mono(10.0), mono(11.0), mono(12.0)]), CYL_DZ, _fourier(),
-                 dict(posz_mm_arr=np.array([-5.0, 0.0, 5.0])), "3 fibres, per-fibre NMJ offset"),
+                 dict(posz_mm_arr=np.array([-5.0, 0.0, 5.0])),
+                 "3 fibres summed with per-fibre posz — a Fourier per-fibre-summation "
+                 "REGRESSION anchor, not an NMJ-physics test: the Fourier output is "
+                 "window-centred, so posz barely shifts a fibre in time (see spat_multi_nmj)"),
         MuapCase("four_multi_lengths", "fourier",
                  np.stack([mono(10.0), mono(11.0), mono(12.0)]), CYL_DZ, _fourier(),
                  dict(len1_per_fiber=np.array([50.0, 60.0, 70.0]),
@@ -183,5 +197,5 @@ CASES = _build_cases()
 CASE_NAMES = [c.name for c in CASES]
 CASE_BY_NAME = {c.name: c for c in CASES}
 
-assert len(CASES) == 20, f"expected 20 cases, have {len(CASES)}"
+assert len(CASES) == 21, f"expected 21 cases, have {len(CASES)}"
 assert len(CASE_NAMES) == len(set(CASE_NAMES)), "duplicate case name"
