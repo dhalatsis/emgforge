@@ -88,6 +88,7 @@ def test_convergence_guard_raises_on_nonconvergence(solved):
     from dolfinx import fem
 
     from emgop.fem import ConstrainedLinearProblem
+    from emgop.fem.leadfield import KSPConfig
 
     m, _ = solved
     V = m.V_scalar
@@ -99,4 +100,4 @@ def test_convergence_guard_raises_on_nonconvergence(solved):
 
     p = ConstrainedLinearProblem(a, L, V)
     with pytest.raises(RuntimeError, match="converge"):
-        p.solve(max_it=1)
+        p.solve(ksp=KSPConfig(max_it=1))

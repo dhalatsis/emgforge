@@ -11,6 +11,7 @@ from petsc4py.PETSc import ScalarType as default_scalar_type
 from ufl import dx, ds
 
 from .constants import CONDUCTIVITY, GROUP_NAMES
+from .leadfield import GaussianSource, KSPConfig, UniformSink
 from .rotation import rotate_point_in_cylinder
 
 
@@ -45,17 +46,14 @@ class ConstrainedLinearProblem:
         point_source = NativePointSource(self.V, points, magnitude=gamma)
         point_source.apply_to_vector(self.b_fun)
 
-    def solve(self, ksp_type: str = "gmres", pc_type: str = "ilu",
-              rtol: float = 1e-8, atol: float = 1e-10, max_it: int = 5000) -> Function:
+    def solve(self, ksp: "KSPConfig | None" = None) -> Function:
         uh = Function(self.V)
 
         solver = PETSc.KSP().create(self.A.getComm())
         solver.setOperators(self.A)
         # Explicit KSP config (previously relied on PETSc defaults — rtol ~1e-5,
-        # and no convergence check). Mirrors MRIFEMModel's solver settings.
-        solver.setType(ksp_type)
-        solver.getPC().setType(pc_type)
-        solver.setTolerances(rtol=rtol, atol=atol, max_it=max_it)
+        # and no convergence check). Defaults mirror MRIFEMModel's settings.
+        (ksp or KSPConfig()).apply_to(solver)
 
         nullspace = PETSc.NullSpace().create(constant=True, comm=MPI.COMM_WORLD)
         self.A.setNullSpace(nullspace)
@@ -102,14 +100,6 @@ class FEMModel:
         self.conductivity = {**CONDUCTIVITY, **(conductivity or {})}
 
         self.build_model()
-
-    @staticmethod
-    def _gaussian_nd(x, x_mu, sigma_val):
-        x = x.T
-        squared_dist = np.sum((x - x_mu) ** 2, axis=-1)
-        return 1 / ((2 * np.pi * sigma_val**2) ** (x.shape[-1] / 2)) * np.exp(
-            -squared_dist / (2 * sigma_val**2)
-        )
 
     @staticmethod
     def _sample_points_in_sphere(center: np.ndarray, radius: float, num_points: int) -> np.ndarray:
@@ -195,12 +185,10 @@ class FEMModel:
         self.volume = fem.assemble_scalar(fem.form(u_constant * dx))
 
         if self.options["point_source"]:
-            self.source_function = fem.Constant(self.mesh, default_scalar_type(-1.0 / self.volume))
+            self.source_function = UniformSink().as_constant(self.mesh, self.volume)
         else:
             sigma = float(self.options.get("source_sigma", self.options.get("variance", 0.1)))
-            self.source_function.interpolate(lambda x: self._gaussian_nd(x, point, sigma))
-            integral = fem.assemble_scalar(fem.form(self.source_function / self.volume * dx))
-            self.source_function.interpolate(lambda x: self._gaussian_nd(x, point, sigma) - integral)
+            GaussianSource(sigma).assign(self.source_function, point, self.volume)
 
     def solve_for_point(self, point: np.ndarray, source_value: float = 1.0) -> Function:
         self.assign_source_to_point(point, source_value)
