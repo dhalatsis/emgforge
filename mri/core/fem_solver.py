@@ -45,6 +45,8 @@ from petsc4py import PETSc
 from petsc4py.PETSc import ScalarType as default_scalar_type
 from ufl import dx, ds
 
+from emgop.fem.leadfield import GaussianSource, KSPConfig, LeadField
+
 
 # ---------------------------------------------------------------------------
 # MRI tissue mapping (from build_mesh.py)
@@ -245,30 +247,37 @@ class MRIFEMModel:
     # ---- Setup ----
 
     def build_model(self):
-        """Create function spaces, bounding box tree, conductivity map."""
-        self.tree = geometry.bb_tree(self.mesh, self.mesh.topology.dim)
-        n_cells = self.mesh.topology.index_map(3).size_local
-        self.midpoints = geometry.create_midpoint_tree(
-            self.mesh, self.mesh.topology.dim,
-            np.arange(n_cells, dtype=np.int32),
-        )
+        """Build the σ field (v1/v2), then the shared LeadField reciprocity solve.
 
+        The σ-map (tissue tags + fibre-aligned anisotropy) stays MRI-specific; the
+        solve machinery — spaces, source, assembly, KSP, evaluate — is delegated to
+        emgop.fem.LeadField (shared with the cylinder/ellipse solver). The function
+        spaces and evaluation trees are surfaced from it for back-compatible access.
+        """
         self.mesh_topology.create_connectivity(self.mesh.topology.dim, 0)
 
         self.V_tensor = fem.functionspace(
             self.mesh, ("DG", 0, (self.mesh.topology.dim, self.mesh.topology.dim))
         )
-        self.V_scalar = fem.functionspace(self.mesh, ("CG", 1))
-        self.V_source = fem.functionspace(
-            self.mesh, ("CG", self.options["source_degree"])
-        )
-
-        self.uh = fem.Function(self.V_scalar)
 
         if self.fiber_model is not None:
             self._build_conductivity_map_v2()
         else:
             self._build_conductivity_map_v1()
+
+        self._leadfield = LeadField(
+            self.mesh, self.sigma_anisotropic,
+            source_degree=self.options["source_degree"],
+            boundary_value=self.options["boundary_value"],
+            ksp=KSPConfig(solver_type=self.options["solver_type"],
+                          pc_type=self.options["preconditioner"],
+                          rtol=self.options["rtol"], atol=self.options["atol"],
+                          max_it=self.options["max_iter"]))
+        self.tree = self._leadfield.tree
+        self.midpoints = self._leadfield.midpoints
+        self.V_scalar = self._leadfield.V_scalar
+        self.V_source = self._leadfield.V_source
+        self.uh = self._leadfield.uh
 
     def _build_conductivity_map_v1(self):
         """v1: Assign per-cell conductivity from tissue type (uniform muscle)."""
@@ -557,43 +566,11 @@ class MRIFEMModel:
         uh : dolfinx.fem.Function
             Solution potential (CG1).
         """
-        self.assign_source_to_point(point, source_sigma)
-
-        u = ufl.TrialFunction(self.V_scalar)
-        v = ufl.TestFunction(self.V_scalar)
-        g = fem.Constant(self.mesh, default_scalar_type(self.options["boundary_value"]))
-
-        a = ufl.dot(ufl.dot(self.sigma_anisotropic, ufl.grad(u)), ufl.grad(v)) * dx
-        L = self.source_function * v * dx + g * v * ds
-
-        # Assemble
-        A = assemble_matrix(form(a))
-        A.assemble()
-
-        b = create_vector(form(L))
-        with b.localForm() as b_loc:
-            b_loc.set(0)
-        assemble_vector(b, form(L))
-
-        # Nullspace: constant
-        nullspace = PETSc.NullSpace().create(constant=True)
-        A.setNullSpace(nullspace)
-        nullspace.remove(b)
-
-        # Solve
-        self.uh = fem.Function(self.V_scalar)
-        solver = PETSc.KSP().create(A.getComm())
-        solver.setOperators(A)
-        solver.setType(self.options["solver_type"])
-        solver.getPC().setType(self.options["preconditioner"])
-        solver.setTolerances(
-            rtol=self.options["rtol"],
-            atol=self.options["atol"],
-            max_it=self.options["max_iter"],
-        )
-        solver.solve(b, self.uh.vector)
-
-        self._last_solver = solver
+        sigma = source_sigma or self.options["source_sigma"]
+        self.point = np.asarray(point, dtype=np.float64).reshape(3)
+        # MRI keeps its own zero-mean arithmetic (assemble(f)/vol) via mean_after_assemble.
+        self.uh = self._leadfield.solve(
+            point, GaussianSource(float(sigma), mean_after_assemble=True))
         return self.uh
 
     # ---- Evaluation ----
@@ -618,11 +595,7 @@ class MRIFEMModel:
             Potential at each point.
         """
         uh = self.uh if uh is None else uh
-        cell_ids = geometry.compute_closest_entity(
-            self.tree, self.midpoints, self.mesh, points
-        ).squeeze()
-        vals = uh.eval(points, cell_ids)
-        return np.asarray(vals).reshape(-1)
+        return self._leadfield.phi(points, uh)
 
     # ---- Mesh info ----
 

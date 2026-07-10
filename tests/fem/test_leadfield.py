@@ -16,6 +16,7 @@ def test_gaussian_source_is_zero_mean(solved):
     from ufl import dx
 
     m, _ = solved
+    m.assign_source_to_point(np.array([10.0, 0.0, 20.0]))   # populates m.volume
     sf = fem.Function(m.V_pol)
     GaussianSource(3.0).assign(sf, np.array([10.0, 0.0, 20.0]), m.volume)
     integral = float(fem.assemble_scalar(fem.form(sf * dx)))
@@ -42,6 +43,7 @@ def test_gaussian_source_mean_after_assemble_is_close_not_identical(solved):
 
     m, _ = solved
     pt = np.array([10.0, 0.0, 20.0])
+    m.assign_source_to_point(pt)   # populates m.volume
     a = fem.Function(m.V_pol); GaussianSource(3.0, mean_after_assemble=False).assign(a, pt, m.volume)
     b = fem.Function(m.V_pol); GaussianSource(3.0, mean_after_assemble=True).assign(b, pt, m.volume)
     av, bv = np.asarray(a.vector.array), np.asarray(b.vector.array)

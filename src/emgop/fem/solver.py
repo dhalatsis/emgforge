@@ -11,7 +11,7 @@ from petsc4py.PETSc import ScalarType as default_scalar_type
 from ufl import dx, ds
 
 from .constants import CONDUCTIVITY, GROUP_NAMES
-from .leadfield import GaussianSource, KSPConfig, UniformSink
+from .leadfield import GaussianSource, KSPConfig, LeadField, UniformSink
 from .rotation import rotate_point_in_cylinder
 from .sigma import LayeredSigma
 
@@ -113,21 +113,35 @@ class FEMModel:
         return np.array(pts, dtype=np.float64)
 
     def build_model(self):
-        self.tree = geometry.bb_tree(self.mesh, self.mesh.topology.dim)
-        self.midpoints = geometry.create_midpoint_tree(
-            self.mesh, self.mesh.topology.dim, np.arange(self.cell_markers.values.size, dtype=np.int32)
-        )
-
         self.mesh_topology.create_connectivity(self.mesh.topology.dim, 0)
         self.cell_to_vertex = self.mesh_topology.connectivity(self.mesh.topology.dim, 0)
 
-        self.V_scalar = fem.functionspace(self.mesh, ("CG", 1))
-        self.V_pol = fem.functionspace(self.mesh, ("CG", self.options["source_degree"]))
-
-        self.uh = fem.Function(self.V_scalar)
-
         if self.options["build_conductivity_map"]:
             self.build_conductivity_map()
+            # The reciprocity solve (spaces, source, assembly, KSP, evaluate) lives in
+            # LeadField; FEMModel builds the σ field and delegates. The function spaces
+            # and evaluation trees are surfaced from it so external callers
+            # (ElectrodeFEMSolver, pointcloud) keep reading them off the model.
+            self._leadfield = LeadField(
+                self.mesh, self.sigma_anisotropic,
+                source_degree=self.options["source_degree"],
+                boundary_value=self.options["boundary_value"], ksp=KSPConfig())
+            self.tree = self._leadfield.tree
+            self.midpoints = self._leadfield.midpoints
+            self.V_scalar = self._leadfield.V_scalar
+            self.V_pol = self._leadfield.V_source
+            self.uh = self._leadfield.uh
+        else:
+            # No σ-map: a solver that is never actually solved (dead path kept for
+            # back-compat). Build the trees/spaces directly, no LeadField.
+            self._leadfield = None
+            self.tree = geometry.bb_tree(self.mesh, self.mesh.topology.dim)
+            self.midpoints = geometry.create_midpoint_tree(
+                self.mesh, self.mesh.topology.dim,
+                np.arange(self.cell_markers.values.size, dtype=np.int32))
+            self.V_scalar = fem.functionspace(self.mesh, ("CG", 1))
+            self.V_pol = fem.functionspace(self.mesh, ("CG", self.options["source_degree"]))
+            self.uh = fem.Function(self.V_scalar)
 
     def build_conductivity_map(self):
         self.sigma_anisotropic = LayeredSigma(self.conductivity)(self.mesh, self.cell_markers)
@@ -156,9 +170,10 @@ class FEMModel:
 
     def evaluate_solution_at_points(self, points: np.ndarray, uh: Function | None = None) -> np.ndarray:
         uh = self.uh if uh is None else uh
+        if self._leadfield is not None:
+            return self._leadfield.phi(points, uh)
         cell_ids = geometry.compute_closest_entity(self.tree, self.midpoints, self.mesh, points).squeeze()
-        vals = uh.eval(points, cell_ids)
-        return np.asarray(vals).reshape(-1)
+        return np.asarray(uh.eval(points, cell_ids)).reshape(-1)
 
     def assign_source_to_point(self, point: np.ndarray, source_value: float = 1.0):
         self.point = point
@@ -177,6 +192,17 @@ class FEMModel:
             GaussianSource(sigma).assign(self.source_function, point, self.volume)
 
     def solve_for_point(self, point: np.ndarray, source_value: float = 1.0) -> Function:
+        self.point = np.asarray(point)
+
+        # Main path: Gaussian volumetric source on a conductivity map → the shared
+        # LeadField reciprocity solve.
+        if not self.options["point_source"] and self._leadfield is not None:
+            sigma = float(self.options.get("source_sigma", self.options.get("variance", 0.1)))
+            self.uh = self._leadfield.solve(point, GaussianSource(sigma))
+            return self.uh
+
+        # Specialised paths (sampled/point electrode, or the no-σ-map dead branch):
+        # keep the explicit assembly + point-source injection.
         self.assign_source_to_point(point, source_value)
 
         u = ufl.TrialFunction(self.V_scalar)
