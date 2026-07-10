@@ -12,8 +12,7 @@ from muap_generator.spatial_refactor.spatial_sfap import (  # noqa: F401
     build_csd_matrix,
     compute_muap_spatial,
     compute_sfap_spatial,
-    rosenfalck_dvm_dz,
-    rosenfalck_d2vm_dz2,
+    rosenfalck_vm,
 )
 
 __all__ = [
@@ -22,6 +21,5 @@ __all__ = [
     "compute_sfap_spatial",
     "compute_muap_spatial",
     "build_csd_matrix",
-    "rosenfalck_dvm_dz",
-    "rosenfalck_d2vm_dz2",
+    "rosenfalck_vm",
 ]

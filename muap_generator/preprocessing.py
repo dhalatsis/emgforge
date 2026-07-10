@@ -195,38 +195,3 @@ def resample_centered_line(
     else:
         raise ValueError(f"pad_mode must be 'edge' or 'zero', got {pad_mode!r}")
     return np.interp(z_out, z_in, phi_z, left=left, right=right)
-
-
-# ---------------------------------------------------------------------------
-# Fiber sampling from 3-D field volumes
-# ---------------------------------------------------------------------------
-
-def sample_fibers_in_annulus(
-    n_fibers: int,
-    field_shape: Tuple[int, int, int],
-    r_min: int = 10,
-    r_max: int = 35,
-    seed: int = 42,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Randomly sample (x, y) positions inside an annulus in the transverse plane."""
-    _, Y, X = field_shape
-    cx, cy = X // 2, Y // 2
-    rng = np.random.default_rng(seed)
-    xs, ys = [], []
-    while len(xs) < n_fibers:
-        x = int(rng.integers(0, X))
-        y = int(rng.integers(0, Y))
-        r = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
-        if r_min <= r <= r_max:
-            xs.append(x)
-            ys.append(y)
-    return np.array(xs), np.array(ys)
-
-
-def extract_phi_lines(
-    field: np.ndarray,
-    xs: np.ndarray,
-    ys: np.ndarray,
-) -> np.ndarray:
-    """Extract φ(z) lines from a (Z, Y, X) field volume at given (x, y) positions."""
-    return np.stack([field[:, y, x] for x, y in zip(xs, ys)], axis=0)

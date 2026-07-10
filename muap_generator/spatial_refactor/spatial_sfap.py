@@ -48,22 +48,6 @@ from muap_generator.preprocessing import (
 # Rosenfalck IAP (mV→V corrected, audit 2026-06-10)
 # ---------------------------------------------------------------------------
 
-def rosenfalck_dvm_dz(z_mm: np.ndarray) -> np.ndarray:
-    """First spatial derivative of the Rosenfalck IAP.
-
-    dVm/dz = 96·(3z² − z³)·e^{−z}   [mV/mm → V/mm via the 96e-3 factor],
-    zero for z < 0 (the wave has not yet been launched at that point).
-    """
-    z = np.asarray(z_mm, dtype=float)
-    return np.where(z >= 0.0, 96e-3 * np.exp(-z) * (3.0 * z**2 - z**3), 0.0)
-
-
-def rosenfalck_d2vm_dz2(z_mm: np.ndarray) -> np.ndarray:
-    """Second derivative (the CSD shape): d²Vm/dz² = 96·z·(6 − 6z + z²)·e^{−z}."""
-    z = np.asarray(z_mm, dtype=float)
-    return np.where(z >= 0.0, 96e-3 * np.exp(-z) * z * (6.0 - 6.0 * z + z**2), 0.0)
-
-
 def rosenfalck_vm(z_mm: np.ndarray) -> np.ndarray:
     """Rosenfalck intracellular action potential (depolarisation above baseline):
     Vm(z) = 96·z³·e^{−z} [mV→V via 96e-3], zero for z < 0 (wave not yet arrived).

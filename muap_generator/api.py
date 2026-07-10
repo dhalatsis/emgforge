@@ -22,9 +22,7 @@ from muap_generator.fourier import (
     section_from_field_spectrum,
 )
 from muap_generator.preprocessing import (
-    extract_phi_lines,
     resample_centered_line,
-    sample_fibers_in_annulus,
     smooth_butterworth,
     smooth_gaussian,
     smooth_savgol,
@@ -88,12 +86,6 @@ class MUAPConfig:
     # magnitude separation, like the auto-smoothing threshold.
     auto_edge_taper_threshold: float = 0.3
     auto_edge_taper_n: int = 15
-
-    # Fibre sampling (for NPZ workflow)
-    n_fibers: int = 50
-    r_min: int = 10
-    r_max: int = 35
-    seed: int = 42
 
     # Per-fibre physiological jitter (added after Neurodec comparison —
     # zero scatter gives 4× too-short MUAP durations and 2× too-high f_dom).
@@ -582,57 +574,6 @@ def generate_muap_from_phi(
     )
 
 
-def generate_muap_from_npz(
-    npz_path: str,
-    n_fibers: int = 50,
-    config: Optional[MUAPConfig] = None,
-    use_prediction: bool = False,
-) -> MUAPResult:
-    """Generate a MUAP from an NPZ file with ``target`` / ``prediction`` fields.
-
-    Parameters
-    ----------
-    npz_path : path to ``.npz`` file.
-    n_fibers : number of fibres to sample.
-    config : optional configuration.
-    use_prediction : if True use ``prediction`` key, else ``target``.
-    """
-    if config is None:
-        config = MUAPConfig()
-
-    d = np.load(npz_path)
-    field_key = "prediction" if use_prediction else "target"
-    field = d[field_key][0, 0]  # (Z, Y, X)
-    spacing = d["spacing"][0]
-    dz_mm = float(spacing[2])
-
-    xs, ys = sample_fibers_in_annulus(
-        n_fibers, field.shape,
-        r_min=config.r_min, r_max=config.r_max, seed=config.seed,
-    )
-    phi_mat = extract_phi_lines(field, xs, ys)
-
-    result = generate_muap_from_phi(phi_mat, dz_mm, config)
-    result.fiber_positions = (xs, ys)
-    return result
-
-
-def generate_muaps_batch(
-    npz_paths: List[str],
-    n_fibers: int = 50,
-    config: Optional[MUAPConfig] = None,
-    use_prediction: bool = False,
-) -> List[MUAPResult]:
-    """Generate MUAPs from multiple NPZ files."""
-    results = []
-    for path in npz_paths:
-        try:
-            results.append(generate_muap_from_npz(path, n_fibers, config, use_prediction))
-        except Exception as e:
-            print(f"Error processing {path}: {e}")
-    return results
-
-
 # ---------------------------------------------------------------------------
 # Preset configurations
 # ---------------------------------------------------------------------------
@@ -644,16 +585,6 @@ def get_optimal_config() -> MUAPConfig:
     analytical model across 21 depths (vs r=0.894 for the old c=0.10 o=4).
     No upsampling needed — it has negligible effect with proper smoothing.
     """
-    return MUAPConfig(smoothing_method="butterworth", butterworth_cutoff=0.03, butterworth_order=2, upsample_factor=1)
-
-
-def get_fast_config() -> MUAPConfig:
-    """Fast settings (Savitzky-Golay, no upsampling)."""
-    return MUAPConfig(smoothing_method="savgol", savgol_window=21, upsample_factor=1)
-
-
-def get_high_quality_config() -> MUAPConfig:
-    """High-quality settings (same as optimal — upsampling has no benefit)."""
     return MUAPConfig(smoothing_method="butterworth", butterworth_cutoff=0.03, butterworth_order=2, upsample_factor=1)
 
 
@@ -734,49 +665,6 @@ def get_mri_config() -> MUAPConfig:
         upsample_factor=1, w=256,
         edge_taper="auto",
         auto_edge_taper_threshold=0.3, auto_edge_taper_n=15,
-    )
-
-
-def get_realistic_config(
-    nmj_sigma_mm: float = 10.0,
-    cv_sigma_m_per_s: float = 0.3,
-    tendon_sigma_mm: float = 5.0,
-    jitter_seed: int = 42,
-) -> MUAPConfig:
-    """Preset enabling physiological per-fibre scatter.
-
-    Use this when you want the MUAP shape to reflect real motor-unit
-    biology rather than a synchronous-fibre idealisation. Defaults:
-
-    - **σ_NMJ = 10 mm**: per-fibre innervation-zone position scatter
-      (Stålberg & Trontelj, typical range 5–15 mm).
-    - **σ_CV = 0.3 m/s**: per-fibre conduction-velocity scatter (around
-      a 4 m/s mean). Empirical range 0.2–0.5 m/s for healthy motor units.
-    - **σ_tendon = 5 mm**: per-fibre proximal/distal tendon-length
-      scatter (≈10% of a 50 mm half-fibre). Tendons converge over a
-      finite distance, not at a single z.
-
-    Motivation: zero scatter (legacy default) gives MUAPs 4× too short
-    and 2× too high f_dom relative to Neurodec's MRI-FEM reference. With
-    these defaults, the per-fibre summation broadens the SFAP envelope to
-    physiological 25–40 ms durations.
-
-    The slow per-fibre summation path is required because cv_sigma > 0
-    forces per-fibre kt/kalpha/kbeta grids. Expected runtime: ~N × the
-    fast path, where N is the fibre count.
-
-    Returns the same Butterworth c=0.03 o=2 smoothing as
-    ``get_optimal_config()`` so accuracy on analytical inputs is
-    preserved.
-    """
-    return MUAPConfig(
-        smoothing_method="butterworth",
-        butterworth_cutoff=0.03, butterworth_order=2,
-        upsample_factor=1,
-        nmj_sigma_mm=nmj_sigma_mm,
-        cv_sigma_m_per_s=cv_sigma_m_per_s,
-        tendon_sigma_mm=tendon_sigma_mm,
-        jitter_seed=jitter_seed,
     )
 
 
