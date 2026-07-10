@@ -22,6 +22,32 @@ def test_gaussian_source_is_zero_mean(solved):
     assert abs(integral) < 1e-9 * m.volume
 
 
+def test_leadfield_reproduces_femmodel(solved, tiny_geometry):
+    """The standalone LeadField solve + evaluate reproduce FEMModel byte-for-byte."""
+    from emgop.fem.leadfield import GaussianSource, LeadField
+
+    m, uh = solved
+    g = tiny_geometry
+    lf = LeadField(m.mesh, m.sigma_anisotropic)
+    uh_lf = lf.solve(g.electrode_on_skin(0.0, 20.0),
+                     GaussianSource(float(m.options["source_sigma"])))
+    pts, _ = g.fibre_points(*g.fibre_xy_radial(4.0, 0.0), 20.0, nz=64, dz=0.5)
+    assert np.array_equal(m.evaluate_solution_at_points(pts, uh=uh), lf.phi(pts, uh_lf))
+
+
+def test_gaussian_source_mean_after_assemble_is_close_not_identical(solved):
+    """The two zero-mean forms agree to rounding but differ in the last ULPs, which is
+    why each backend keeps its own (MRI = mean_after_assemble=True)."""
+    from dolfinx import fem
+
+    m, _ = solved
+    pt = np.array([10.0, 0.0, 20.0])
+    a = fem.Function(m.V_pol); GaussianSource(3.0, mean_after_assemble=False).assign(a, pt, m.volume)
+    b = fem.Function(m.V_pol); GaussianSource(3.0, mean_after_assemble=True).assign(b, pt, m.volume)
+    av, bv = np.asarray(a.vector.array), np.asarray(b.vector.array)
+    assert np.allclose(av, bv, rtol=1e-12)
+
+
 def test_gaussian_source_matches_the_engine_source(solved):
     """GaussianSource reproduces FEMModel's in-engine source field exactly."""
     from dolfinx import fem
