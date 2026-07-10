@@ -54,6 +54,9 @@ figures/
 # Exception: tiny, deterministic *test fixtures* (not bulk data) must be committed.
 # Small sanity/verification fixtures opt back in with a `!` rule like this one:
 !**/golden_cylindrical.npz
+# All committed test fixtures live here (golden_cylindrical.npz, muap_reference.npz, …):
+!tests/synthesis/data/
+!tests/synthesis/data/*.npz
 # heavy regression snapshots (regenerable)
 tests/regression/snapshots/*.json
 tests/regression/neumann_meshes/
