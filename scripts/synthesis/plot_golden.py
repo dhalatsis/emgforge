@@ -1,7 +1,7 @@
 """Plot the golden cylindrical set vs the fixed spatial engine (12-panel gallery).
 
 For each golden case: golden (Fourier, black) vs spatial engine (red), normalised
-and peak-aligned, titled with r. Visual companion to verify_spatial.py.
+and peak-aligned, titled with r. Visual companion to tests/synthesis/test_golden.py.
 
 Run: python \
         scripts/synthesis/plot_golden.py

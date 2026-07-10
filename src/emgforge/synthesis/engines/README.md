@@ -34,7 +34,7 @@ source (the `|·|` cusp) and the tendon-end sources (the window edges).
 The engine is anchored to a golden cylindrical reference set (12 cases, mean
 **r = 0.997** vs the validated Fourier pipeline). Regenerate it with
 `verification/build_golden.py`, then re-check the engine with
-`verification/verify_spatial.py` after any change.
+`pytest tests/synthesis` after any change.
 
 ## Spatial vs Fourier — which to use
 
@@ -53,7 +53,7 @@ at `len1/v`).
 |---|---|
 | `spatial_sfap.py` | The engine: `rosenfalck_dvm_dz`/`_d2vm_dz2`, `build_csd_matrix`, `compute_sfap_spatial`, `compute_muap_spatial`, `SpatialConfig`, `Fibre` |
 | `__init__.py` | Public exports |
-| `verification/` | Golden-set builder (`build_golden.py`), the operator-consistency gate vs Fourier (`verify_spatial.py`), and a plotting companion (`plot_golden.py`) |
+| `scripts/synthesis/` | Golden-set builder (`build_golden.py`) and a plotting companion (`plot_golden.py`). The operator-consistency gate vs Fourier is `tests/synthesis/test_golden.py` |
 | `compare_spatial_vs_fourier.py` | Head-to-head of both engines on identical inputs |
 | `compare_tiers.py` | Cross-tier comparison driver |
 

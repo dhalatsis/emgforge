@@ -4,7 +4,7 @@ The **fixed reference the spatial engine must always reproduce.** Run after any
 change to `spatial_sfap.py`:
 
 ```bash
-python muap_generator/spatial_refactor/verification/verify_spatial.py   # exit 0 = all pass
+pytest tests/synthesis                     # the gate (60 tests, ~1.5 s)
 ```
 
 ## What it is
@@ -56,5 +56,5 @@ fixed engine (red), normalised + peak-aligned, r in each title. They overlay.
 ## Files
 - `build_golden.py` — regenerates `golden_cylindrical.npz` (deterministic).
 - `golden_cylindrical.npz` — the frozen fixture (committed).
-- `verify_spatial.py` — runs the engine vs golden, prints r table, exits non-zero on any FAIL.
+- The gate now lives in `tests/synthesis/test_golden.py` (`pytest tests/synthesis`). It asserts signed r, alignment lag, and peak amplitude — the retired `verify_spatial.py` scored only `abs(r)` on peak-normalised traces.
 - `plot_golden.py` — renders `figures/golden_vs_engine.png`.
