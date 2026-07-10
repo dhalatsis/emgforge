@@ -5,16 +5,17 @@ peak-aligned Pearson r vs the golden (Fourier) SFAP. A correct engine should hit
 r ≳ 0.95 everywhere. Exit non-zero if any case is below THRESHOLD.
 
 Run: python \
-        emgforge.synthesis/spatial_refactor/verification/verify_spatial.py
+        scripts/synthesis/verify_spatial.py
 """
 from __future__ import annotations
 from pathlib import Path
 import numpy as np
 from scipy.stats import pearsonr
 
-from emgforge.synthesis.spatial_refactor import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis.engines.spatial import compute_sfap_spatial, SpatialConfig
 
 HERE = Path(__file__).resolve().parent
+GOLDEN = Path(__file__).resolve().parents[2] / "tests/synthesis/data/golden_cylindrical.npz"
 THRESHOLD = 0.95
 FS, W = 2048.0, 256
 
@@ -39,7 +40,7 @@ def align_r(tg, g, t, s, max_lag=20.0, dt=0.02):
 
 
 def main():
-    d = np.load(HERE / "golden_cylindrical.npz", allow_pickle=True)
+    d = np.load(GOLDEN, allow_pickle=True)
     names = [str(n) for n in d["case_names"]]
     print(f"{'case':22s} {'L1':>4} {'L2':>4} {'v':>4} {'posz':>6}  {'r_align':>8}  status")
     print("-" * 64)

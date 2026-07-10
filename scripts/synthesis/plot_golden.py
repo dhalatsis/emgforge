@@ -4,7 +4,7 @@ For each golden case: golden (Fourier, black) vs spatial engine (red), normalise
 and peak-aligned, titled with r. Visual companion to verify_spatial.py.
 
 Run: python \
-        emgforge.synthesis/spatial_refactor/verification/plot_golden.py
+        scripts/synthesis/plot_golden.py
 """
 from __future__ import annotations
 from pathlib import Path
@@ -14,9 +14,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from emgforge.synthesis.spatial_refactor import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis.engines.spatial import compute_sfap_spatial, SpatialConfig
 
 HERE = Path(__file__).resolve().parent
+GOLDEN = Path(__file__).resolve().parents[2] / "tests/synthesis/data/golden_cylindrical.npz"
 FIG = HERE / "figures"; FIG.mkdir(exist_ok=True)
 FS, W = 2048.0, 256
 
@@ -44,7 +45,7 @@ def best_shift_r(tg, g, t, s, max_lag=20.0, dt=0.02):
 
 
 def main():
-    d = np.load(HERE / "golden_cylindrical.npz", allow_pickle=True)
+    d = np.load(GOLDEN, allow_pickle=True)
     names = [str(n) for n in d["case_names"]]
     nrow, ncol = 3, 4
     fig, axes = plt.subplots(nrow, ncol, figsize=(ncol * 3.6, nrow * 2.7))

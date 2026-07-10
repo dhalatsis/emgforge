@@ -2,9 +2,10 @@
 
 Two engines share one input contract, ``φ(z) → waveform``:
 
-1. **Fourier** (``emgforge.synthesis.fourier``) — 2-D frequency-domain synthesis with
-   fibre-end modelling via the ``pare`` operator in (kt, kz). Window-centred output.
-2. **Spatial** (``emgforge.synthesis.spatial_refactor``) — FFT-free time-domain
+1. **Fourier** (``emgforge.synthesis.engines.fourier``) — 2-D frequency-domain
+   synthesis with fibre-end modelling via the ``pare`` operator in (kt, kz).
+   Window-centred output.
+2. **Spatial** (``emgforge.synthesis.engines.spatial``) — FFT-free time-domain
    line-source integral ``SFAP = (CSD @ φ)``. Physical-time native.
 
 The volume conductor enters only through φ(z); the engines do not care whether it

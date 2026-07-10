@@ -158,8 +158,8 @@ def compute_C_from_phi_z(
 # semi-lengths positive — Farina MATLAB convention).
 #
 # NOTE: two scripts still hand-roll this block instead of calling these helpers —
-# `spatial_refactor/verification/build_golden.py` and
-# `spatial_refactor/compare_spatial_vs_fourier.py`. The first generates the golden
+# `scripts/synthesis/build_golden.py` and
+# `scripts/synthesis/compare_spatial_vs_fourier.py`. The first generates the golden
 # set the spatial engine is gated against, so a drift there is invisible to CI.
 # ---------------------------------------------------------------------------
 

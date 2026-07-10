@@ -46,7 +46,7 @@ mri = ["nibabel", "scikit-image", "trimesh", "meshio", "fast-simplification", "p
 packages = [
     "emgforge",
     "emgforge.synthesis",
-    "emgforge.synthesis.spatial_refactor",
+    "emgforge.synthesis.engines",
     "emgop",
     "emgop.analytical",
     "emgop.fem",

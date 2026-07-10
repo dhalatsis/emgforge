@@ -4,9 +4,9 @@ Runs *both* pipelines on *identical* inputs and scores them with one shared set
 of metrics, so the cylindrical (controlled) and MRI (Neurodec) tiers are directly
 comparable.
 
-  - Fourier  : emgforge.synthesis.fourier  (pare / radon / spe2; canonical winning
+  - Fourier  : emgforge.synthesis.engines.fourier  (pare / radon / spe2; canonical winning
                conventions posz=0, polarity=-1, phi taper + Butterworth c0.03 o2)
-  - Spatial  : emgforge.synthesis.spatial_refactor (CSD@phi; csd_derivative=2,
+  - Spatial  : emgforge.synthesis.engines.spatial (CSD@phi; csd_derivative=2,
                upsample_factor=2)
 
 Tier 1 (cylindrical, SFAP level): single fibre per case. Fourier ≈ ground truth
@@ -18,7 +18,7 @@ against the Neurodec ground truth, and against each other.
 
 Outputs: figures/svf_*.png + prints all comparison tables.
 Run: python \
-        emgforge.synthesis/spatial_refactor/compare_spatial_vs_fourier.py
+        scripts/synthesis/compare_spatial_vs_fourier.py
 """
 from __future__ import annotations
 from pathlib import Path
@@ -28,11 +28,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from emgforge.synthesis.fourier import (build_fourier_grids, build_spe2_iap_spectrum,
+from emgforge.synthesis.engines.fourier import (build_fourier_grids, build_spe2_iap_spectrum,
                                      radon_section, build_time_vector_ms,
                                      compute_C_from_phi_z)
 from emgforge.synthesis.preprocessing import resample_centered_line, smooth_butterworth
-from emgforge.synthesis.spatial_refactor import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis.engines.spatial import compute_sfap_spatial, SpatialConfig
 
 HERE = Path(__file__).resolve().parent
 FIG = HERE / "figures"

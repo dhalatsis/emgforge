@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import numpy as np
 
 from emgforge.synthesis.conventions import FARINA_DEFAULT, Conventions
-from emgforge.synthesis.fourier import (
+from emgforge.synthesis.engines.fourier import (
     build_fourier_grids,
     build_spe2_iap_spectrum,
     build_time_vector_ms,

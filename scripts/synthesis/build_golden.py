@@ -2,7 +2,7 @@
 engine must always reproduce.
 
 For a panel of cylindrical geometries we store (φ, geometry, golden_sfap) where
-``golden_sfap`` is the **validated Fourier pipeline** (`emgforge.synthesis.fourier`,
+``golden_sfap`` is the **validated Fourier pipeline** (`emgforge.synthesis.engines.fourier`,
 Farina 2004, validated r=0.997 vs MATLAB) applied to the *same* φ the spatial
 engine will be fed. This is an operator-consistency anchor: a correct spatial
 (time-domain) engine must match golden_sfap, because both compute the same
@@ -26,25 +26,26 @@ FEM-φ validation is the MRI tier's separate job.
 
 Output: golden_cylindrical.npz (committed-small) + a Drive copy via the manifest.
 Run: python \
-        emgforge.synthesis/spatial_refactor/verification/build_golden.py
+        scripts/synthesis/build_golden.py
 """
 from __future__ import annotations
 from pathlib import Path
 import numpy as np
 
-from emgforge.synthesis.fourier import (build_fourier_grids, build_spe2_iap_spectrum,
+from emgforge.synthesis.engines.fourier import (build_fourier_grids, build_spe2_iap_spectrum,
                                      radon_section, build_time_vector_ms,
                                      compute_C_from_phi_z)
 from emgforge.synthesis.preprocessing import resample_centered_line
 
 HERE = Path(__file__).resolve().parent
+GOLDEN = Path(__file__).resolve().parents[2] / "tests/synthesis/data/golden_cylindrical.npz"
 FS, W = 2048.0, 256
 
 
 def fourier_golden(phi, dz, L1, L2, v, posz=0.0):
     """Production Fourier SFAP on φ (the golden reference). Centred time axis.
 
-    Includes the posz phase term (NMJ offset) exactly as emgforge.synthesis.fourier."""
+    Includes the posz phase term (NMJ offset) exactly as emgforge.synthesis.engines.fourier."""
     zs = v * 1000.0 / FS
     pu = resample_centered_line(np.asarray(phi, float), delta_s_mm=dz, w_out=W,
                                 delta_s_out_mm=zs)
@@ -115,9 +116,9 @@ def main():
     out["case_names"] = np.array(names)
     out["fsamp_hz"] = np.float32(FS)
     out["w_samples"] = np.int32(W)
-    out["reference"] = np.array("emgforge.synthesis.fourier (validated r=0.997 vs MATLAB)")
-    np.savez_compressed(HERE / "golden_cylindrical.npz", **out)
-    print(f"\n✓ {HERE/'golden_cylindrical.npz'}  ({len(names)} cases)")
+    out["reference"] = np.array("emgforge.synthesis.engines.fourier (validated r=0.997 vs MATLAB)")
+    np.savez_compressed(GOLDEN, **out)
+    print(f"\n✓ {GOLDEN}  ({len(names)} cases)")
 
 
 if __name__ == "__main__":
