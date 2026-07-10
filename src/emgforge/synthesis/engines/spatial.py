@@ -39,6 +39,7 @@ import numpy as np
 
 from emgforge.synthesis.preprocessing import (
     create_fiber_windows,
+    denoise_field_n,
     smooth_butterworth,
     upsample_cubic,
 )
@@ -83,8 +84,18 @@ class SpatialConfig:
     # no gain). Set 1 only with already-fine φ (e.g. the analytical cylinder tier).
     upsample_factor: int = 2
 
-    # fibre-end windows (tendon termination of the travelling wave)
-    fiber_window: Literal["tukey", "boxcar", "hann", "none"] = "tukey"
+    # φ(z) denoising, applied to the RAW field before the edge taper. "monopole"
+    # replaces φ with a free-position N-monopole fit — the analytic form the field
+    # actually has — instead of lowpass-filtering it. The settled choice for FEM
+    # lead fields, where mesh-scale ripple would otherwise be amplified by the
+    # CSD's second derivative. Near a no-op on analytical φ.
+    denoise: Literal["none", "monopole"] = "none"
+    denoise_n_poles: int = 3
+
+    # fibre-end windows (tendon termination of the travelling wave). "one_sided"
+    # tapers only the tendon end of each semi-fibre and stays flat through the NMJ;
+    # a symmetric "tukey" notches the junction. "none" is an alias for "boxcar".
+    fiber_window: Literal["tukey", "boxcar", "hann", "none", "one_sided"] = "tukey"
     tukey_alpha: float = 0.25
 
     # physical
@@ -124,6 +135,10 @@ class SpatialConfig:
 def _preprocess_phi(phi_z: np.ndarray, dz_mm: float, cfg: SpatialConfig
                     ) -> Tuple[np.ndarray, float]:
     phi = np.asarray(phi_z, dtype=float).flatten().copy()
+    # The monopole fit must see the RAW field: it models φ as a sum of analytic
+    # monopoles, and an edge taper would corrupt the tails it fits against.
+    if cfg.denoise == "monopole":
+        phi = denoise_field_n(phi, float(dz_mm), n=cfg.denoise_n_poles)
     lN, rN = cfg.edge_taper_left, cfg.edge_taper_right
     if rN > 0:
         phi[-rN:] *= 0.5 * (1 + np.cos(np.pi * np.arange(rN) / rN))

@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Literal, Tuple
 
 import numpy as np
-from scipy import interpolate, ndimage, signal
+from scipy import interpolate, ndimage, optimize, signal
 
 
 # ---------------------------------------------------------------------------
@@ -131,13 +131,28 @@ def upsample_matrix(phi_mat: np.ndarray, factor: int) -> np.ndarray:
 # Windowing (numerical pipeline)
 # ---------------------------------------------------------------------------
 
+def _tendon_ramp(n: int, alpha: float) -> np.ndarray:
+    """A half-window that is flat at the NMJ end and cosine-tapered at the tendon end."""
+    n = max(n, 1)
+    k = max(int(alpha * n), 1)
+    r = np.ones(n)
+    r[:k] = 0.5 * (1 - np.cos(np.pi * np.arange(k) / k))
+    return r
+
+
 def create_fiber_windows(
     n_points: int,
     nmj_ratio: float,
-    window_type: Literal["tukey", "boxcar", "hann", "none"] = "tukey",
+    window_type: Literal["tukey", "boxcar", "hann", "none", "one_sided"] = "tukey",
     tukey_alpha: float = 0.25,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Create fibre-end windows for the two semi-fibres.
+
+    ``one_sided`` tapers ONLY the outer (tendon) end of each semi-fibre and stays
+    flat through the NMJ. A symmetric ``tukey`` tapers both ends of each half and
+    so notches the junction, where the travelling wave is born; the one-sided form
+    softens the end-of-fibre effect without that artifact. It is the settled choice
+    for the MRI/PM pipeline (alpha = 0.25).
 
     Returns
     -------
@@ -146,15 +161,19 @@ def create_fiber_windows(
     n_left = int(n_points * nmj_ratio)
     n_right = n_points - n_left
 
-    def _win(n: int) -> np.ndarray:
-        n = max(n, 1)
-        if window_type == "tukey":
-            return signal.windows.tukey(n, alpha=tukey_alpha)
-        if window_type == "hann":
-            return np.hanning(n)
-        return np.ones(n)  # boxcar / none
+    if window_type == "one_sided":
+        wl = _tendon_ramp(n_left, tukey_alpha)
+        wr = _tendon_ramp(n_right, tukey_alpha)[::-1]
+    else:
+        def _win(n: int) -> np.ndarray:
+            n = max(n, 1)
+            if window_type == "tukey":
+                return signal.windows.tukey(n, alpha=tukey_alpha)
+            if window_type == "hann":
+                return np.hanning(n)
+            return np.ones(n)  # boxcar / none
 
-    wl, wr = _win(n_left), _win(n_right)
+        wl, wr = _win(n_left), _win(n_right)
 
     window_left = np.zeros(n_points)
     window_right = np.zeros(n_points)
@@ -195,3 +214,69 @@ def resample_centered_line(
     else:
         raise ValueError(f"pad_mode must be 'edge' or 'zero', got {pad_mode!r}")
     return np.interp(z_out, z_in, phi_z, left=left, right=right)
+
+
+# ---------------------------------------------------------------------------
+# Monopole denoising
+# ---------------------------------------------------------------------------
+
+def _n_monopoles(z: np.ndarray, *p) -> np.ndarray:
+    """N free-position monopoles plus a constant offset.
+
+    φ(z) = Σ_i  A_i / √(d_i² + (z − z_i)²)  +  c
+    """
+    n = (len(p) - 1) // 3
+    out = np.full_like(z, p[-1], dtype=float)
+    for i in range(n):
+        out = out + p[3 * i] / np.sqrt(p[3 * i + 1] ** 2 + (z - p[3 * i + 2]) ** 2)
+    return out
+
+
+def denoise_field_n(
+    phi: np.ndarray,
+    dz_mm: float,
+    n: int = 3,
+    maxfev: int | None = 600,
+    ftol: float = 2e-3,
+) -> np.ndarray:
+    """Replace a noisy lead field φ(z) with a free-position N-monopole fit.
+
+    A FEM-sampled φ(z) carries mesh-scale ripple that the CSD's second derivative
+    amplifies. Rather than lowpass-filtering it (which also rounds the physical
+    peak), fit the analytic form the field actually has -- a sum of monopoles --
+    and keep the fit. Poles are fitted greedily, 1 → n, each solution seeding the
+    next; free position, depth and amplitude per pole.
+
+    n=3 is the settled default. On a clean analytical cylinder φ this is close to
+    a no-op (r ≈ 0.99); it earns its keep on FEM fields.
+
+    Falls back to a light Butterworth if the fit does not converge.
+    """
+    phi = np.asarray(phi, float)
+    z = (np.arange(len(phi)) - len(phi) // 2) * float(dz_mm)
+
+    z0 = z[int(np.argmax(np.abs(phi)))]
+    c0 = float(np.median(np.r_[phi[:8], phi[-8:]]))
+    excursion = float(phi.max() - c0)
+    z_lo, z_hi = float(z.min()), float(z.max())
+
+    p0 = [excursion * 10.0, 10.0, z0, c0]
+    best = None
+    for k in range(1, n + 1):
+        lo = [-np.inf, 2.0, z_lo] * k + [-np.inf]
+        hi = [np.inf, 400.0, z_hi] * k + [np.inf]
+        try:
+            popt, _ = optimize.curve_fit(
+                _n_monopoles, z, phi, p0=p0, bounds=(lo, hi),
+                maxfev=(maxfev if maxfev is not None else 20000 * k),
+                ftol=ftol, xtol=ftol,
+            )
+        except Exception:
+            break
+        best = popt
+        # seed the next pole: a weaker, broader copy at the global peak
+        p0 = list(popt[:-1]) + [0.3 * popt[0], float(popt[1]) * 1.8, z0, popt[-1]]
+
+    if best is None:
+        return smooth_butterworth(phi, 0.10, 2)
+    return _n_monopoles(z, *best)
