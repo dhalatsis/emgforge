@@ -45,17 +45,30 @@ class ConstrainedLinearProblem:
         point_source = NativePointSource(self.V, points, magnitude=gamma)
         point_source.apply_to_vector(self.b_fun)
 
-    def solve(self) -> Function:
+    def solve(self, ksp_type: str = "gmres", pc_type: str = "ilu",
+              rtol: float = 1e-8, atol: float = 1e-10, max_it: int = 5000) -> Function:
         uh = Function(self.V)
 
         solver = PETSc.KSP().create(self.A.getComm())
         solver.setOperators(self.A)
+        # Explicit KSP config (previously relied on PETSc defaults — rtol ~1e-5,
+        # and no convergence check). Mirrors MRIFEMModel's solver settings.
+        solver.setType(ksp_type)
+        solver.getPC().setType(pc_type)
+        solver.setTolerances(rtol=rtol, atol=atol, max_it=max_it)
 
         nullspace = PETSc.NullSpace().create(constant=True, comm=MPI.COMM_WORLD)
         self.A.setNullSpace(nullspace)
 
         nullspace.remove(self.b_fun.vector)
         solver.solve(self.b_fun.vector, uh.vector)
+
+        reason = solver.getConvergedReason()
+        if reason <= 0:
+            raise RuntimeError(
+                f"KSP failed to converge: reason={reason}, "
+                f"iterations={solver.getIterationNumber()}"
+            )
         return uh
 
 
