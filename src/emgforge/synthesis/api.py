@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 
-from muap_generator.conventions import FARINA_DEFAULT, Conventions
-from muap_generator.fourier import (
+from emgforge.synthesis.conventions import FARINA_DEFAULT, Conventions
+from emgforge.synthesis.fourier import (
     build_fourier_grids,
     build_spe2_iap_spectrum,
     build_time_vector_ms,
@@ -21,7 +21,7 @@ from muap_generator.fourier import (
     fiber_field_contribution,
     section_from_field_spectrum,
 )
-from muap_generator.preprocessing import (
+from emgforge.synthesis.preprocessing import (
     resample_centered_line,
     smooth_butterworth,
     smooth_gaussian,
@@ -60,7 +60,7 @@ class MUAPConfig:
     v: float = 4.0       # conduction velocity (m/s)
     fsamp: float = 4096.0  # sampling frequency (Hz)
     w: Optional[int] = 256
-    # w==None triggers adaptive selection via muap_generator.adaptive_w.choose_w
+    # w==None triggers adaptive selection via emgforge.synthesis.adaptive_w.choose_w
     # using the input phi(z) tail-fit + L_fibre + dz. Pass an integer to lock the
     # window for backward compatibility.
     apply_z_window: bool = False  # Hanning window on phi(z) before FFT
@@ -132,9 +132,9 @@ class MUAPConfig:
 
     # Sign/timing conventions (C1/C2/C5/C6 + polarity). Default
     # FARINA_DEFAULT reproduces the validated, regression-frozen behaviour
-    # byte-for-byte. Pass muap_generator.conventions.FEM_NEURODEC for the
+    # byte-for-byte. Pass emgforge.synthesis.conventions.FEM_NEURODEC for the
     # FEM-vs-Neurodec convention (polarity=−1; pair with posz=0 on the FEM
-    # path). See muap_generator/conventions.py.
+    # path). See emgforge.synthesis/conventions.py.
     conventions: Conventions = FARINA_DEFAULT
 
     def __post_init__(self):
@@ -247,7 +247,7 @@ def _compute_muap_core(
     """Core Fourier MUAP from an already-smoothed phi matrix."""
     v, fsamp = config.v, config.fsamp
     if config.w is None:
-        from muap_generator.adaptive_w import choose_w
+        from emgforge.synthesis.adaptive_w import choose_w
         L_fibre = float(len1_mm_arr[0] + len2_mm_arr[0])
         # Use the first fibre's phi as representative for decay estimation.
         # All rows share the same dz, so this is a reasonable proxy.
@@ -540,7 +540,7 @@ def generate_muap_from_phi(
     # fit uses the raw lead field. Smoothing slightly inflates the apparent λ
     # which can flip the chosen w one step higher than intended.
     if config.w is None:
-        from muap_generator.adaptive_w import choose_w
+        from emgforge.synthesis.adaptive_w import choose_w
         w_chosen = choose_w(
             L_fibre_mm=float(config.len1_mm + config.len2_mm),
             phi_z=phi_mat[0],
@@ -595,7 +595,7 @@ def get_adaptive_config(w_min: int = 256, w_max: int = 1024) -> MUAPConfig:
     input φ and conditionally applying its treatment:
 
     1. **Window `w`** (Workstream A): picked via
-       ``muap_generator.adaptive_w.choose_w`` from the input lead field's
+       ``emgforge.synthesis.adaptive_w.choose_w`` from the input lead field's
        decay length and fibre length, bounded by ``[w_min, w_max]``. A
        defensive cap prevents adapting above the input φ's natural extent
        (FEM_AND_MESH_GUIDE.md §11).

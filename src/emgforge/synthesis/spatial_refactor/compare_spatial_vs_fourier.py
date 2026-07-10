@@ -4,9 +4,9 @@ Runs *both* pipelines on *identical* inputs and scores them with one shared set
 of metrics, so the cylindrical (controlled) and MRI (Neurodec) tiers are directly
 comparable.
 
-  - Fourier  : muap_generator.fourier  (pare / radon / spe2; canonical winning
+  - Fourier  : emgforge.synthesis.fourier  (pare / radon / spe2; canonical winning
                conventions posz=0, polarity=-1, phi taper + Butterworth c0.03 o2)
-  - Spatial  : muap_generator.spatial_refactor (CSD@phi; csd_derivative=2,
+  - Spatial  : emgforge.synthesis.spatial_refactor (CSD@phi; csd_derivative=2,
                upsample_factor=2)
 
 Tier 1 (cylindrical, SFAP level): single fibre per case. Fourier ≈ ground truth
@@ -18,10 +18,9 @@ against the Neurodec ground truth, and against each other.
 
 Outputs: figures/svf_*.png + prints all comparison tables.
 Run: python \
-        muap_generator/spatial_refactor/compare_spatial_vs_fourier.py
+        emgforge.synthesis/spatial_refactor/compare_spatial_vs_fourier.py
 """
 from __future__ import annotations
-import sys
 from pathlib import Path
 import numpy as np
 from scipy.stats import pearsonr
@@ -29,15 +28,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-REPO = Path(__file__).resolve().parents[2]  # repo root (muap_generator lives here)
-sys.path.insert(0, str(REPO))
-from muap_generator.fourier import (build_fourier_grids, build_spe2_iap_spectrum,
+from emgforge.synthesis.fourier import (build_fourier_grids, build_spe2_iap_spectrum,
                                      radon_section, build_time_vector_ms,
                                      compute_C_from_phi_z)
-from muap_generator.preprocessing import resample_centered_line, smooth_butterworth
-from muap_generator.spatial_refactor import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis.preprocessing import resample_centered_line, smooth_butterworth
+from emgforge.synthesis.spatial_refactor import compute_sfap_spatial, SpatialConfig
 
-HERE = REPO / "muap_generator/spatial_refactor"
+HERE = Path(__file__).resolve().parent
 FIG = HERE / "figures"
 FIG.mkdir(exist_ok=True)
 FS, W = 2048.0, 256

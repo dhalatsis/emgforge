@@ -15,7 +15,7 @@ Both branches preserve all other fields at their library defaults.
 """
 from __future__ import annotations
 
-from muap_generator.api import MUAPConfig, get_mri_config
+from emgforge.synthesis.api import MUAPConfig, get_mri_config
 
 
 def build_muap_config(half_mm: float, auto: bool = False, **overrides):

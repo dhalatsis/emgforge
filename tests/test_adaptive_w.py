@@ -1,4 +1,4 @@
-"""Unit tests for ``muap_generator.adaptive_w``."""
+"""Unit tests for ``emgforge.synthesis.adaptive_w``."""
 from __future__ import annotations
 
 import sys
@@ -7,10 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from muap_generator.adaptive_w import (
+from emgforge.synthesis.adaptive_w import (
     choose_w,
     estimate_field_decay_from_phi,
     fallback_decay_from_depth,
@@ -168,7 +166,7 @@ def test_pipeline_adaptive_w_via_api():
     Use a well-decayed wide-field phi (2048 samples covering 2 m) so the
     safety cap doesn't trigger. Heuristic should grow w to 512.
     """
-    from muap_generator.api import MUAPConfig, generate_muap_from_phi
+    from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi
 
     dz = 4.0 * 1000.0 / 4096.0
     z = (np.arange(2048) - 1024) * dz
@@ -182,7 +180,7 @@ def test_pipeline_adaptive_w_via_api():
 
 def test_pipeline_explicit_w_unchanged():
     """When MUAPConfig.w is explicit, no adaptation."""
-    from muap_generator.api import MUAPConfig, generate_muap_from_phi
+    from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi
 
     z = (np.arange(256) - 128) * (4.0 * 1000.0 / 4096.0)
     phi_wide = np.exp(-np.abs(z) / 80.0).reshape(1, -1)

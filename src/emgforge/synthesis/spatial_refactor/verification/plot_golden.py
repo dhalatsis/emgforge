@@ -4,10 +4,9 @@ For each golden case: golden (Fourier, black) vs spatial engine (red), normalise
 and peak-aligned, titled with r. Visual companion to verify_spatial.py.
 
 Run: python \
-        muap_generator/spatial_refactor/verification/plot_golden.py
+        emgforge.synthesis/spatial_refactor/verification/plot_golden.py
 """
 from __future__ import annotations
-import sys
 from pathlib import Path
 import numpy as np
 from scipy.stats import pearsonr
@@ -15,9 +14,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-REPO = Path(__file__).resolve().parents[3]  # repo root (muap_generator lives here)
-sys.path.insert(0, str(REPO))
-from muap_generator.spatial_refactor import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis.spatial_refactor import compute_sfap_spatial, SpatialConfig
 
 HERE = Path(__file__).resolve().parent
 FIG = HERE / "figures"; FIG.mkdir(exist_ok=True)

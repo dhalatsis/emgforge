@@ -41,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mri.core.fem_solver import MRIFEMModel
 from mri.core.fiber_directions import MuscleFiberModel
-from muap_generator.api import MUAPConfig, generate_muap_from_phi
+from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi
 from mri.core._pipeline_config import build_muap_config
 
 NIFTI = "mri/data/PD_PROPELLER_5MM_FATS_FLX_0012/full.nii.gz"

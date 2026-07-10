@@ -7,7 +7,7 @@ hardcoded across ``fourier.py``, the inline engine in ``api.py``, and the
 frozen object with named presets, so the engine's sign/timing behaviour is
 data rather than scattered code.
 
-See ``muap_generator/refactor/KNOWLEDGE.md`` §2 for the full convention table
+See ``emgforge.synthesis/refactor/KNOWLEDGE.md`` §2 for the full convention table
 and ``reports/progress_reports/2026-06-12_pm_convention_sweep.md`` for the
 FEM-path validation (posz=0 + polarity=−1 → r=+0.737 vs Neurodec).
 

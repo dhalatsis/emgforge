@@ -2,7 +2,7 @@
 
 This is the revived 2024/2025 spatial method (origin: ``FEM/motor_units.py``,
 ``mpi_test.py:create_muaps_for_mu``; cleaned descendant:
-``muap_generator/numerical.py``). It computes the single-fibre action
+``emgforge.synthesis/numerical.py``). It computes the single-fibre action
 potential as the **spatial line-source integral**
 
     SFAP(t) = (σ_in · π · a²) / v · ∫ φ(z) · CSD(z, t) dz
@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Literal, Sequence, Tuple
 
 import numpy as np
 
-from muap_generator.preprocessing import (
+from emgforge.synthesis.preprocessing import (
     create_fiber_windows,
     smooth_butterworth,
     upsample_cubic,

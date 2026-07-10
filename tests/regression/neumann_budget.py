@@ -33,7 +33,7 @@ _REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "src"))
 
-from muap_generator.api import MUAPConfig, generate_muap_from_phi  # noqa: E402
+from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi  # noqa: E402
 
 V_MS = 4.0
 FSAMP_HZ = 4096.0

@@ -37,15 +37,16 @@ ml = ["torch"]
 # MRI-FEM forearm anatomy pipeline (mri/core). Install with: pip install -e ".[mri]"
 mri = ["nibabel", "scikit-image", "trimesh", "meshio", "fast-simplification", "pytetwild"]
 
-# Two import packages live in this repo at different roots:
-#   * `emgop`          under src/   (FEM volume-conductor toolkit)
-#   * `muap_generator` at the root  (phi -> SFAP -> MUAP synthesis)
-# The "" -> "." mapping roots top-level packages at the repo root, and the
-# explicit "emgop" -> "src/emgop" entry overrides that one package to live
-# under src/. Packages are enumerated explicitly so the two roots stay
-# unambiguous.
+# Plain src-layout: every import package lives under src/.
+#   * `emgforge.synthesis`  phi -> SFAP -> MUAP synthesis (pure NumPy/SciPy)
+#   * `emgop`               FEM volume-conductor toolkit
+# The MRI anatomy pipeline (`mri/`) is still a repo-root package and is not
+# installed; folding `emgop` and `mri` into `emgforge` is tracked in the backlog.
 [tool.setuptools]
 packages = [
+    "emgforge",
+    "emgforge.synthesis",
+    "emgforge.synthesis.spatial_refactor",
     "emgop",
     "emgop.analytical",
     "emgop.fem",
@@ -53,10 +54,11 @@ packages = [
     "emgop.pointcloud",
     "emgop.sampling",
     "emgop.voxel",
-    "muap_generator",
-    "muap_generator.spatial_refactor",
 ]
 
 [tool.setuptools.package-dir]
-"" = "."
-"emgop" = "src/emgop"
+"" = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

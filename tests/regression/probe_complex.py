@@ -34,7 +34,7 @@ _REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "src"))
 
-from muap_generator.api import MUAPConfig, generate_muap_from_phi, get_adaptive_config  # noqa: E402
+from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi, get_adaptive_config  # noqa: E402
 
 from tests.regression.analytical_ref import AnalyticalCase, analytical_muap  # noqa: E402
 

@@ -229,7 +229,7 @@ def compute_muaps(
     fiber_half_len_mm: float = 60.0,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Compute SFAP for each fiber."""
-    from muap_generator.api import MUAPConfig, generate_muap_from_phi
+    from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi
 
     config = MUAPConfig(
         smoothing_method="butterworth",

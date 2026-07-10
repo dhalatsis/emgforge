@@ -5,17 +5,14 @@ peak-aligned Pearson r vs the golden (Fourier) SFAP. A correct engine should hit
 r ≳ 0.95 everywhere. Exit non-zero if any case is below THRESHOLD.
 
 Run: python \
-        muap_generator/spatial_refactor/verification/verify_spatial.py
+        emgforge.synthesis/spatial_refactor/verification/verify_spatial.py
 """
 from __future__ import annotations
-import sys
 from pathlib import Path
 import numpy as np
 from scipy.stats import pearsonr
 
-REPO = Path(__file__).resolve().parents[3]  # repo root (muap_generator lives here)
-sys.path.insert(0, str(REPO))
-from muap_generator.spatial_refactor import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis.spatial_refactor import compute_sfap_spatial, SpatialConfig
 
 HERE = Path(__file__).resolve().parent
 THRESHOLD = 0.95

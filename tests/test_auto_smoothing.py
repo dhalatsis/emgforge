@@ -7,10 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from muap_generator.api import (
+from emgforge.synthesis.api import (
     MUAPConfig,
     _apply_smoothing,
     _hf_fraction,
@@ -85,7 +83,7 @@ def test_adaptive_config_uses_auto():
 def test_auto_smoothing_via_api_clean_input():
     """End-to-end: clean analytical-style input → no smoothing → output close
     to the unsmoothed pipeline output."""
-    from muap_generator.api import generate_muap_from_phi
+    from emgforge.synthesis.api import generate_muap_from_phi
 
     phi = _clean_phi(256).reshape(1, -1)
     cfg_auto = MUAPConfig(smoothing_method="auto", w=256)
@@ -97,7 +95,7 @@ def test_auto_smoothing_via_api_clean_input():
 
 def test_auto_smoothing_via_api_noisy_input():
     """End-to-end: noisy input → smoothing applied → output close to butterworth path."""
-    from muap_generator.api import generate_muap_from_phi
+    from emgforge.synthesis.api import generate_muap_from_phi
 
     phi = _noisy_phi(256, noise_scale=1e-3).reshape(1, -1)
     cfg_auto = MUAPConfig(smoothing_method="auto", w=256)

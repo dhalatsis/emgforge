@@ -21,10 +21,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from muap_generator.api import (
+from emgforge.synthesis.api import (
     MUAPConfig,
     _edge_over_peak,
     _compute_muap_core,  # noqa: F401 (imported for completeness — not used directly)
