@@ -38,14 +38,14 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgop.fem import (
+from emgforge.fem import (
     ElectrodeFEMSolver,
     FEMModel,
     load_meta,
     compute_ground_position,
 )
-from emgop.fem.sanity import source_point_from_cyl_normalized
-from emgop.pointcloud import (
+from emgforge.fem.sanity import source_point_from_cyl_normalized
+from emgforge.pointcloud import (
     generate_pointcloud_sample,
     save_pointcloud_sample,
 )

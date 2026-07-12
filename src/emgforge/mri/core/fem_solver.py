@@ -14,7 +14,7 @@ v2 changes:
   - Connective/fat remain isotropic
 
 Usage:
-    from mri.core.fem_solver import MRIFEMModel
+    from emgforge.mri.core.fem_solver import MRIFEMModel
 
     # v1: uniform z-aligned muscle anisotropy (backwards compatible)
     model = MRIFEMModel("mri/mesh/forearm.msh")
@@ -45,7 +45,7 @@ from petsc4py import PETSc
 from petsc4py.PETSc import ScalarType as default_scalar_type
 from ufl import dx, ds
 
-from emgop.fem.leadfield import GaussianSource, KSPConfig, LeadField
+from emgforge.fem.leadfield import GaussianSource, KSPConfig, LeadField
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +66,8 @@ TAG_TO_MATERIAL = {
 
 # Default conductivity tensors (v1: uniform muscle anisotropy along z).
 # ANISOTROPY_RATIO / SIGMA_MUSCLE_CROSS come from the single source of truth
-# (emgop.tissue, dolfinx-free) so this table cannot drift from the FEM/analytical ones.
-from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
+# (emgforge.tissue, dolfinx-free) so this table cannot drift from the FEM/analytical ones.
+from emgforge.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
 
 CONDUCTIVITY = {
     "fat_skin": 0.0379,         # isotropic (using fat value)
@@ -84,7 +84,7 @@ CONDUCTIVITY = {
 class MRIFEMModel:
     """FEM solver for MRI-derived forearm meshes.
 
-    Mirrors the interface of ``emgop.fem.solver.FEMModel`` but adapted for:
+    Mirrors the interface of ``emgforge.fem.solver.FEMModel`` but adapted for:
     - MRI-derived tissue labels (fat_skin, connective, muscle)
     - Irregular non-cylindrical geometry
     - Per-muscle fiber direction (v2: via fiber_config)
@@ -183,7 +183,7 @@ class MRIFEMModel:
 
     def _load_fiber_config(self, fiber_config: str, nifti_path: str | None):
         """Load per-muscle fiber directions and segmentation for cell lookup."""
-        from mri.core.fiber_directions import MuscleFiberModel
+        from emgforge.mri.core.fiber_directions import MuscleFiberModel
 
         self.fiber_model = MuscleFiberModel()
         self.fiber_model.load_config(fiber_config)
@@ -251,7 +251,7 @@ class MRIFEMModel:
 
         The σ-map (tissue tags + fibre-aligned anisotropy) stays MRI-specific; the
         solve machinery — spaces, source, assembly, KSP, evaluate — is delegated to
-        emgop.fem.LeadField (shared with the cylinder/ellipse solver). The function
+        emgforge.fem.LeadField (shared with the cylinder/ellipse solver). The function
         spaces and evaluation trees are surfaced from it for back-compatible access.
         """
         self.mesh_topology.create_connectivity(self.mesh.topology.dim, 0)
@@ -303,7 +303,7 @@ class MRIFEMModel:
           'centerline' — centerline tangent at cell z (uniform across xy)
           'morphing'   — per-tet fiber tangent from morphing-disk mapping
         """
-        from mri.core.fiber_directions import (
+        from emgforge.mri.core.fiber_directions import (
             SIGMA_MUSCLE_Z, rotate_conductivity, FAT_SKIN_LABELS,
             CONNECTIVE_LABELS,
         )
@@ -399,7 +399,7 @@ class MRIFEMModel:
         Robust to cz outside the muscle's centerline z-range (clamps z)
         and to degenerate cases (returns z-aligned σ).
         """
-        from mri.core.fiber_directions import (
+        from emgforge.mri.core.fiber_directions import (
             SIGMA_MUSCLE_Z, rotate_conductivity,
         )
         cl = muscle.centerline
@@ -484,7 +484,7 @@ class MRIFEMModel:
         dists, _ = tree.query(centroids, k=1)
 
         # 4. Find fat_skin cells (tag 1, 2, or fat_skin label in segmentation)
-        from mri.core.fiber_directions import FAT_SKIN_LABELS
+        from emgforge.mri.core.fiber_directions import FAT_SKIN_LABELS
         is_fat_skin = np.zeros(n_cells, dtype=bool)
         if self._seg_labels_per_cell is not None:
             for ci in range(n_cells):

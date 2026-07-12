@@ -34,8 +34,8 @@ DZ_MM = V_MS * 1000.0 / FSAMP_HZ
 
 
 def _make_solver(mesh_path: str, meta_path: str):
-    from emgop.fem import ElectrodeFEMSolver, load_meta
-    from emgop.fem.sanity import source_point_from_cyl_normalized
+    from emgforge.fem import ElectrodeFEMSolver, load_meta
+    from emgforge.fem.sanity import source_point_from_cyl_normalized
 
     meta = load_meta(meta_path)
     length = float(meta["geometry_params"]["length"])

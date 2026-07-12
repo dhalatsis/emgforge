@@ -63,8 +63,8 @@ VARIANTS = [
 
 def _solve(mesh_path: str, meta_path: str):
     """Solve once at z_norm=0.5, theta=0, r_norm=1.0 (skin top)."""
-    from emgop.fem import ElectrodeFEMSolver, load_meta
-    from emgop.fem.sanity import source_point_from_cyl_normalized
+    from emgforge.fem import ElectrodeFEMSolver, load_meta
+    from emgforge.fem.sanity import source_point_from_cyl_normalized
 
     meta = load_meta(meta_path)
     length = float(meta["geometry_params"]["length"])

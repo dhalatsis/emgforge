@@ -74,8 +74,8 @@ class PairedResult:
 
 def _setup_fem(mesh_path: str, meta_path: str, source_z_mm: float):
     """Spin up an ElectrodeFEMSolver with the source at the given absolute z."""
-    from emgop.fem import ElectrodeFEMSolver, load_meta
-    from emgop.fem.sanity import source_point_from_cyl_normalized
+    from emgforge.fem import ElectrodeFEMSolver, load_meta
+    from emgforge.fem.sanity import source_point_from_cyl_normalized
 
     meta = load_meta(meta_path)
     length = float(meta["geometry_params"]["length"])

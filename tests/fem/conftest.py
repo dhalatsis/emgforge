@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("dolfinx", reason="FEM tests require the dolfinx/fenicsx stack")
 
-from emgop.fem.geometry import ParametricGeometry  # noqa: E402
+from emgforge.fem.geometry import ParametricGeometry  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -30,8 +30,8 @@ def tiny_mesh(tiny_geometry, tmp_path_factory):
 @pytest.fixture(scope="session")
 def solved(tiny_geometry, tiny_mesh):
     """A solved FEMModel (analytical conductivities), reused across tests."""
-    from emgop.fem import FEMModel
-    from emgop.fem.conductivity import TissueTable
+    from emgforge.fem import FEMModel
+    from emgforge.fem.conductivity import TissueTable
 
     m = FEMModel(tiny_mesh, conductivity=TissueTable.analytical(), source_sigma=3.0)
     uh = m.solve_for_point(tiny_geometry.electrode_on_skin(0.0, 20.0))

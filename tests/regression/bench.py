@@ -173,8 +173,8 @@ class FEMContext:
     """Cached one-time FEM setup. Use ``get_phi_at_depth`` per case."""
 
     def __init__(self):
-        from emgop.fem import ElectrodeFEMSolver, load_meta
-        from emgop.fem.sanity import source_point_from_cyl_normalized
+        from emgforge.fem import ElectrodeFEMSolver, load_meta
+        from emgforge.fem.sanity import source_point_from_cyl_normalized
 
         meta = load_meta(META_PATH)
         gp = meta["geometry_params"]

@@ -9,7 +9,7 @@ The fiber direction determines how the anisotropic conductivity tensor
 is rotated from the default z-axis alignment for each muscle.
 
 Usage:
-    from mri.core.fiber_directions import MuscleFiberModel
+    from emgforge.mri.core.fiber_directions import MuscleFiberModel
 
     model = MuscleFiberModel("mri/data/PD_PROPELLER_5MM_FATS_FLX_0012/full.nii.gz")
     model.estimate_fibers()              # PCA-based
@@ -30,7 +30,7 @@ from scipy.ndimage import gaussian_filter1d
 
 
 # ---------------------------------------------------------------------------
-# Conductivity constants (from src/emgop/fem/constants.py)
+# Conductivity constants (from src/emgforge/fem/constants.py)
 # ---------------------------------------------------------------------------
 SIGMA_MUSCLE_CROSS = 0.2455    # S/m, transverse to fiber
 SIGMA_MUSCLE_FIBER = 1.2275    # S/m, along fiber (5x ratio)

@@ -3,7 +3,7 @@
 The golden SFAPs were produced by the Fourier engine (itself scored r=0.997 against
 the Farina MATLAB reference). These tests therefore assert **agreement between the
 two engines**, not correctness of either. An independent oracle -- Fourier scored
-against ``emgop.analytical`` -- is tracked separately in the backlog.
+against ``emgforge.analytical`` -- is tracked separately in the backlog.
 
 Three properties are asserted where the old ``verify_spatial.py`` script asserted
 one. It scored ``abs(pearsonr(...))`` on peak-normalised traces, so a polarity flip

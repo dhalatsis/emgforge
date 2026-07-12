@@ -1,7 +1,7 @@
 """The extracted reciprocity pieces: KSPConfig + GaussianSource (L1)."""
 import numpy as np
 
-from emgop.fem.leadfield import GaussianSource, KSPConfig
+from emgforge.fem.leadfield import GaussianSource, KSPConfig
 
 
 def test_ksp_config_defaults_are_the_p3_values():
@@ -25,7 +25,7 @@ def test_gaussian_source_is_zero_mean(solved):
 
 def test_leadfield_reproduces_femmodel(solved, tiny_geometry):
     """The standalone LeadField solve + evaluate reproduce FEMModel byte-for-byte."""
-    from emgop.fem.leadfield import GaussianSource, LeadField
+    from emgforge.fem.leadfield import GaussianSource, LeadField
 
     m, uh = solved
     g = tiny_geometry

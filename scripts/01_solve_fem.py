@@ -8,7 +8,7 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgop.fem import run_manifest_entry, run_one  # type: ignore
+from emgforge.fem import run_manifest_entry, run_one  # type: ignore
 
 
 def main():

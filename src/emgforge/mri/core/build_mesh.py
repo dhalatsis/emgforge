@@ -54,7 +54,7 @@ LABEL_TO_TISSUE = {
 }
 # Everything else maps to "muscle" (default for non-zero labels)
 
-# Tissue conductivities (S/m) — from src/emgop/fem/constants.py + literature
+# Tissue conductivities (S/m) — from src/emgforge/fem/constants.py + literature
 CONDUCTIVITIES = {
     "fat_skin": {
         "description": "Subcutaneous fat + skin (combined layer)",

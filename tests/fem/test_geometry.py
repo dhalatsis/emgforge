@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from emgop.fem.geometry import ParametricGeometry
+from emgforge.fem.geometry import ParametricGeometry
 
 CYL = dict(r_bone=10, r_muscle=35, r_fat=38, r_skin=40, length=240.0)
 

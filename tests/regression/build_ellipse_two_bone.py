@@ -20,7 +20,7 @@ sys.path.insert(0, str(_REPO / "src"))
 
 def main():
     import gmsh
-    from emgop.meshing import build_one_mesh
+    from emgforge.meshing import build_one_mesh
 
     ELLIPSE_META = "./data/generated_meshes_ellipse/metadata/sample_000000.json"
     TWOBONE_META = "./data/generated_meshes_two_bone/metadata/sample_000000.json"

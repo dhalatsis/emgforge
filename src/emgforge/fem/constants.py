@@ -1,6 +1,6 @@
 import numpy as np
 
-from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
+from emgforge.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
 
 GROUP_NAMES = {
     "Cancellous Bone": 1,

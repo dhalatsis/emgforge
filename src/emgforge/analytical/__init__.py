@@ -12,7 +12,7 @@ synthesis engines are validated against. Build a case as
 ``CylindricalVolumeConductor`` + ``MotorUnit`` + ``DetectionSystem``, then drive
 it with ``SignalGenerator`` to produce SFAP/MUAP waveforms:
 
->>> from emgop.analytical import (
+>>> from emgforge.analytical import (
 ...     CylindricalVolumeConductor, MotorUnit, DetectionSystem, SignalGenerator)
 >>> sg = SignalGenerator(vc, mu, det, v=4.0, fsamp=4096.0, w=256)
 >>> t_ms, sig, positions = sg.generate_muap()

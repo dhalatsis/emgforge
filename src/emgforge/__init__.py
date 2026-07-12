@@ -9,10 +9,15 @@ Subpackages
 ``emgforge.synthesis``
     φ(z) → SFAP → MUAP. Two engines (Fourier, spatial) behind one input contract.
     Pure NumPy/SciPy — no FEM stack required.
+``emgforge.fem``
+    The FEM volume conductor and the shared ``LeadField`` reciprocity solve.
+``emgforge.mri``
+    MRI-forearm anatomy → FEM lead field (pulls the ``[mri]`` extra).
+``emgforge.{meshing, sampling, voxel, pointcloud, analytical}``
+    The dataset spine — mesh building, fibre sampling, and φ sampling.
 
-The FEM volume conductor (``emgop``) and the MRI anatomy pipeline (``mri``) are
-still separate top-level import roots; folding them in here is tracked as a
-follow-up.
+Importing ``emgforge`` itself is dependency-light; the FEM subpackages pull the
+dolfinx stack only when imported.
 """
 
 __version__ = "0.1.0"

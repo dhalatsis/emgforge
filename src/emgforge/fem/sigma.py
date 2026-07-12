@@ -8,8 +8,8 @@ builder rather than containing one.
 
 `LayeredSigma` here is the cylinder/ellipse builder (lifted from
 `FEMModel.build_conductivity_map`). The MRI-anatomy builder (`AnatomySigma`, with
-per-muscle fibre rotation) lives in `mri.core` — landing in L3 — so the heavy
-`[mri]` dependencies stay out of `emgop.fem`.
+per-muscle fibre rotation) lives in `emgforge.mri.core` — landing in L3 — so the heavy
+`[mri]` dependencies stay out of `emgforge.fem`.
 """
 from __future__ import annotations
 

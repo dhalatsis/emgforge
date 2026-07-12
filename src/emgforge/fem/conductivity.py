@@ -6,17 +6,17 @@ argument of ``FEMModel`` / ``MRIFEMModel``, replacing the hand-written dicts the
 sanity wrappers previously inlined (and, before that, monkeypatched).
 
 The muscle anisotropy in every table derives from the single source of truth,
-``emgop.tissue`` (dolfinx-free).
+``emgforge.tissue`` (dolfinx-free).
 """
 from __future__ import annotations
 
 import numpy as np
 
-from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
+from emgforge.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
 
 # Analytical muscle tensor (σ_cross = 0.10, ratio 5 → σ_fibre = 0.50). This is the
-# cylinder/ellipse "apples-to-apples with emgop.analytical" value, distinct from the
-# production emgop cross-fibre σ (0.2455) — see 02_fem.md §14.4 decision 3.
+# cylinder/ellipse "apples-to-apples with emgforge.analytical" value, distinct from the
+# production emgforge cross-fibre σ (0.2455) — see 02_fem.md §14.4 decision 3.
 _ANALYTICAL_MUSCLE_CROSS = 0.10
 
 
@@ -30,9 +30,9 @@ class TissueTable(dict):
     ``FEMModel(..., conductivity=…)`` and ``MRIFEMModel(..., conductivity=…)``."""
 
     @classmethod
-    def emgop(cls) -> "TissueTable":
-        """The production ``emgop.fem`` defaults (muscle σ_cross = 0.2455 S/m)."""
-        from emgop.fem.constants import CONDUCTIVITY
+    def emgforge(cls) -> "TissueTable":
+        """The production ``emgforge.fem`` defaults (muscle σ_cross = 0.2455 S/m)."""
+        from emgforge.fem.constants import CONDUCTIVITY
 
         return cls({k: (v.copy() if hasattr(v, "copy") else v)
                     for k, v in CONDUCTIVITY.items()})

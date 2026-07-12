@@ -21,7 +21,7 @@ The bed records each fiber as a dict:
 
 Typical use:
 
-    from mri.core.muscle_fiber_bed import build_muscle_beds
+    from emgforge.mri.core.muscle_fiber_bed import build_muscle_beds
     beds = build_muscle_beds(fiber_model, density=2.0, method="poisson")
     bed = beds[7]  # FiberBed for muscle L7
     mu_fibers = bed.fibers_in_mu(cx, cy, radius_mm=3.0)
@@ -33,7 +33,7 @@ from typing import Optional
 
 import numpy as np
 
-from mri.core.realistic_muap import _xy_to_rnorm_theta, _poisson_disk_on_disk
+from emgforge.mri.core.realistic_muap import _xy_to_rnorm_theta, _poisson_disk_on_disk
 
 
 @dataclass

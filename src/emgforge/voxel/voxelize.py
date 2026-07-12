@@ -6,8 +6,8 @@ from typing import Dict, Tuple, Optional
 
 import numpy as np
 
-from emgop.fem.constants import CONDUCTIVITY
-from emgop.fem.solver import FEMModel
+from emgforge.fem.constants import CONDUCTIVITY
+from emgforge.fem.solver import FEMModel
 from dolfinx import fem, geometry, io
 from mpi4py import MPI
 

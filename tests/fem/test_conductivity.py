@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from emgop.fem.conductivity import TissueTable
+from emgforge.fem.conductivity import TissueTable
 
 
 def test_analytical_table():
@@ -19,30 +19,30 @@ def test_mri_analytical_table():
 
 
 def test_emgop_table_is_production_default():
-    t = TissueTable.emgop()
+    t = TissueTable.emgforge()
     assert np.array_equal(t["Muscle"], np.diag([0.2455, 0.2455, 1.2275]))
     assert t["Fat"] == 0.0379 and t["Skin"] == pytest.approx(4.55e-4)
 
 
 def test_emgop_table_is_a_copy_not_the_module_dict():
     """Mutating a table must not corrupt the module defaults."""
-    import emgop.fem.constants as C
-    t = TissueTable.emgop()
+    import emgforge.fem.constants as C
+    t = TissueTable.emgforge()
     t["Muscle"] = np.zeros((3, 3))
     assert np.array_equal(C.CONDUCTIVITY["Muscle"], np.diag([0.2455, 0.2455, 1.2275]))
 
 
 def test_muscle_fibre_derives_from_the_single_ratio():
-    from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
-    assert TissueTable.emgop()["Muscle"][2, 2] == pytest.approx(ANISOTROPY_RATIO * SIGMA_MUSCLE_CROSS)
+    from emgforge.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
+    assert TissueTable.emgforge()["Muscle"][2, 2] == pytest.approx(ANISOTROPY_RATIO * SIGMA_MUSCLE_CROSS)
     assert TissueTable.analytical()["Muscle"][2, 2] == pytest.approx(ANISOTROPY_RATIO * 0.10)
 
 
 def test_single_source_shared_across_modules():
-    """emgop.tissue is the one definition; fem.constants and mri read it."""
-    import emgop.tissue as T
-    import mri.core.fem_solver as fs
-    from emgop.fem.constants import ANISOTROPY_RATIO as fem_ratio
+    """emgforge.tissue is the one definition; fem.constants and mri read it."""
+    import emgforge.tissue as T
+    import emgforge.mri.core.fem_solver as fs
+    from emgforge.fem.constants import ANISOTROPY_RATIO as fem_ratio
     assert T.ANISOTROPY_RATIO == fs.ANISOTROPY_RATIO == fem_ratio == 5
 
 

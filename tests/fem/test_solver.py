@@ -11,28 +11,28 @@ import pytest
 # ---- P2: conductivity as a parameter -------------------------------------
 
 def test_conductivity_param_sets_the_instance_table(tiny_mesh):
-    from emgop.fem import FEMModel
-    from emgop.fem.conductivity import TissueTable
+    from emgforge.fem import FEMModel
+    from emgforge.fem.conductivity import TissueTable
 
     m = FEMModel(tiny_mesh, conductivity=TissueTable.analytical(), source_sigma=3.0)
     assert np.array_equal(m.conductivity["Muscle"], np.diag([0.10, 0.10, 0.50]))
 
 
 def test_conductivity_param_does_not_mutate_module_defaults(tiny_mesh):
-    import emgop.fem.constants as C
-    from emgop.fem import FEMModel
-    from emgop.fem.conductivity import TissueTable
+    import emgforge.fem.constants as C
+    from emgforge.fem import FEMModel
+    from emgforge.fem.conductivity import TissueTable
 
     FEMModel(tiny_mesh, conductivity=TissueTable.analytical(), source_sigma=3.0)
     assert np.array_equal(C.CONDUCTIVITY["Muscle"], np.diag([0.2455, 0.2455, 1.2275]))
 
 
 def test_conductivity_param_changes_the_sigma_map(tiny_mesh):
-    from emgop.fem import FEMModel
-    from emgop.fem.conductivity import TissueTable
+    from emgforge.fem import FEMModel
+    from emgforge.fem.conductivity import TissueTable
 
     a = FEMModel(tiny_mesh, conductivity=TissueTable.analytical(), source_sigma=3.0)
-    e = FEMModel(tiny_mesh, conductivity=TissueTable.emgop(), source_sigma=3.0)
+    e = FEMModel(tiny_mesh, conductivity=TissueTable.emgforge(), source_sigma=3.0)
     sa = np.asarray(a.sigma_anisotropic.vector.array)
     se = np.asarray(e.sigma_anisotropic.vector.array)
     assert sa.shape == se.shape
@@ -43,7 +43,7 @@ def test_conductivity_param_changes_the_sigma_map(tiny_mesh):
 
 def test_layered_sigma_reproduces_the_engine_field(solved):
     """The injectable σ-builder produces exactly the field FEMModel builds."""
-    from emgop.fem.sigma import LayeredSigma
+    from emgforge.fem.sigma import LayeredSigma
 
     m, _ = solved
     sig = LayeredSigma(m.conductivity)(m.mesh, m.cell_markers)
@@ -89,8 +89,8 @@ def test_evaluate_returns_one_value_per_point(solved):
 
 
 def test_solve_is_deterministic(tiny_mesh, tiny_geometry):
-    from emgop.fem import FEMModel
-    from emgop.fem.conductivity import TissueTable
+    from emgforge.fem import FEMModel
+    from emgforge.fem.conductivity import TissueTable
 
     el = tiny_geometry.electrode_on_skin(0.0, 20.0)
     pts, _ = tiny_geometry.fibre_points(4.0, 0.0, 20.0, nz=32, dz=1.0)
@@ -109,8 +109,8 @@ def test_convergence_guard_raises_on_nonconvergence(solved):
     import ufl
     from dolfinx import fem
 
-    from emgop.fem import ConstrainedLinearProblem
-    from emgop.fem.leadfield import KSPConfig
+    from emgforge.fem import ConstrainedLinearProblem
+    from emgforge.fem.leadfield import KSPConfig
 
     m, _ = solved
     V = m.V_scalar

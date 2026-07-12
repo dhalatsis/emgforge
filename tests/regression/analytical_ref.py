@@ -1,6 +1,6 @@
 """Analytical 4-layer cylindrical reference for the regression bench.
 
-Wraps the Farina 2004 analytical model — the vendored ``emgop.analytical``
+Wraps the Farina 2004 analytical model — the vendored ``emgforge.analytical``
 package (multilayer cylindrical volume conductor). Provides two things the
 bench needs:
 
@@ -25,7 +25,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from emgop.analytical import (
+from emgforge.analytical import (
     CylindricalVolumeConductor,
     MotorUnit,
     DetectionSystem,

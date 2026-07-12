@@ -50,7 +50,7 @@ def test_native_vs_scifem_basic(V, points: np.ndarray, magnitude: float = 1.0):
     """
     from dolfinx import fem
     import scifem
-    from emgop.fem.point_source import NativePointSource
+    from emgforge.fem.point_source import NativePointSource
 
     # Create test vectors
     b_native = fem.Function(V)
@@ -148,7 +148,7 @@ def test_bipolar_sources(model, source_point: np.ndarray, ground_point: np.ndarr
 
     from dolfinx import fem
     import scifem
-    from emgop.fem.point_source import NativePointSource
+    from emgforge.fem.point_source import NativePointSource
 
     # Generate source points
     np.random.seed(42)
@@ -228,7 +228,7 @@ def test_full_solver_comparison(mesh_path: str, source_point: np.ndarray,
     """Compare full FEM solutions with native vs scifem."""
     print_header("Test 4: Full Solver Comparison")
 
-    from emgop.fem.electrode_configs import ElectrodeFEMSolver
+    from emgforge.fem.electrode_configs import ElectrodeFEMSolver
 
     # Solve with scifem
     print("Solving with scifem...")
@@ -361,7 +361,7 @@ def main():
 
     # Load model
     print("\nLoading FEMModel...")
-    from emgop.fem import FEMModel
+    from emgforge.fem import FEMModel
     model = FEMModel(str(mesh_path), build_conductivity_map=True)
     print("Done.")
 
@@ -372,7 +372,7 @@ def main():
 
     source_point = np.array([r_electrode, 0.0, z_electrode])
 
-    from emgop.fem.electrode_configs import compute_ground_position
+    from emgforge.fem.electrode_configs import compute_ground_position
     ground_position = compute_ground_position(
         meta_raw if meta_path.exists() else meta,
         source_point,

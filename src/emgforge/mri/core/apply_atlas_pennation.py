@@ -13,7 +13,7 @@ forearm muscles. We can:
 
 Example (PD_PROPELLER template01 — the canonical case)::
 
-    from mri.core.apply_atlas_pennation import (
+    from emgforge.mri.core.apply_atlas_pennation import (
         apply_default_pennation, apply_atlas_pennation,
         load_template01_label_map,
     )

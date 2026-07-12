@@ -30,7 +30,7 @@ def compute_average_parameters(
     """
     Compute average parameter values from the default LHS ranges.
 
-    Default normalized ranges (from emgop/sampling/parameters.py):
+    Default normalized ranges (from emgforge/sampling/parameters.py):
         radius_canc_bone:    (0.12, 0.25)
         thickness_cort_bone: (0.03, 0.11)
         thickness_muscle:    (0.35, 0.95)
@@ -121,7 +121,7 @@ def main():
 
     # Import gmsh and build mesh
     import gmsh
-    from emgop.meshing import build_one_mesh
+    from emgforge.meshing import build_one_mesh
 
     gmsh.initialize()
 

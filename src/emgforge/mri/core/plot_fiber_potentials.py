@@ -22,10 +22,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Ensure project root on path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mri.core.fiber_directions import MuscleFiberModel, MuscleCenterline, MuscleCrossSection
+from emgforge.mri.core.fiber_directions import MuscleFiberModel, MuscleCenterline, MuscleCrossSection
 
 NIFTI_PATH = "mri/data/PD_PROPELLER_5MM_FATS_FLX_0012/full.nii.gz"
 MESH_PATH = "mri/mesh/forearm.msh"
@@ -197,7 +195,7 @@ def solve_and_evaluate(
 
     Imports FEM solver here to keep it optional (requires fenicsx-env).
     """
-    from mri.core.fem_solver import MRIFEMModel
+    from emgforge.mri.core.fem_solver import MRIFEMModel
 
     print("  Initializing FEM solver (v3 with centerlines)...")
     t0 = time.time()
@@ -691,7 +689,7 @@ def main():
 
     # Step 4: Get electrode position
     # Import FEM solver to get skin surface point
-    from mri.core.fem_solver import MRIFEMModel
+    from emgforge.mri.core.fem_solver import MRIFEMModel
     # We just need get_skin_surface_point, use a lightweight init
     print(f"\nLocating electrode at theta={args.theta}°, z_frac={args.z_frac}...")
     model_tmp = MRIFEMModel.__new__(MRIFEMModel)

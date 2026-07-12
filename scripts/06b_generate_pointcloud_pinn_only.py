@@ -35,10 +35,10 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgop.pointcloud.sampling import sample_points, sample_boundary_points
-from emgop.pointcloud.evaluate import compute_tissue_labels, compute_source_field
-from emgop.pointcloud.analytical import compute_conductivity_analytical
-from emgop.pointcloud.generate import save_pointcloud_sample
+from emgforge.pointcloud.sampling import sample_points, sample_boundary_points
+from emgforge.pointcloud.evaluate import compute_tissue_labels, compute_source_field
+from emgforge.pointcloud.analytical import compute_conductivity_analytical
+from emgforge.pointcloud.generate import save_pointcloud_sample
 
 
 def load_meta(meta_path: Path) -> dict:

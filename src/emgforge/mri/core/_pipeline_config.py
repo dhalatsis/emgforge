@@ -2,7 +2,7 @@
 
 Use in any MRI script that builds a MUAPConfig:
 
-    from mri.core._pipeline_config import build_muap_config
+    from emgforge.mri.core._pipeline_config import build_muap_config
     cfg = build_muap_config(half_mm=half, auto=args.auto)
 
 Legacy:  MUAPConfig(len1_mm=half, len2_mm=half, w=256)

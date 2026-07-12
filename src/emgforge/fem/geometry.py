@@ -42,7 +42,7 @@ class ParametricGeometry:
     # -- mesh -----------------------------------------------------------------
 
     def mesh_params(self) -> dict:
-        """The ``emgop.meshing.build_one_mesh`` parameter dict for this geometry."""
+        """The ``emgforge.meshing.build_one_mesh`` parameter dict for this geometry."""
         base = dict(bone_count=1, z_profile="constant",
                     radius_multiplicative_factor=40.0, length=self.length)
         if self.shape == "circle":
@@ -69,7 +69,7 @@ class ParametricGeometry:
         out_msh.parent.mkdir(parents=True, exist_ok=True)
         import gmsh
 
-        from emgop.meshing import build_one_mesh
+        from emgforge.meshing import build_one_mesh
 
         gmsh.initialize()
         try:

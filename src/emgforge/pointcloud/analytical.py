@@ -6,8 +6,8 @@ and known material properties — no FEM solve, mesh, or DOLFINx required.
 
 This enables PINN training data generation using only:
   - Tissue radii from metadata (geometry_params)
-  - Conductivity values from emgop.fem.constants
-  - Analytical sampling (emgop.pointcloud.sampling)
+  - Conductivity values from emgforge.fem.constants
+  - Analytical sampling (emgforge.pointcloud.sampling)
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict, Optional
 
-# Muscle anisotropy from the single source of truth (emgop.tissue is dolfinx-free,
+# Muscle anisotropy from the single source of truth (emgforge.tissue is dolfinx-free,
 # so this keeps the analytical path free of the FEM stack). The isotropic layer
 # values are the fixed 5-layer physical constants.
-from emgop.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
+from emgforge.tissue import ANISOTROPY_RATIO, SIGMA_MUSCLE_CROSS
 
 _CONDUCTIVITY_ISO = {
     0: 0.075,       # Cancellous Bone (S/m)
@@ -39,7 +39,7 @@ def compute_conductivity_analytical(
     Compute conductivity tensor at points using geometry only.
 
     Uses radial distance to determine tissue layer, then assigns
-    known conductivity values from emgop.fem.constants.CONDUCTIVITY.
+    known conductivity values from emgforge.fem.constants.CONDUCTIVITY.
 
     Parameters
     ----------

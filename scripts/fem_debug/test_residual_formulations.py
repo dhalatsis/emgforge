@@ -38,9 +38,9 @@ from ufl import ds, dx
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from emgop.fem import FEMModel
-from emgop.fem.electrode_configs import ElectrodeFEMSolver, compute_ground_position
-from emgop.fem.solver import ConstrainedLinearProblem
+from emgforge.fem import FEMModel
+from emgforge.fem.electrode_configs import ElectrodeFEMSolver, compute_ground_position
+from emgforge.fem.solver import ConstrainedLinearProblem
 
 
 PASS_THRESHOLD = 1e-6

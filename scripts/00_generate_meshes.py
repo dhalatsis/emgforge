@@ -13,8 +13,8 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgop.meshing import build_one_mesh  # type: ignore
-from emgop.sampling import sample_parameters  # type: ignore
+from emgforge.meshing import build_one_mesh  # type: ignore
+from emgforge.sampling import sample_parameters  # type: ignore
 
 
 def main():

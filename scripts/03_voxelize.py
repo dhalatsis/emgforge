@@ -11,8 +11,8 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgop.voxel import voxelize_geometry_and_source  # type: ignore
-from emgop.voxel.voxelize import load_meta  # type: ignore
+from emgforge.voxel import voxelize_geometry_and_source  # type: ignore
+from emgforge.voxel.voxelize import load_meta  # type: ignore
 
 
 def parse_source(arg: str):

@@ -149,10 +149,10 @@ def main():
 
     # Import heavy deps after arg parsing
     import gmsh
-    from emgop.meshing import build_one_mesh
-    from emgop.fem import FEMModel, load_meta
-    from emgop.fem.sanity import source_point_from_cyl_normalized
-    from emgop.pointcloud import generate_pointcloud_sample, save_pointcloud_sample
+    from emgforge.meshing import build_one_mesh
+    from emgforge.fem import FEMModel, load_meta
+    from emgforge.fem.sanity import source_point_from_cyl_normalized
+    from emgforge.pointcloud import generate_pointcloud_sample, save_pointcloud_sample
 
     manifest = []
     rng = np.random.default_rng(args.seed)
