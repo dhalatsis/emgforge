@@ -55,4 +55,5 @@ class TissueTable(dict):
             "muscle": _analytical_muscle(),
             "fat_skin": 0.04,
             "skin": 1.00,
+            "bone": 0.02,       # radius/ulna — matches the cyl tier's Cortical Bone
         })

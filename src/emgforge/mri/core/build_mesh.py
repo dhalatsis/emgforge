@@ -39,18 +39,27 @@ TISSUE_TYPES = {
     "fat_skin": 1,
     "connective": 2,
     "muscle": 3,
-    # "bone": 4,  # TODO: identify bone labels from anatomy
+    "bone": 4,
 }
 
-# Segmentation label → FEM tissue type
-# Label 25 = subcutaneous fat + skin (outer shell)
-# Labels 15, 22 = interosseous membrane / deep fascia
-# All other non-zero labels = muscle (or bone — needs atlas confirmation)
+# Segmentation label → FEM tissue type.
+# Label key (macbook_WR/Labels.txt, shared by the PD_PROPELLER segmentation):
+#   1  = Markers (metal fiducials)     → background (inert; dropped)
+#   2  = Radius   ┐ cortical bone      → bone   (σ≈0.02, was wrongly muscle)
+#   3  = Ulna     ┘
+#   15 = Internal Fat                  → fat_skin (σ≈0.038, was wrongly connective)
+#   25 = Skin fat + subcutaneous       → fat_skin (outer shell)
+#   22 = FlexorPollicisLongus (MUSCLE) → falls through to muscle (was wrongly connective)
+#   all other non-zero labels          → muscle (the named muscles 4–23)
+# "connective" is retained as a tissue class but no forearm label maps to it under
+# this key (there is no distinct fascia/membrane label in the segmentation).
 LABEL_TO_TISSUE = {
     0: "background",
+    1: "background",
+    2: "bone",
+    3: "bone",
+    15: "fat_skin",
     25: "fat_skin",
-    15: "connective",
-    22: "connective",
 }
 # Everything else maps to "muscle" (default for non-zero labels)
 
@@ -231,7 +240,7 @@ def _export_msh_gmsh_api(tet_verts, tet_cells, tissue_ids, out_path):
     gmsh.model.add("forearm")
 
     # Physical group names
-    phys_names = {0: "background", 1: "fat_skin", 2: "connective", 3: "muscle"}
+    phys_names = {0: "background", 1: "fat_skin", 2: "connective", 3: "muscle", 4: "bone"}
 
     # Add nodes (1-indexed)
     node_tags = np.arange(1, len(tet_verts) + 1, dtype=np.int64)
@@ -280,7 +289,7 @@ def _export_msh_ascii(tet_verts, tet_cells, tissue_ids, seg_labels, out_path):
     Format spec: https://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format
     DOLFINx gmshio expects physical entity tags (column 4 of element data).
     """
-    phys_names = {0: "background", 1: "fat_skin", 2: "connective", 3: "muscle"}
+    phys_names = {0: "background", 1: "fat_skin", 2: "connective", 3: "muscle", 4: "bone"}
     unique_types = sorted(np.unique(tissue_ids))
 
     with open(out_path, "w") as f:

@@ -52,16 +52,18 @@ from emgforge.fem.leadfield import GaussianSource, KSPConfig, LeadField
 # MRI tissue mapping (from build_mesh.py)
 # ---------------------------------------------------------------------------
 # Physical tags in the .msh file (tissue_id + 1):
-#   1 = background (tets at mesh boundary, outside segmentation)
-#   2 = fat_skin (label 25)
-#   3 = connective (labels 15, 22)
-#   4 = muscle (all other non-zero labels)
+#   1 = background (tets at mesh boundary / dropped markers) → treat as fat
+#   2 = fat_skin (labels 15, 25)
+#   3 = connective (unused under the current label key — kept for older meshes)
+#   4 = muscle (the named muscles)
+#   5 = bone (radius + ulna, labels 2/3)
 
 TAG_TO_MATERIAL = {
     1: "fat_skin",     # background tets → treat as fat
     2: "fat_skin",
     3: "connective",
     4: "muscle",
+    5: "bone",
 }
 
 # Default conductivity tensors (v1: uniform muscle anisotropy along z).
@@ -73,6 +75,7 @@ CONDUCTIVITY = {
     "fat_skin": 0.0379,         # isotropic (using fat value)
     "connective": 0.2,          # isotropic
     "skin": 4.55e-4,            # isotropic (used by skin_shell_mm > 0)
+    "bone": 0.02,               # isotropic (cortical bone — radius/ulna)
     "muscle": np.diag([
         SIGMA_MUSCLE_CROSS,
         SIGMA_MUSCLE_CROSS,
@@ -305,7 +308,7 @@ class MRIFEMModel:
         """
         from emgforge.mri.core.fiber_directions import (
             SIGMA_MUSCLE_Z, rotate_conductivity, FAT_SKIN_LABELS,
-            CONNECTIVE_LABELS,
+            CONNECTIVE_LABELS, BONE_LABELS,
         )
 
         self.sigma_anisotropic = fem.Function(self.V_tensor)
@@ -343,9 +346,12 @@ class MRIFEMModel:
                 cx, cy, cz = centroids[cell_idx]
                 muscle = self.fiber_model.muscles.get(seg_label)
 
-                # Non-muscle dispatch
+                # Non-muscle dispatch (robust to a stale fiber config: classify
+                # bone/fat labels directly rather than defaulting them to muscle).
                 if muscle is None:
-                    if seg_label == 0:
+                    if seg_label in BONE_LABELS:
+                        tensor = self.conductivity["bone"] * np.eye(3)
+                    elif seg_label == 0 or seg_label in FAT_SKIN_LABELS:
                         tensor = self.conductivity["fat_skin"] * np.eye(3)
                     else:
                         tensor = self.conductivity["muscle"]

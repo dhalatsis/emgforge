@@ -36,14 +36,17 @@ SIGMA_MUSCLE_CROSS = 0.2455    # S/m, transverse to fiber
 SIGMA_MUSCLE_FIBER = 1.2275    # S/m, along fiber (5x ratio)
 SIGMA_FAT_SKIN = 0.0379        # S/m, isotropic
 SIGMA_CONNECTIVE = 0.2         # S/m, isotropic
+SIGMA_BONE = 0.02              # S/m, isotropic (cortical bone)
 
 # Default z-aligned muscle conductivity tensor
 SIGMA_MUSCLE_Z = np.diag([SIGMA_MUSCLE_CROSS, SIGMA_MUSCLE_CROSS, SIGMA_MUSCLE_FIBER])
 
-# Muscle labels (non-connective, non-fat, non-background)
-# Labels 15, 22 = connective; 25 = fat_skin; 0 = background
-CONNECTIVE_LABELS = {15, 22}
-FAT_SKIN_LABELS = {25}
+# Non-muscle segmentation labels (macbook_WR / PD_PROPELLER key):
+#   0 = background; 1 = markers; 2 = Radius, 3 = Ulna (bone);
+#   15 = Internal Fat, 25 = Skin fat (fat_skin); everything else = muscle.
+BONE_LABELS = {2, 3}
+FAT_SKIN_LABELS = {15, 25}
+CONNECTIVE_LABELS: set[int] = set()   # no forearm label maps to connective under this key
 
 
 def rodrigues_rotation(v_from: np.ndarray, v_to: np.ndarray) -> np.ndarray:
@@ -529,6 +532,8 @@ class MuscleInfo:
             return SIGMA_CONNECTIVE * np.eye(3)
         elif self.tissue_type == "fat_skin":
             return SIGMA_FAT_SKIN * np.eye(3)
+        elif self.tissue_type == "bone":
+            return SIGMA_BONE * np.eye(3)
         else:
             return rotate_conductivity(SIGMA_MUSCLE_Z, self.fiber_direction)
 
@@ -630,6 +635,8 @@ class MuscleFiberModel:
             label = int(label)
             if label in FAT_SKIN_LABELS:
                 tissue = "fat_skin"
+            elif label in BONE_LABELS:
+                tissue = "bone"
             elif label in CONNECTIVE_LABELS:
                 tissue = "connective"
             else:
