@@ -14,6 +14,11 @@ Recipe (the archive-settled one):
     muscle along its length (centerline mode).
   * Bone / fat / skin labels are classified out; only muscle labels get a direction.
 
+This builds centerlines only (the production default). The cross-section boundary
+smoothing (raw / R-smooth / mask-sm / dilated / dilated-cons) and the fusiform
+morphing-disk are available in ``fiber_directions`` but not built here — see
+``docs/mri_fibre_geometry.md`` (backlog TODO C-04).
+
 Usage:
     python scripts/mri/build_fiber_config.py --seg forearm_seg.nii.gz \
         --out forearm_WR_fibers.json

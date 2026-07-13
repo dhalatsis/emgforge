@@ -8,6 +8,17 @@ Each muscle has a fiber direction defined by either:
 The fiber direction determines how the anisotropic conductivity tensor
 is rotated from the default z-axis alignment for each muscle.
 
+Geometry & smoothing
+--------------------
+Three layers, in increasing fidelity: ``estimate_centerlines`` (the muscle spine —
+smooths per-slice centroids + cubic spline; its tangent orients σ), ``estimate_cross_sections``
+(the boundary R(z,θ) — five smoothing strategies: raw / R-smooth / mask-sm / dilated /
+dilated-cons), and the morphing disk (``MuscleCrossSection`` + ``fiber_tangent_morphing`` —
+fibres bounded by ``r_inset·R(z,θ)`` so they stay inside AND fan with the belly, i.e. the
+fusiform architecture that constant-offset fibres miss). Production builds **centerlines only**;
+the cross-section / morphing layers are present but dormant. Strategies, verdicts and the
+fusiform note are documented in ``docs/mri_fibre_geometry.md`` (backlog: TODO C-04).
+
 Usage:
     from emgforge.mri.core.fiber_directions import MuscleFiberModel
 
