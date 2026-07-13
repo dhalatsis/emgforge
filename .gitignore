@@ -66,3 +66,6 @@ tests/regression/neumann_meshes/
 
 # Local-only refactor scratch (design notes, never committed)
 _refactor/
+
+# investigation working folders (plots + summaries; committed refs live in docs/)
+_investigations/
