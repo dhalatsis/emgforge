@@ -111,7 +111,7 @@ def _tendon_ramp(n: int, alpha: float) -> np.ndarray:
 def create_fiber_windows(
     n_points: int,
     nmj_ratio: float,
-    window_type: Literal["tukey", "boxcar", "hann", "none", "one_sided"] = "tukey",
+    window_type: Literal["tukey", "boxcar", "hann", "one_sided"] = "tukey",
     tukey_alpha: float = 0.25,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Create fibre-end windows for the two semi-fibres.
@@ -139,7 +139,11 @@ def create_fiber_windows(
                 return signal.windows.tukey(n, alpha=tukey_alpha)
             if window_type == "hann":
                 return np.hanning(n)
-            return np.ones(n)  # boxcar / none
+            if window_type == "boxcar":
+                return np.ones(n)  # hard rectangular tendon cut
+            raise ValueError(
+                f"unknown window_type {window_type!r}; "
+                "expected 'tukey', 'boxcar', 'hann', or 'one_sided'")
 
         wl, wr = _win(n_left), _win(n_right)
 

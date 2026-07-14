@@ -96,8 +96,9 @@ class SpatialConfig(SynthesisConfig):
 
     # fibre-end windows (tendon termination of the travelling wave). "one_sided"
     # tapers only the tendon end of each semi-fibre and stays flat through the NMJ;
-    # a symmetric "tukey" notches the junction. "none" is an alias for "boxcar".
-    fiber_window: Literal["tukey", "boxcar", "hann", "none", "one_sided"] = "tukey"
+    # a symmetric "tukey" notches the junction. "boxcar" is a hard rectangular
+    # tendon cut (all-ones) — the flat case; there is no separate "none".
+    fiber_window: Literal["tukey", "boxcar", "hann", "one_sided"] = "tukey"
     tukey_alpha: float = 0.25
 
     # physical

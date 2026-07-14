@@ -70,7 +70,7 @@ def test_one_sided_is_monotonic_on_each_half():
     assert np.all(np.diff(wr[N_LEFT:]) <= 1e-12)      # falls NMJ -> tendon
 
 
-@pytest.mark.parametrize("window", ["tukey", "boxcar", "hann", "none", "one_sided"])
+@pytest.mark.parametrize("window", ["tukey", "boxcar", "hann", "one_sided"])
 def test_windows_are_bounded_and_finite(window):
     wl, wr = create_fiber_windows(N, RATIO, window, ALPHA)
     for w in (wl, wr):

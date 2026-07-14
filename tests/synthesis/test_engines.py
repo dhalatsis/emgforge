@@ -30,7 +30,7 @@ def test_spatial_is_deterministic():
     assert np.array_equal(a, b)
 
 
-@pytest.mark.parametrize("window", ["tukey", "boxcar", "hann", "none"])
+@pytest.mark.parametrize("window", ["tukey", "boxcar", "hann", "one_sided"])
 def test_spatial_window_produces_finite_signal(window):
     t, s, _ = compute_sfap_spatial(PHI, DZ, 60.0, 60.0, 0.0,
                                    SpatialConfig(fiber_window=window))
@@ -53,15 +53,16 @@ def test_spatial_windows_are_distinct():
             assert not np.array_equal(out[a], out[b]), f"{a} == {b}"
 
 
-def test_window_none_is_an_alias_for_boxcar():
-    """`fiber_window` advertises four values but implements three.
+def test_window_none_is_rejected():
+    """The redundant "none" enum value (a silent alias for "boxcar") was collapsed.
 
-    `create_fiber_windows` falls through to `np.ones(n)` for both "boxcar" and
-    "none" (preprocessing.py), so "none" does not mean "no window" -- it means a
-    hard rectangular tendon cut, identical to boxcar. Pinned so the redundancy is
-    visible; collapsing the enum is a backlog item.
+    It used to fall through to `np.ones(n)`, so "none" did NOT mean "no window" --
+    it meant a hard rectangular tendon cut, identical to "boxcar". Now the enum has
+    one spelling for that case ("boxcar") and a stale "none" raises instead of
+    silently doing something other than its name.
     """
-    assert np.array_equal(_spatial("boxcar"), _spatial("none"))
+    with pytest.raises(ValueError):
+        _spatial("none")
 
 
 # --------------------------------------------------------------------------
