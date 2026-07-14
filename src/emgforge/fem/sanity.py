@@ -107,7 +107,7 @@ def source_point_from_cyl_normalized(
 
     # For elliptical geometry, compute angle-dependent radii
     if shape == "ellipse":
-        from emgforge.pointcloud.geometry import _ellipse_radius, _taper_scale
+        from emgforge.fem.geometry import _ellipse_radius, _taper_scale
         a_skin = float(gp["a_skin"])
         b_skin = float(gp["b_skin"])
         r_skin_local = _ellipse_radius(a_skin, b_skin, theta)
@@ -127,7 +127,7 @@ def source_point_from_cyl_normalized(
     # Apply taper if present
     z_profile = gp.get("z_profile", "constant")
     if z_profile == "taper":
-        from emgforge.pointcloud.geometry import _taper_scale
+        from emgforge.fem.geometry import _taper_scale
         scale = _taper_scale(gp, z, length)
         r_skin_local *= scale
         r_musc_local *= scale

@@ -37,11 +37,12 @@ ml = ["torch"]
 # MRI-FEM forearm anatomy pipeline (mri/core). Install with: pip install -e ".[mri]"
 mri = ["nibabel", "scikit-image", "trimesh", "meshio", "fast-simplification", "pytetwild"]
 
-# One import package: everything lives under `emgforge` (src-layout).
-#   emgforge.synthesis  phi -> SFAP -> MUAP synthesis (pure NumPy/SciPy)
-#   emgforge.fem        FEM volume conductor + the shared LeadField solve
-#   emgforge.mri        MRI-forearm anatomy -> FEM lead field (pulls the [mri] extra)
-#   emgforge.{meshing,sampling,voxel,pointcloud,analytical}  the dataset spine
+# Two src-layout packages:
+#   emgforge      the forward model — synthesis, fem (+ LeadField solve), mri,
+#                 meshing, sampling, analytical  (produces the volume-conductor solution)
+#   neural_field  the ML/dataset sibling — samples that solution onto voxel grids /
+#                 point clouds for neural-field & PINN training. Depends one-way on
+#                 emgforge; emgforge never imports it.
 [tool.setuptools]
 packages = [
     "emgforge",
@@ -50,11 +51,12 @@ packages = [
     "emgforge.fem",
     "emgforge.analytical",
     "emgforge.meshing",
-    "emgforge.pointcloud",
     "emgforge.sampling",
-    "emgforge.voxel",
     "emgforge.mri",
     "emgforge.mri.core",
+    "neural_field",
+    "neural_field.voxel",
+    "neural_field.pointcloud",
 ]
 
 [tool.setuptools.package-dir]

@@ -189,7 +189,7 @@ run_fem() {
 }
 
 run_voxel() {
-  cmd=(python scripts/03_voxelize.py
+  cmd=(python scripts/neural_field/03_voxelize.py
     --meta "$META_PATH"
     --fem_summary "$FEM_SUMMARY"
     --fem_u "$FEM_U"

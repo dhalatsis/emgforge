@@ -32,7 +32,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -152,7 +152,7 @@ def main():
     from emgforge.meshing import build_one_mesh
     from emgforge.fem import FEMModel, load_meta
     from emgforge.fem.sanity import source_point_from_cyl_normalized
-    from emgforge.pointcloud import generate_pointcloud_sample, save_pointcloud_sample
+    from neural_field.pointcloud import generate_pointcloud_sample, save_pointcloud_sample
 
     manifest = []
     rng = np.random.default_rng(args.seed)

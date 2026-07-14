@@ -10,6 +10,8 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict, Tuple, Optional
 
+from emgforge.fem.geometry import _ellipse_radius, _taper_scale
+
 
 # ---------------------------------------------------------------------------
 # Skin boundary radius at a given (theta, z)
@@ -414,18 +416,9 @@ def sample_points_uniform_general(
 # Private helpers
 # ---------------------------------------------------------------------------
 
-def _ellipse_radius(a: float, b: float, theta: float) -> float:
-    """Radius of ellipse at angle theta: r = ab / sqrt((b·cos)² + (a·sin)²)."""
-    ct, st = np.cos(theta), np.sin(theta)
-    return (a * b) / np.sqrt((b * ct)**2 + (a * st)**2)
-
-
-def _taper_scale(gp: Dict, z: float, length: float) -> float:
-    """Linear taper scale at position z. scale=1.0 at z=0, scale=taper_scale_z1 at z=L."""
-    s0 = float(gp.get("taper_scale_z0", 1.0))
-    s1 = float(gp.get("taper_scale_z1", 1.0))
-    t = z / length if length > 0 else 0.0
-    return s0 + (s1 - s0) * t
+# _ellipse_radius / _taper_scale now live in emgforge.fem.geometry (imported at
+# top) — shared with fem.sanity, kept in core so nothing there reaches into this
+# ML/dataset layer.
 
 
 def _sample_ellipse_cap(a: float, b: float, n: int, z: float,

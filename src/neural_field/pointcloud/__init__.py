@@ -14,7 +14,7 @@ Sampling Strategies:
 - mixed: Combination of strategies
 
 Example usage:
-    from emgforge.pointcloud import generate_pointcloud_sample, sample_points
+    from neural_field.pointcloud import generate_pointcloud_sample, sample_points
 
     # Generate training sample from FEM solve
     sample = generate_pointcloud_sample(

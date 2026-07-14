@@ -6,13 +6,13 @@ from pathlib import Path
 import numpy as np
 
 # Ensure local src/ is on path for direct script execution
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgforge.voxel import voxelize_geometry_and_source  # type: ignore
-from emgforge.voxel.voxelize import load_meta  # type: ignore
+from neural_field.voxel import voxelize_geometry_and_source  # type: ignore
+from neural_field.voxel.voxelize import load_meta  # type: ignore
 
 
 def parse_source(arg: str):

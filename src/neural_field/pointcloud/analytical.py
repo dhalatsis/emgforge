@@ -7,7 +7,7 @@ and known material properties — no FEM solve, mesh, or DOLFINx required.
 This enables PINN training data generation using only:
   - Tissue radii from metadata (geometry_params)
   - Conductivity values from emgforge.fem.constants
-  - Analytical sampling (emgforge.pointcloud.sampling)
+  - Analytical sampling (neural_field.pointcloud.sampling)
 """
 
 from __future__ import annotations

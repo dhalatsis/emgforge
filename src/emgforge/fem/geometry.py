@@ -111,3 +111,23 @@ class ParametricGeometry:
         z_abs = np.clip(z_centroid_mm + z_grid, clip, self.length - clip)
         pts = np.column_stack([np.full(nz, x0), np.full(nz, y0), z_abs])
         return pts, z_grid
+
+
+# ---------------------------------------------------------------------------
+# Shared parametric-geometry helpers (used by fem.sanity AND the neural_field
+# point-cloud sampler). They live here in core so nothing in emgforge reaches
+# into the ML/dataset layer.
+# ---------------------------------------------------------------------------
+
+def _ellipse_radius(a: float, b: float, theta: float) -> float:
+    """Radius of ellipse at angle theta: r = ab / sqrt((b·cos)² + (a·sin)²)."""
+    ct, st = np.cos(theta), np.sin(theta)
+    return (a * b) / np.sqrt((b * ct) ** 2 + (a * st) ** 2)
+
+
+def _taper_scale(gp: dict, z: float, length: float) -> float:
+    """Linear taper scale at position z. scale=1.0 at z=0, taper_scale_z1 at z=L."""
+    s0 = float(gp.get("taper_scale_z0", 1.0))
+    s1 = float(gp.get("taper_scale_z1", 1.0))
+    t = z / length if length > 0 else 0.0
+    return s0 + (s1 - s0) * t

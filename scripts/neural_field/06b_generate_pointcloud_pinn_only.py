@@ -30,15 +30,15 @@ from pathlib import Path
 import numpy as np
 
 # Ensure local src/ is on path
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from emgforge.pointcloud.sampling import sample_points, sample_boundary_points
-from emgforge.pointcloud.evaluate import compute_tissue_labels, compute_source_field
-from emgforge.pointcloud.analytical import compute_conductivity_analytical
-from emgforge.pointcloud.generate import save_pointcloud_sample
+from neural_field.pointcloud.sampling import sample_points, sample_boundary_points
+from neural_field.pointcloud.evaluate import compute_tissue_labels, compute_source_field
+from neural_field.pointcloud.analytical import compute_conductivity_analytical
+from neural_field.pointcloud.generate import save_pointcloud_sample
 
 
 def load_meta(meta_path: Path) -> dict:
