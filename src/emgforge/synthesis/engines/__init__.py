@@ -11,25 +11,22 @@ an FEM solve.
 
 ``engines.spatial``
     FFT-free time-domain line-source integral, ``SFAP = (CSD @ φ)``.
-    **Physical-time native** — the NMJ fires at t = 0.
+    **Physical-time native** — the NMJ fires at t = 0. Single-fibre only; the
+    multi-fibre sum over a ``FibreBed`` lives in ``emgforge.synthesis.field_to_muap``.
 
 >>> from emgforge.synthesis.engines.spatial import compute_sfap_spatial, SpatialConfig
 """
 
 from emgforge.synthesis.engines.spatial import (  # noqa: F401
-    Fibre,
     SpatialConfig,
     build_csd_matrix,
-    compute_muap_spatial,
     compute_sfap_spatial,
     rosenfalck_vm,
 )
 
 __all__ = [
     "SpatialConfig",
-    "Fibre",
     "compute_sfap_spatial",
-    "compute_muap_spatial",
     "build_csd_matrix",
     "rosenfalck_vm",
 ]

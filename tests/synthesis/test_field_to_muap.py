@@ -2,8 +2,8 @@
 
 The load-bearing tests are the byte-identity ones: given the fibre bed a call
 already produced (``result.bed``), ``field_to_muap`` reproduces
-``generate_muap_from_phi`` *exactly* on the Fourier side, and a manual
-``compute_muap_spatial`` sum exactly on the spatial side. So the new entry is a
+``generate_muap_from_phi`` *exactly* on the Fourier side, and a hand-built
+``compute_sfap_spatial`` sum exactly on the spatial side. So the new entry is a
 re-spelling of the existing computation, not a reimplementation — the migration
 is verified, not asserted.
 
@@ -97,35 +97,41 @@ def test_fourier_adaptive_w_matches(golden):
 
 # ───────────────────────── Spatial byte-identity ─────────────────────────
 
-def test_spatial_matches_manual_compute_muap_spatial(golden):
-    """The spatial branch == a hand-built ``compute_muap_spatial`` over the same bed."""
-    from emgforge.synthesis.engines.spatial import (
-        Fibre as SpatialFibre,
-        compute_muap_spatial,
-    )
+def test_spatial_single_fibre_equals_compute_sfap(golden):
+    """A one-fibre bed is exactly the single-fibre SFAP primitive — no summation."""
+    from emgforge.synthesis.engines.spatial import compute_sfap_spatial
     c = golden[CASE_NAMES[0]]
-    N = 5
-    rng = np.random.default_rng(0)
-    dz = c.dz_mm
-    len1 = c.L1_mm + rng.normal(0, 3, N)
-    len2 = c.L2_mm + rng.normal(0, 3, N)
-    posz = rng.normal(0, 5, N)
-    v = np.full(N, c.v)
-    v[2] = c.v + 0.5                                  # one fibre with a CV override
-    bed = FibreBed.from_arrays(dz, len1, len2, posz, v)
-    phi = _phi_mat(c, N)
+    cfg = SpatialConfig(v=c.v, fsamp=2048.0, w=256)
+    bed = FibreBed.from_arrays(c.dz_mm, c.L1_mm, c.L2_mm, 3.0, c.v)   # 1 fibre
+
+    got = field_to_muap(c.phi, bed, cfg)
+    _, sfap, _ = compute_sfap_spatial(c.phi, c.dz_mm, c.L1_mm, c.L2_mm, 3.0, cfg)
+
+    assert np.array_equal(got.muap, sfap)
+    assert got.time_convention == "physical"
+    assert isinstance(got.config, SpatialConfig)
+
+
+def test_spatial_sums_fibres_with_per_fibre_v(golden):
+    """The spatial branch == the sum of independent per-fibre SFAPs, with each
+    fibre's CV override applied. The reference builds the override config *by hand*
+    (not via the engine's ``{**cfg.__dict__}`` copy), so it is a genuine check."""
+    from emgforge.synthesis.engines.spatial import compute_sfap_spatial
+    c = golden[CASE_NAMES[0]]
+    dz, v1 = c.dz_mm, c.v + 0.5
+    bed = FibreBed.from_arrays(
+        dz, [c.L1_mm, c.L1_mm + 2], [c.L2_mm, c.L2_mm - 3], [1.0, -2.0], [c.v, v1])
+    phi = _phi_mat(c, 2)
 
     cfg = SpatialConfig(v=c.v, fsamp=2048.0, w=256)
     got = field_to_muap(phi, bed, cfg)
 
-    fibres = [SpatialFibre(phi[i], dz, float(len1[i]), float(len2[i]),
-                           float(posz[i]), float(v[i])) for i in range(N)]
-    t_ref, muap_ref, _ = compute_muap_spatial(fibres, cfg)
+    _, s0, _ = compute_sfap_spatial(phi[0], dz, c.L1_mm, c.L2_mm, 1.0, cfg)
+    cfg1 = SpatialConfig(v=v1, fsamp=2048.0, w=256)       # override built by hand
+    _, s1, _ = compute_sfap_spatial(phi[1], dz, c.L1_mm + 2, c.L2_mm - 3, -2.0, cfg1)
 
-    assert np.array_equal(got.muap, muap_ref)
-    assert np.array_equal(got.t_ms, t_ref)
+    assert np.array_equal(got.muap, s0 + s1)
     assert got.time_convention == "physical"
-    assert isinstance(got.config, SpatialConfig)
 
 
 # ───────────────────────── field coercion / dispatch ─────────────────────────

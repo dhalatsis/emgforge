@@ -33,7 +33,7 @@ comparison, and the golden-set verification workflow.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Sequence, Tuple
+from typing import Any, Dict, Literal, Tuple
 
 import numpy as np
 
@@ -250,38 +250,6 @@ def compute_sfap_spatial(
     return t_out, sfap, debug
 
 
-# ---------------------------------------------------------------------------
-# Multi-fibre MUAP (the MotorUnit summation layer)
-# ---------------------------------------------------------------------------
-
-@dataclass
-class Fibre:
-    """One fibre's inputs for the spatial MUAP sum."""
-    phi_z: np.ndarray
-    dz_mm: float
-    len1_mm: float
-    len2_mm: float
-    posz_mm: float = 0.0
-    v: float | None = None               # per-fibre velocity override
-
-
-def compute_muap_spatial(
-    fibres: Sequence[Fibre],
-    config: SpatialConfig | None = None,
-) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray]]:
-    """Sum per-fibre SFAPs into a MUAP.
-
-    Returns ``(t_ms, muap, sfaps)`` where ``sfaps`` is the per-fibre stack.
-    """
-    cfg = config or SpatialConfig()
-    sfaps: List[np.ndarray] = []
-    t_ms = None
-    for fb in fibres:
-        c = cfg
-        if fb.v is not None and fb.v != cfg.v:
-            c = SpatialConfig(**{**cfg.__dict__, "v": fb.v})
-        t_ms, s, _ = compute_sfap_spatial(
-            fb.phi_z, fb.dz_mm, fb.len1_mm, fb.len2_mm, fb.posz_mm, c)
-        sfaps.append(s)
-    muap = np.sum(sfaps, axis=0)
-    return t_ms, muap, sfaps
+# The multi-fibre summation layer lives in the API, not here: ``field_to_muap``
+# (emgforge.synthesis.api) loops this single-fibre primitive over a ``FibreBed``.
+# The engine's boundary is one fibre — a Fibre no longer carries its own φ(z).
