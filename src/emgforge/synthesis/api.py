@@ -151,7 +151,6 @@ class MUAPResult:
 
     t_ms: np.ndarray
     muap: np.ndarray
-    fiber_positions: Tuple[np.ndarray, np.ndarray]
     config: SynthesisConfig
     metrics: Dict[str, float] = field(default_factory=dict)
     bed: "FibreBed | None" = None       # the fibre bed this MUAP was summed over
@@ -605,7 +604,6 @@ def generate_muap_from_phi(
     return MUAPResult(
         t_ms=t_ms,
         muap=muap,
-        fiber_positions=(np.array([]), np.array([])),
         config=config,
         metrics=metrics,
         bed=bed,
@@ -714,7 +712,6 @@ def field_to_muap(
     return MUAPResult(
         t_ms=t_ms,
         muap=muap,
-        fiber_positions=(np.array([]), np.array([])),
         config=config,
         metrics=_compute_metrics(t_ms, muap),
         bed=bed,
