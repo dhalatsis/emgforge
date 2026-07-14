@@ -51,7 +51,7 @@ at `len1/v`).
 
 | Path | What |
 |---|---|
-| `spatial_sfap.py` | The engine: `rosenfalck_dvm_dz`/`_d2vm_dz2`, `build_csd_matrix`, `compute_sfap_spatial`, `compute_muap_spatial`, `SpatialConfig`, `Fibre` |
+| `spatial.py` | The engine: `rosenfalck_vm`, `build_csd_matrix`, `compute_sfap_spatial` (single fibre), `SpatialConfig`. The multi-fibre sum lives in `emgforge.synthesis.field_to_muap`. |
 | `__init__.py` | Public exports |
 | `scripts/synthesis/` | Golden-set builder (`build_golden.py`) and a plotting companion (`plot_golden.py`). The operator-consistency gate vs Fourier is `tests/synthesis/test_golden.py` |
 | `compare_spatial_vs_fourier.py` | Head-to-head of both engines on identical inputs |
@@ -63,17 +63,17 @@ are regenerable from the builder / comparison scripts above.
 ## Usage
 
 ```python
-import sys; sys.path.insert(0, ".")          # from repo root (or `pip install -e .`)
-from muap_generator.spatial_refactor import (
-    compute_sfap_spatial, compute_muap_spatial, Fibre, SpatialConfig)
+from emgforge.synthesis.engines.spatial import compute_sfap_spatial, SpatialConfig
 
-# single fibre
+# single fibre — the engine's boundary (φ passed in, no summation)
 t, sfap, dbg = compute_sfap_spatial(phi_z, dz_mm, len1_mm=64, len2_mm=144,
                                     posz_mm=0.0, config=SpatialConfig(v=3.26))
 
-# a motor unit (sum over fibres)
-fibres = [Fibre(phi_i, dz_i, Lprox_i, Ldist_i, posz_mm=0.0, v=v_i) for ...]
-t, muap, sfaps = compute_muap_spatial(fibres, SpatialConfig())
+# a motor unit — sum over a FibreBed via the unified entry (engine chosen by
+# config type). `field` is φ(z) per fibre; `bed` is the geometry + conduction.
+from emgforge.synthesis import field_to_muap, FibreBed
+bed = FibreBed.from_arrays(dz_mm, len1_mm=Lprox, len2_mm=Ldist, posz_mm=0.0, v=vs)
+res = field_to_muap(field, bed, SpatialConfig())      # res.muap, res.time_convention="physical"
 ```
 
 `SpatialConfig` highlights: `csd_derivative=2` (CSD), `v` (m/s ≡ mm/ms),
