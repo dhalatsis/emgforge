@@ -43,6 +43,17 @@ def smooth_butterworth(
 # Edge tapering
 # ---------------------------------------------------------------------------
 
+def _raised_cosine_rise(n: int) -> np.ndarray:
+    """Half a Hann window: a cosine edge ramp rising 0→1 over *n* samples.
+
+    The shared shape behind ``taper_edges`` (both ends) and ``_tendon_ramp``.
+    Note the spatial engine's inline edge taper uses the complementary FALLING
+    form ``0.5·(1+cos)`` — a different sequence (off by one sample), deliberately
+    not merged here.
+    """
+    return 0.5 * (1 - np.cos(np.pi * np.arange(n) / n))
+
+
 def taper_edges(phi: np.ndarray, n_taper: int = 10) -> np.ndarray:
     """Cosine-taper the first and last *n_taper* samples to zero.
 
@@ -57,16 +68,15 @@ def taper_edges(phi: np.ndarray, n_taper: int = 10) -> np.ndarray:
     if n_taper <= 0:
         return phi
     out = phi.copy()
-    taper = 0.5 * (1 - np.cos(np.pi * np.arange(n_taper) / n_taper))
 
     if out.ndim == 1:
         n_taper = min(n_taper, len(out) // 2)
-        t = 0.5 * (1 - np.cos(np.pi * np.arange(n_taper) / n_taper))
+        t = _raised_cosine_rise(n_taper)
         out[:n_taper] *= t
         out[-n_taper:] *= t[::-1]
     else:
         n_taper = min(n_taper, out.shape[1] // 2)
-        t = 0.5 * (1 - np.cos(np.pi * np.arange(n_taper) / n_taper))
+        t = _raised_cosine_rise(n_taper)
         out[:, :n_taper] *= t[np.newaxis, :]
         out[:, -n_taper:] *= t[::-1][np.newaxis, :]
     return out
@@ -104,7 +114,7 @@ def _tendon_ramp(n: int, alpha: float) -> np.ndarray:
     n = max(n, 1)
     k = max(int(alpha * n), 1)
     r = np.ones(n)
-    r[:k] = 0.5 * (1 - np.cos(np.pi * np.arange(k) / k))
+    r[:k] = _raised_cosine_rise(k)
     return r
 
 

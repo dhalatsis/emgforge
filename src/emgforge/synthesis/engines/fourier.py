@@ -22,6 +22,8 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
+from emgforge.synthesis.iap import ROSENFALCK_AMPLITUDE_V
+
 
 # ---------------------------------------------------------------------------
 # FFT helpers
@@ -102,10 +104,9 @@ def build_spe2_iap_spectrum(
     fm = fsamp / (2.0 * v * 1000.0)
     kzz = 2 * np.pi * np.arange(-2, 2, (2 * fm) / w)
     z = np.arange(0, 15.25, 0.25)
-    # Rosenfalck coefficient 96 is in mV (per Rosenfalck 1969); convert to V
-    # for SI consistency. Audit 2026-06-10 — fixes ~10³× MUAP-amplitude
-    # mismatch vs Neurodec ground truth.
-    V2 = 96e-3 * (np.exp(-z) * (3 * z**2 - z**3))
+    # dVm/dz of the Rosenfalck IAP; amplitude shared with the spatial engine via
+    # emgforge.synthesis.iap (mV→V; audit 2026-06-10, fixes ~10³× amplitude mismatch).
+    V2 = ROSENFALCK_AMPLITUDE_V * (np.exp(-z) * (3 * z**2 - z**3))
     V2 = np.concatenate([V2, np.zeros(len(kzz) - len(z))])
     if iap_flip:  # convention C1
         V2 = -np.flip(V2)

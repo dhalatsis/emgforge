@@ -38,6 +38,7 @@ from typing import Any, Dict, Literal, Tuple
 import numpy as np
 
 from emgforge.synthesis.config import SynthesisConfig
+from emgforge.synthesis.iap import rosenfalck_vm
 from emgforge.synthesis.preprocessing import (
     create_fiber_windows,
     denoise_field_n,
@@ -46,17 +47,8 @@ from emgforge.synthesis.preprocessing import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Rosenfalck IAP (mV→V corrected, audit 2026-06-10)
-# ---------------------------------------------------------------------------
-
-def rosenfalck_vm(z_mm: np.ndarray) -> np.ndarray:
-    """Rosenfalck intracellular action potential (depolarisation above baseline):
-    Vm(z) = 96·z³·e^{−z} [mV→V via 96e-3], zero for z < 0 (wave not yet arrived).
-    Onset is smooth (V, V', V'' all → 0 as z→0⁺), so no spurious wavefront source.
-    """
-    z = np.asarray(z_mm, dtype=float)
-    return np.where(z >= 0.0, 96e-3 * z**3 * np.exp(-z), 0.0)
+# The Rosenfalck IAP (``rosenfalck_vm``) + its amplitude now live in
+# ``emgforge.synthesis.iap`` — one definition shared with the Fourier engine.
 
 
 # ---------------------------------------------------------------------------
