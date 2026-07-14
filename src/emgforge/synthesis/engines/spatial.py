@@ -37,6 +37,7 @@ from typing import Any, Dict, List, Literal, Sequence, Tuple
 
 import numpy as np
 
+from emgforge.synthesis.config import SynthesisConfig
 from emgforge.synthesis.preprocessing import (
     create_fiber_windows,
     denoise_field_n,
@@ -63,7 +64,7 @@ def rosenfalck_vm(z_mm: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 @dataclass
-class SpatialConfig:
+class SpatialConfig(SynthesisConfig):
     """Settings for the spatial SFAP/MUAP engine.
 
     Defaults mirror the canonical PM-dataset recipe so results are directly

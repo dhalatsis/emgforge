@@ -21,12 +21,16 @@ Quick start
 from emgforge.synthesis.api import (
     MUAPConfig,
     MUAPResult,
+    field_to_muap,
     generate_muap_from_phi,
     get_adaptive_config,
     get_mri_config,
     get_optimal_config,
     get_truncated_input_config,
 )
+from emgforge.synthesis.config import SynthesisConfig  # noqa: F401
+from emgforge.synthesis.fibres import Fibre, FibreBed, NonUniformDz  # noqa: F401
+from emgforge.synthesis.engines.spatial import SpatialConfig  # noqa: F401
 from emgforge.synthesis.adaptive_w import choose_w as adaptive_choose_w  # noqa: F401
 from emgforge.synthesis.conventions import (  # noqa: F401
     Conventions,
@@ -37,6 +41,12 @@ from emgforge.synthesis.conventions import (  # noqa: F401
 __all__ = [
     "MUAPConfig",
     "MUAPResult",
+    "SynthesisConfig",
+    "SpatialConfig",
+    "Fibre",
+    "FibreBed",
+    "NonUniformDz",
+    "field_to_muap",
     "generate_muap_from_phi",
     "get_optimal_config",
     "get_adaptive_config",

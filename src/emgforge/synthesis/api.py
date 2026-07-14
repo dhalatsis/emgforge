@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 
+from emgforge.synthesis.config import SynthesisConfig
 from emgforge.synthesis.conventions import FARINA_DEFAULT, Conventions
 from emgforge.synthesis.fibres import FibreBed
 from emgforge.synthesis.engines.fourier import (
@@ -22,6 +23,7 @@ from emgforge.synthesis.engines.fourier import (
     fiber_field_contribution,
     section_from_field_spectrum,
 )
+from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
 from emgforge.synthesis.preprocessing import (
     resample_centered_line,
     smooth_butterworth,
@@ -35,7 +37,7 @@ from emgforge.synthesis.preprocessing import (
 # ---------------------------------------------------------------------------
 
 @dataclass
-class MUAPConfig:
+class MUAPConfig(SynthesisConfig):
     """Full configuration for MUAP generation."""
 
     # φ(z) denoising before synthesis. "butterworth" = zero-phase lowpass;
@@ -150,9 +152,15 @@ class MUAPResult:
     t_ms: np.ndarray
     muap: np.ndarray
     fiber_positions: Tuple[np.ndarray, np.ndarray]
-    config: MUAPConfig
+    config: SynthesisConfig
     metrics: Dict[str, float] = field(default_factory=dict)
     bed: "FibreBed | None" = None       # the fibre bed this MUAP was summed over
+    # Where the returned ``t_ms`` puts the waveform. "window_centred": the Fourier
+    # radon pins the MUAP to the window centre — peak location does NOT encode
+    # time-of-flight. "physical": t=0 is the NMJ fire, so the peak lands at len/v
+    # (the spatial engine). Lets a consumer know whether a waterfall's diagonal is
+    # real propagation or must be added post-hoc.
+    time_convention: Literal["window_centred", "physical"] = "window_centred"
 
     def plot(self, ax=None, **kwargs):
         """Quick plot of the MUAP waveform."""
@@ -601,6 +609,116 @@ def generate_muap_from_phi(
         config=config,
         metrics=metrics,
         bed=bed,
+        time_convention="window_centred",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Unified entry — field_to_muap(field, bed, config)
+# ---------------------------------------------------------------------------
+
+def _as_field_matrix(field: np.ndarray, n_fibres: int) -> np.ndarray:
+    """Coerce ``field`` to an ``(n_fibres, Nz)`` matrix.
+
+    A 1-D φ(z) is broadcast to every fibre (one shared lead field — the analytical
+    single-electrode case); a 2-D ``(Nfib, Nz)`` must already match the bed size.
+    """
+    arr = np.asarray(field, dtype=float)
+    if arr.ndim == 1:
+        return np.broadcast_to(arr, (n_fibres, arr.shape[0])).copy()
+    if arr.ndim == 2:
+        if arr.shape[0] != n_fibres:
+            raise ValueError(
+                f"field has {arr.shape[0]} rows but the bed has {n_fibres} fibres")
+        return arr
+    raise ValueError(f"field must be 1-D or 2-D, got {arr.ndim}-D")
+
+
+def field_to_muap(
+    field: np.ndarray,
+    bed: FibreBed,
+    config: Optional[SynthesisConfig] = None,
+) -> MUAPResult:
+    """Sum a lead field over a fibre bed — the unified synthesis entry.
+
+    ``field`` is the reciprocal lead field φ(z) sampled along the fibres: shape
+    ``(Nfib, Nz)`` (one row per fibre) or ``(Nz,)`` (one φ broadcast to every
+    fibre). ``bed`` carries the *geometry + conduction* (len1/len2/posz/v/dz);
+    φ is passed separately so one bed serves many electrodes without a redraw.
+
+    The engine is chosen by ``config``'s **type**, not a string flag:
+
+      * ``MUAPConfig``  → the frequency-domain Fourier engine (window-centred).
+      * ``SpatialConfig`` → the time-domain line-source engine (physical-time).
+
+    Given a ``MUAPConfig`` and the bed a call already produced (``result.bed``),
+    the output is byte-identical to ``generate_muap_from_phi`` — this is just the
+    bed-first spelling of the same computation. ``config=None`` defaults to a
+    plain ``MUAPConfig()`` (Fourier), the historical behaviour.
+    """
+    if config is None:
+        config = MUAPConfig()
+
+    n_fib = len(bed)
+
+    # ---- Fourier engine ------------------------------------------------
+    if isinstance(config, MUAPConfig):
+        phi_mat = _as_field_matrix(field, n_fib)
+        dz_mm = bed.uniform_dz           # raises NonUniformDz for a ragged bed
+
+        # Adaptive w — decide on the raw field, exactly as generate_muap_from_phi.
+        if config.w is None:
+            from dataclasses import replace
+
+            from emgforge.synthesis.adaptive_w import choose_w
+            w_chosen = choose_w(
+                L_fibre_mm=float(config.len1_mm + config.len2_mm),
+                phi_z=phi_mat[0],
+                dz_mm=float(dz_mm),
+                w_min=int(config.w_min),
+                w_max=int(config.w_max),
+                verbose=False,
+            )
+            config = replace(config, w=w_chosen)
+
+        # Non-uniform v needs the per-fibre summation path (v drives kt/SPE2);
+        # a uniform-v bed takes the shared-grid fast path.
+        if np.allclose(bed.v, bed.v[0]):
+            phi_smooth = _apply_smoothing(phi_mat, config)
+            t_ms, muap = _compute_muap_core(
+                phi_smooth, dz_mm, config, bed.len1_mm, bed.len2_mm, bed.posz_mm)
+        else:
+            t_ms, muap = _compute_muap_per_fiber_summation(
+                phi_mat, dz_mm, config, bed.v, bed.len1_mm, bed.len2_mm, bed.posz_mm)
+        time_convention = "window_centred"
+
+    # ---- Spatial engine ------------------------------------------------
+    elif isinstance(config, SpatialConfig):
+        phi_mat = _as_field_matrix(field, n_fib)
+        sfaps: List[np.ndarray] = []
+        t_ms = None
+        for i, fb in enumerate(bed):
+            c = config
+            if fb.v != config.v:            # per-fibre CV override → rebuild cfg
+                c = SpatialConfig(**{**config.__dict__, "v": fb.v})
+            t_ms, s, _ = compute_sfap_spatial(
+                phi_mat[i], fb.dz_mm, fb.len1_mm, fb.len2_mm, fb.posz_mm, c)
+            sfaps.append(s)
+        muap = np.sum(sfaps, axis=0)
+        time_convention = "physical"
+
+    else:
+        raise TypeError(
+            f"config must be a MUAPConfig or SpatialConfig, got {type(config).__name__}")
+
+    return MUAPResult(
+        t_ms=t_ms,
+        muap=muap,
+        fiber_positions=(np.array([]), np.array([])),
+        config=config,
+        metrics=_compute_metrics(t_ms, muap),
+        bed=bed,
+        time_convention=time_convention,
     )
 
 
