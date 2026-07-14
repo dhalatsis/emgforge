@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import numpy as np
 
 from emgforge.synthesis.conventions import FARINA_DEFAULT, Conventions
+from emgforge.synthesis.fibres import FibreBed
 from emgforge.synthesis.engines.fourier import (
     build_fourier_grids,
     build_spe2_iap_spectrum,
@@ -151,6 +152,7 @@ class MUAPResult:
     fiber_positions: Tuple[np.ndarray, np.ndarray]
     config: MUAPConfig
     metrics: Dict[str, float] = field(default_factory=dict)
+    bed: "FibreBed | None" = None       # the fibre bed this MUAP was summed over
 
     def plot(self, ax=None, **kwargs):
         """Quick plot of the MUAP waveform."""
@@ -446,6 +448,39 @@ def _resolve_per_fiber_jitter(
     return posz_mm_arr, vs_per_fiber, len1_per_fiber, len2_per_fiber, needs_per_fiber_path
 
 
+def _resolve_bed(
+    config: MUAPConfig,
+    Nfib: int,
+    dz_mm: float,
+    posz_mm_arr: Optional[np.ndarray],
+    vs_per_fiber: Optional[np.ndarray],
+    len1_per_fiber: Optional[np.ndarray],
+    len2_per_fiber: Optional[np.ndarray],
+) -> Tuple[FibreBed, bool]:
+    """Resolve this call's fibre bed as an inspectable value.
+
+    Pure config-driven jitter (all explicit args None) goes through the public
+    ``FibreBed.jittered`` — byte-identical to the old inline draw (pinned by
+    ``tests/synthesis/test_fibres.py``). Explicit per-fibre arrays keep the exact
+    conditional-draw path in ``_resolve_per_fiber_jitter`` (some callers pass a mix
+    of explicit + config-σ). Returns ``(bed, needs_per_fiber_path)`` — the latter True
+    iff per-fibre ``v`` is in play (→ the slow summation path).
+    """
+    if all(a is None for a in (posz_mm_arr, vs_per_fiber, len1_per_fiber, len2_per_fiber)):
+        bed = FibreBed.jittered(
+            Nfib, float(dz_mm),
+            len1_mm=float(config.len1_mm), len2_mm=float(config.len2_mm), v=float(config.v),
+            nmj_sigma_mm=float(config.nmj_sigma_mm), cv_sigma=float(config.cv_sigma_m_per_s),
+            tendon_sigma_mm=float(config.tendon_sigma_mm),
+            fibre_length_sigma_mm=float(config.fiber_length_sigma_mm),
+            seed=int(config.jitter_seed))
+        return bed, config.cv_sigma_m_per_s > 0.0
+    posz, vs, len1, len2, needs = _resolve_per_fiber_jitter(
+        config, Nfib, posz_mm_arr, vs_per_fiber, len1_per_fiber, len2_per_fiber)
+    v = vs if vs is not None else np.full(Nfib, float(config.v))
+    return FibreBed.from_arrays(dz_mm, len1, len2, posz, v), needs
+
+
 def _compute_metrics(t_ms: np.ndarray, muap: np.ndarray) -> Dict[str, float]:
     metrics: Dict[str, float] = {}
     # Skip per-MUAP metrics for multi-electrode output — caller can compute
@@ -523,9 +558,9 @@ def generate_muap_from_phi(
 
     Nfib = phi_mat.shape[0]
 
-    # Resolve per-fibre arrays (drawing jitter if needed).
-    posz, vs, len1, len2, needs_per_fiber_path = _resolve_per_fiber_jitter(
-        config, Nfib,
+    # Resolve this call's fibre bed (drawing jitter if needed) as a value.
+    bed, needs_per_fiber_path = _resolve_bed(
+        config, Nfib, dz_mm,
         posz_mm_arr, vs_per_fiber, len1_per_fiber, len2_per_fiber,
     )
 
@@ -549,12 +584,13 @@ def generate_muap_from_phi(
     if needs_per_fiber_path:
         # Slow path: rebuild kt/kalpha/kbeta + SPE2 per fibre because v varies.
         t_ms, muap = _compute_muap_per_fiber_summation(
-            phi_mat, dz_mm, config, vs, len1, len2, posz,
+            phi_mat, dz_mm, config, bed.v, bed.len1_mm, bed.len2_mm, bed.posz_mm,
         )
     else:
         # Fast path: shared grids, vectorised over fibres.
         phi_smooth = _apply_smoothing(phi_mat, config)
-        t_ms, muap = _compute_muap_core(phi_smooth, dz_mm, config, len1, len2, posz)
+        t_ms, muap = _compute_muap_core(
+            phi_smooth, dz_mm, config, bed.len1_mm, bed.len2_mm, bed.posz_mm)
 
     metrics = _compute_metrics(t_ms, muap)
 
@@ -564,6 +600,7 @@ def generate_muap_from_phi(
         fiber_positions=(np.array([]), np.array([])),
         config=config,
         metrics=metrics,
+        bed=bed,
     )
 
 
