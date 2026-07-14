@@ -51,14 +51,16 @@ at `len1/v`).
 
 | Path | What |
 |---|---|
-| `spatial.py` | The engine: `rosenfalck_vm`, `build_csd_matrix`, `compute_sfap_spatial` (single fibre), `SpatialConfig`. The multi-fibre sum lives in `emgforge.synthesis.field_to_muap`. |
+| `spatial.py` | The engine: `build_csd_matrix`, `compute_sfap_spatial` (single fibre), `SpatialConfig`. The Rosenfalck IAP is in `emgforge.synthesis.iap`; the multi-fibre sum in `emgforge.synthesis.field_to_muap`. |
+| `fourier.py` | `build_pare` → E1 → radon (Farina 2004), window-centred. |
 | `__init__.py` | Public exports |
-| `scripts/synthesis/` | Golden-set builder (`build_golden.py`) and a plotting companion (`plot_golden.py`). The operator-consistency gate vs Fourier is `tests/synthesis/test_golden.py` |
-| `compare_spatial_vs_fourier.py` | Head-to-head of both engines on identical inputs |
-| `compare_tiers.py` | Cross-tier comparison driver |
+| `scripts/synthesis/` | Golden-set builder (`build_golden.py`), the MUAP-reference builder (`build_muap_reference.py`), a plotting companion (`plot_golden.py`). The operator-consistency gate vs Fourier is `tests/synthesis/test_golden.py` |
+
+Waveform-comparison metrics (`align_score`, `nrmse_aligned`, `lobe_metrics`,
+`jaggedness`) live in `emgforge.synthesis.metrics`.
 
 The `.npz` fixtures (golden set and per-tier datasets) are **not shipped** — they
-are regenerable from the builder / comparison scripts above.
+are regenerable from the builder scripts above.
 
 ## Usage
 
