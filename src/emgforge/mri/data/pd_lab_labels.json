@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "source": "Drive: work/neural-forward-emg/pd-lab-mris-macbook-version/{AG,DH,Kostia}/Labels.txt — ITK-SnAP Label Description files, ground truth as named by the pd-lab annotator.",
+    "supersedes": "template01_label_to_muscle.json (kept for backwards compat but its names labels 2-19 are WRONG — based on autoseg-17 convention which doesn't apply to PD_PROPELLER).",
+    "convention": "ITK-SnAP integer labels with anatomical names. Labels 2,3 are BONES. Labels 15/25/26/27 are FAT. Label 1 is fiducial Markers. The rest are muscles.",
+    "subjects": {
+      "DH":     "PD_PROPELLER_5MM_FATS_FLX_0012 (= our PD_PROPELLER template01 — confirmed by MD5 + label-permutation analysis in mri/)",
+      "Kostia": "PD_PROPELLER_5MM_FATS_0004 (includes label 24 = Brachial m. which DH/AG don't)",
+      "AG":     "PD_PROPELLER_5MM_FATS_0003 (has extra Internal Fat layers 26 + 27)"
+    },
+    "neurodec_discrepancy": "Neurodec's forward-model-deliverable lists ECRB and ECRL as SEPARATE muscles, but pd-lab Labels.txt combines them into a single label 12 = 'ExtensorCarpiRadialisLongus+Brevis'. Either Neurodec used a different (finer) segmentation than what's in pd-lab-mris-macbook-version, OR their ECRB/ECRL split was done downstream from label 12 by manual / morphological splitting."
+  },
+
+  "common_labels": {
+    "0":  {"name": "Clear Label",                    "kind": "background"},
+    "1":  {"name": "Markers",                        "kind": "fiducial"},
+    "2":  {"name": "Radius",                         "kind": "bone"},
+    "3":  {"name": "Ulna",                           "kind": "bone"},
+    "4":  {"name": "Supinator",                      "kind": "muscle", "abbrev": "SUP",     "compartment": "posterior"},
+    "5":  {"name": "Anconeus",                       "kind": "muscle", "abbrev": "ANC",     "compartment": "posterior"},
+    "6":  {"name": "ExtensorCarpiUlnaris",           "kind": "muscle", "abbrev": "ECU",     "compartment": "posterior"},
+    "7":  {"name": "FlexorDigitorumProfundus",       "kind": "muscle", "abbrev": "FDP",     "compartment": "anterior"},
+    "8":  {"name": "FlexorCarpiUlnaris",             "kind": "muscle", "abbrev": "FCU",     "compartment": "anterior"},
+    "9":  {"name": "ExtensorDigitorum",              "kind": "muscle", "abbrev": "ED",      "compartment": "posterior"},
+    "10": {"name": "ExtensorDigitiMinimi",           "kind": "muscle", "abbrev": "EDM",     "compartment": "posterior"},
+    "11": {"name": "Brachioradialis",                "kind": "muscle", "abbrev": "BR",      "compartment": "posterior"},
+    "12": {"name": "ExtensorCarpiRadialisLongus+Brevis",
+                                                     "kind": "muscle", "abbrev": "ECRL+ECRB",
+                                                     "compartment": "posterior",
+                                                     "note": "Combined; NOT separated in pd-lab segmentation"},
+    "14": {"name": "PalmarisLongus",                 "kind": "muscle", "abbrev": "PL",      "compartment": "anterior"},
+    "15": {"name": "Internal Fat",                   "kind": "fat"},
+    "16": {"name": "FlexorCarpiRadialis",            "kind": "muscle", "abbrev": "FCR",     "compartment": "anterior"},
+    "17": {"name": "FlexorDigitorumSuperficialis",   "kind": "muscle", "abbrev": "FDS",     "compartment": "anterior"},
+    "18": {"name": "ExtensorIndicis",                "kind": "muscle", "abbrev": "EI",      "compartment": "posterior"},
+    "19": {"name": "ExtensorPollicisLongus",         "kind": "muscle", "abbrev": "EPL",     "compartment": "posterior"},
+    "20": {"name": "AbductorPollicisLongus",         "kind": "muscle", "abbrev": "APL",     "compartment": "posterior"},
+    "21": {"name": "PronatorTeres",                  "kind": "muscle", "abbrev": "PT",      "compartment": "anterior"},
+    "22": {"name": "FlexorPollicisLongus",           "kind": "muscle", "abbrev": "FPL",     "compartment": "anterior"},
+    "23": {"name": "PronatorQuadratus",              "kind": "muscle", "abbrev": "PQ",      "compartment": "anterior"},
+    "25": {"name": "Skin Fat",                       "kind": "fat",    "note": "Outer envelope (skin + subcutaneous fat)"}
+  },
+
+  "subject_specific": {
+    "Kostia": {
+      "24": {"name": "Brachial",                     "kind": "muscle", "abbrev": "BRA",     "compartment": "anterior",
+              "note": "Only present in Kostia — proximal-only muscle that exits the FOV in DH/AG"},
+      "26": {"name": "Internal Fat (extra layer)",   "kind": "fat"}
+    },
+    "AG": {
+      "26": {"name": "Internal Fat (extra layer)",   "kind": "fat"},
+      "27": {"name": "Internal Fat (extra layer)",   "kind": "fat"}
+    },
+    "DH": {}
+  },
+
+  "atlas_keys": {
+    "_comment": "Lieber atlas keys for the muscles that have a 1-to-1 atlas analogue. Use this for pennation / fascicle-length lookup in mri/data/forearm_muscle_atlas.json. Combined-label 12 maps to the LONGUS variant by default (the larger of the two); split downstream if needed.",
+    "4":  "supinator",
+    "6":  "extensor_carpi_ulnaris",
+    "7":  "flexor_digitorum_profundus_middle",
+    "8":  "flexor_carpi_ulnaris",
+    "9":  "extensor_digitorum_communis_middle",
+    "12": "extensor_carpi_radialis_longus",
+    "14": "palmaris_longus",
+    "16": "flexor_carpi_radialis",
+    "17": "flexor_digitorum_superficialis_middle",
+    "19": "extensor_pollicis_longus",
+    "20": "abductor_pollicis_longus",
+    "21": "pronator_teres"
+  }
+}

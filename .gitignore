@@ -57,6 +57,11 @@ figures/
 # All committed test fixtures live here (golden_cylindrical.npz, muap_reference.npz, …):
 !tests/synthesis/data/
 !tests/synthesis/data/*.npz
+# Committed MRI anatomy data (tiny: WR segmentation 77K + label map), imported from
+# the neural-forward-emg archive so the MU-pool pipeline is self-contained here.
+!src/emgforge/mri/data/
+!src/emgforge/mri/data/*.nii.gz
+!src/emgforge/mri/data/*.json
 # heavy regression snapshots (regenerable)
 tests/regression/snapshots/*.json
 tests/regression/neumann_meshes/
