@@ -25,10 +25,34 @@ existing `scripts/neural_field/06_generate_pointcloud_electrode.py`).
 **Gate:** rel L2 ≈ **0.029**, R² ≈ **0.999**, MUAP corr ≈ **0.942** (MLP + Fourier features).
 If we can't reproduce it, the port is wrong — stop and fix.
 
-**Gate 0b — the honest speed question.** Prior claim: 150 ms/electrode vs **13 s** FEM = 75×.
-Today WR solves in **~0.3 s** (+ ~6 s to sample φ along 637 fibres). Re-measure and write the
-number down. *If the speedup is now <5×, the justification must shift to differentiability /
-mesh-free inference — decide before Phase 2.*
+**Gate 0b — the honest speed question. ✅ RUN 2026-07-16 — and it fired.**
+`scripts/neural_field/00_baseline_fem_timing.py`. Measured on WR (127k fibre query points):
+
+| | measured |
+|---|---|
+| model build (one-time) | 3.90 s |
+| `solve_for_point` / electrode | **0.39 s** |
+| `compute_closest_entity` (point→cell) | **7.17 s** ← **99.5% of the cost** |
+| `uh.eval` (interpolate) | **0.036 s** ← the only part needing the solve |
+
+**The FEM's cost is point-location, not the solve** — and `cell_ids` depends only on
+`(mesh, points)`, **not on the solution**, so for a fixed query set it is cacheable across
+electrodes. **Verified: byte-identical φ (max|Δ| = 0.00e+00) over 3 electrodes, 165× faster
+sampling.**
+
+| per electrode | naive | **cached cell_ids** |
+|---|---|---|
+| total (MUAP-ready) | 7.6 s | **0.43 s** (~18×) |
+| 2048-electrode dataset | 259 min | **15 min** |
+
+### ⚠️ Consequence — the speed justification is largely gone
+
+The prior **75×** was measured against an FEM redundantly re-locating the same points every
+electrode. Against a *cached* FEM, a 0.15 s net is only **~3×**. So the learned VC must be
+justified by **differentiability** (inverse problems), **mesh-free deployment**, or
+**generalisation across anatomy** — *not* raw speed. **Decide this before Phase 2.**
+
+Silver lining: dataset generation is now ~15 min for 2048 electrodes, so Phase 1 is cheap.
 
 ---
 
