@@ -53,13 +53,15 @@ def load(ckpt, dev):
 
 
 def predict_phi(net, c, dev, pts, elec):
-    """phi at `pts` (P,3) for one electrode (3,) — inverts the training transform."""
+    """phi at `pts` (P,3) for one electrode (3,) — inverts the training transform.
+    The nets take (coords, condition) separately, condition broadcast across points."""
     cs, co, tf = c["cs"], c["co"], c["tf"]
-    p = (pts - co) / cs
-    e = np.broadcast_to((elec - co) / cs, p.shape)
-    X = torch.from_numpy(np.concatenate([p, e], -1).astype(np.float32)).to(dev)
+    p = ((pts - co) / cs).astype(np.float32)
+    e = np.broadcast_to(((elec - co) / cs).astype(np.float32), p.shape)
+    P = torch.from_numpy(p).to(dev)
+    E = torch.from_numpy(np.ascontiguousarray(e)).to(dev)
     with torch.no_grad():
-        y = net(X).cpu().numpy().ravel()
+        y = net(P, E).reshape(-1).cpu().numpy()
     return np.sinh(y * tf["sd"] + tf["mu"]) * tf["s"]
 
 

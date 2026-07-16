@@ -82,40 +82,48 @@ def main():
     co = np.array([0.0, 0.0, 120.0], dtype=np.float32)
 
     def make(idx):
-        x = np.repeat(((E[idx] - co) / cs)[:, None, :], M, 1)          # (n,M,3) electrode
-        p = np.broadcast_to(((P - co) / cs)[None], (len(idx), M, 3))   # (n,M,3) point
-        X = np.concatenate([p, x], -1).reshape(-1, 6).astype(np.float32)
+        """The ported nets take (coords, condition) separately, not a concatenated 6-D input."""
+        c = np.repeat(((E[idx] - co) / cs)[:, None, :], M, 1).reshape(-1, 3)   # (n*M,3) electrode
+        p = np.broadcast_to(((P - co) / cs)[None], (len(idx), M, 3)).reshape(-1, 3)  # (n*M,3) point
         Y = tf.fwd(PHI[idx]).reshape(-1, 1).astype(np.float32)
-        return torch.from_numpy(X), torch.from_numpy(Y)
+        return (torch.from_numpy(p.astype(np.float32)),
+                torch.from_numpy(c.astype(np.float32)), torch.from_numpy(Y))
 
-    Xtr, Ytr = make(tr); Xva, Yva = make(va)
-    Xva, Yva = Xva.to(dev), Yva.to(dev)
+    Ptr, Ctr, Ytr = make(tr); Pva, Cva, Yva = make(va)
+    Pva, Cva, Yva = Pva.to(dev), Cva.to(dev), Yva.to(dev)
     net = build(a.arch).to(dev)
     opt = torch.optim.Adam(net.parameters(), lr=a.lr)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs)
     lossf = nn.MSELoss()
-    n = Xtr.shape[0]
+    n = Ptr.shape[0]
     print(f"  {sum(p.numel() for p in net.parameters())/1e3:.0f}K params · {n/1e6:.1f}M samples")
 
+    def val_chunked(chunk=200_000):
+        """Val set is large; evaluate in chunks to stay inside GPU memory."""
+        outs = []
+        with torch.no_grad():
+            for i in range(0, Pva.shape[0], chunk):
+                outs.append(net(Pva[i:i + chunk], Cva[i:i + chunk]).reshape(-1))
+        return torch.cat(outs)
+
     t0 = time.time()
-    best = np.inf
     for ep in range(a.epochs):
         net.train()
         idx = torch.randperm(n)
         tot = 0.0
         for i in range(0, n, a.batch):
             b = idx[i:i + a.batch]
-            xb, yb = Xtr[b].to(dev, non_blocking=True), Ytr[b].to(dev, non_blocking=True)
-            opt.zero_grad(); l = lossf(net(xb), yb); l.backward(); opt.step()
+            pb, cb, yb = (Ptr[b].to(dev, non_blocking=True), Ctr[b].to(dev, non_blocking=True),
+                          Ytr[b].to(dev, non_blocking=True))
+            opt.zero_grad(); l = lossf(net(pb, cb).reshape(-1, 1), yb); l.backward(); opt.step()
             tot += l.item() * len(b)
         sch.step()
         if (ep + 1) % 25 == 0 or ep == 0:
             net.eval()
-            with torch.no_grad():
-                vl = lossf(net(Xva), Yva).item()
-                yp = tf.inv(net(Xva).cpu().numpy().ravel()); yt = tf.inv(Yva.cpu().numpy().ravel())
-                rel = np.linalg.norm(yp - yt) / np.linalg.norm(yt)
-            best = min(best, vl)
+            yv = val_chunked()
+            vl = float(((yv - Yva.reshape(-1)) ** 2).mean())
+            yp = tf.inv(yv.cpu().numpy()); yt = tf.inv(Yva.cpu().numpy().ravel())
+            rel = np.linalg.norm(yp - yt) / np.linalg.norm(yt)
             print(f"  ep {ep+1:4d} train {tot/n:.5f} val {vl:.5f} relL2(phi) {rel:.4f} "
                   f"({time.time()-t0:.0f}s)")
     ck = OUT / f"cyl_{a.arch}.pt"

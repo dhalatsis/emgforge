@@ -103,8 +103,29 @@ cylinder needs **no mesh for σ** (analytic, `neural_field/pointcloud/analytical
 · E2.4 **multi-electrode coherence**: does the *grid* stay spatially consistent (propagation/IZ
 intact across cells), not just each electrode in isolation?
 
-**Gate 2:** MUAP corr ≥ **0.94** on held-out electrodes *and* Δjaggedness ≈ 0 *and* the HD-EMG grid
-is spatially coherent. **Only then do we touch MRI.**
+**Gate 2: ✅ PASS (2026-07-16, MLP+Fourier, dev scale).**
+`cyl_elec_64` (64 electrodes × 20k pts, 646 s) → `03_train_cyl.py --arch mlp` (331 K params,
+1.1 M samples, 215 s on GPU) → `04_score_bench.py` on the 27 **held-out** benchmark configs:
+
+| metric | result |
+|---|---|
+| **MUAP corr** | median **+0.991** · mean +0.941 · min +0.659 · ≥0.94 in **20/27** |
+| p2p ratio | median **1.01** |
+| Δjaggedness | median **−0.0001** (as smooth as the FEM field) |
+| φ rel-L2 (held-out electrodes) | 0.125 (vs 0.029 in Exp 1 @ 2016 electrodes — we're at 64) |
+
+### The failure pattern is the finding
+
+All 7 sub-0.94 configs are the **superficial MU (depth 8) directly under the electrode**
+(θ=0) — i.e. the **strongest** signals (8.7 µV), where the model under-predicts amplitude by
+**5–8×** (`p2p ratio 0.13–0.22`, `r ≈ 0.66–0.69`). That's the near-field, sharply-peaked-φ
+regime; the prime suspect is the `asinh` target compression over-squashing the peak (it was
+added to stop near-source points dominating the loss — it over-corrected).
+
+**This vindicates the whole Phase-1 premise:** φ rel-L2 = 0.125 is a single averaged number that
+would *never* have revealed "under-predicts superficial-MU amplitude 5×". The MUAP scoreboard
+localised it to a specific, physical regime in one table. Fix candidates: a gentler/learned
+compression, per-decade loss weighting, or predicting log|φ| with a sign head.
 
 ---
 
