@@ -103,6 +103,22 @@ cylinder needs **no mesh for σ** (analytic, `neural_field/pointcloud/analytical
 · E2.4 **multi-electrode coherence**: does the *grid* stay spatially consistent (propagation/IZ
 intact across cells), not just each electrode in isolation?
 
+### E2.3 architecture ablation — ✅ RUN @ dev scale (64 electrodes)
+
+| | φ rel-L2 | MUAP corr (median) | ≥0.94 | p2p med | Δjag med | train/val gap | Gate 2 |
+|---|---|---|---|---|---|---|---|
+| **MLP + Fourier** | **0.125** | **+0.991** | **20/27** | **1.01** | −0.00006 | 2× | **PASS ✅** |
+| SIREN | 0.276 | +0.883 | 9/27 | 0.84 | +0.00008 | **128×** | FAIL ❌ |
+
+**We did NOT reproduce the prior "SIREN wins pointwise, loses on MUAPs" finding — and the reason
+matters.** SIREN lost on *both* metrics here because it **massively overfits at 64 electrodes**
+(train 0.00019 vs val 0.02445). Its Δjaggedness is ≈0, so the *jaggedness* failure mode didn't
+appear either: at this scale SIREN is **overfitting, not oscillating**. The prior result used
+**2016** electrodes, and its best small-data variant was **SIREN+relcoords** (untested here).
+
+⇒ **Open at dev scale; retest at full scale on the cluster** (E2.2), adding SIREN+relcoords.
+Do not treat "MLP+Fourier is better" as settled beyond N=64.
+
 **Gate 2: ✅ PASS (2026-07-16, MLP+Fourier, dev scale).**
 `cyl_elec_64` (64 electrodes × 20k pts, 646 s) → `03_train_cyl.py --arch mlp` (331 K params,
 1.1 M samples, 215 s on GPU) → `04_score_bench.py` on the 27 **held-out** benchmark configs:
