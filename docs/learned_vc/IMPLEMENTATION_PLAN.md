@@ -66,8 +66,22 @@ Without this, "which model is best" is unanswerable — φ error already proved 
 **Datasets:** `muap_bench_cyl.npz` (Phase 2 scoreboard) → later `muap_bench_mri.npz` (Phase 4+),
 plus **`pm_gold`** (105 PM electrodes + Neurodec MUAPs — already exists) as the external bar.
 
-**Gate 1:** re-running the harness on FEM φ reproduces the committed properties byte-for-byte.
-(If the scoreboard isn't deterministic, it can't referee anything.)
+**Gate 1: ✅ PASS (2026-07-16).** `01_build_muap_bench.py` → `_results/neural_field/muap_bench_cyl.npz`.
+**27 configs** (9 electrodes × 3 MU depths), 125 s. A rerun reproduced **every array
+byte-for-byte** (`t_ms, muap, cfg, p2p, duration_ms, jaggedness, eof, latency, trough`).
+
+Frozen spec: cylinder `r_bone=10/r_muscle=35/r_fat=38/r_skin=40, L=240`; MU depths 8/15/25 mm
+below skin; electrodes θ∈{0,20,40}° × z∈{90,120,150} mm; 20 fibres in a 2 mm disk (`MU_SEED=7`);
+fibre 200 pts × 1.07 mm; **MU-113-like asymmetric geometry** `Lp=65 / Ld=148 / posz=−41.5`.
+
+**Sanity checked (important):** the weak configs are **real MUAPs, not FEM noise** — 3–7
+zero-crossings across all 27 (noise would be dozens). Their long durations (~35 ms) are the
+*physically correct* deep-source signature: broad φ smears the MUAP, exactly as the field
+cross-reference predicted. Range spans **8.7 µV (superficial, under the electrode) → 0.14 µV
+(deep, off-axis)** — a real difficulty gradient, which is what a benchmark wants.
+
+⚠️ Metric caveat: `eof` (= `lobe_metrics` pos-after, normalised) saturates at 0.00/1.00 when the
+global peak lands after the trough. Fine as a *diff* target, but don't read it as a ratio.
 
 ---
 
