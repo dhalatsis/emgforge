@@ -26,12 +26,34 @@ Gate 2 had to pass first.
 set. **Verified byte-identical φ (max|Δ| = 0.00e+00) at 165× faster sampling → 7.6 s → 0.43 s per
 electrode (~18×).**
 
-**Consequence:** the prior **75×** surrogate speedup was measured against an FEM redundantly
-re-locating the same points. Against a cached FEM, a 0.15 s net is **~3×**. The learned VC must
-be justified by **differentiability / mesh-free deployment / generalisation**, *not* speed.
-**This is an open decision for a human.** (Silver lining: dataset gen 259 min → 15 min.)
+**Consequence (as first stated):** against a cached FEM a 0.15 s net is **~3×** ⇒ the speed case
+looked dead. *Also a free ~18× for the existing pipeline — see `HANDOFF.md`.*
 
-*Also a free ~18× for the existing pipeline — see `HANDOFF.md`.*
+### ⚠️ CORRECTION — Gate 0b part 2: the cache breaks, and the speed case comes back
+
+`07_break_the_cache.py`. The "~3×" was measured on **WR (10.5 k nodes, 0.39 s solve) with fixed
+anatomy** — too narrow a claim. Caching only holds while **(mesh, query points)** are fixed:
+
+| regime | FEM / sample | vs 0.15 s net |
+|---|---|---|
+| A · fixed anatomy, **small** mesh (WR 10.5 k) | 0.43 s | ~3× ← the original measurement |
+| A · fixed anatomy, **big** mesh (cyl 194 k) | **7.75 s** | **52×** |
+| B · **varying anatomy** (cache void) | **89.2 s** | **594×** |
+
+**Two things break it:**
+1. **Mesh size.** The cache removes point-location, so the *solve* dominates — and it scales with
+   the mesh (WR 0.39 s vs cylinder **7.74 s**). The 3× was an artifact of a small mesh.
+2. **Changing the anatomy** — the real one. New mesh ⇒ cache void, **plus** costs a fixed-anatomy
+   sweep amortises to zero: **mesh generation 56.8 s** (uncacheable, dominant), σ re-assembly
+   14.8 s, cell_ids 7.8 s, solve 9.8 s ⇒ **89.2 s for one sample of a new anatomy**.
+3. (subtler) pennation **rotates the fibres** ⇒ query points move ⇒ cache void even on a fixed mesh.
+
+**Revised conclusion:** caching kills the surrogate's speed case *for repeated electrodes on one
+fixed, small mesh* — **and nowhere else**. The regimes that matter scientifically — pennation/fat
+sweeps (prior Exp 2–3, where anatomy IS the condition), cross-subject, and **inverse problems**
+(geometry is the optimisation variable ⇒ re-mesh every iteration, cache never applies) — are
+**594×**. Speed and differentiability now point the same way: toward anatomy conditioning
+(option D).
 
 ## Gate 1 — the frozen MUAP benchmark
 
