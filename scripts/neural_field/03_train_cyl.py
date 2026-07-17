@@ -135,9 +135,13 @@ def main():
     R = np.linalg.norm(PTS - E[:, None, :], axis=2)                    # (N, M)
     tf = PhiTransform(PHI[tr], R[tr], mode=a.target)
     print(f"  target: {a.target} · loss weight |phi|^{a.wpow}")
-    # normalise coords to ~[-1,1] (mm → cylinder scale)
-    cs = np.array([40.0, 40.0, 120.0], dtype=np.float32)
-    co = np.array([0.0, 0.0, 120.0], dtype=np.float32)
+    # normalise coords to ~[-1,1] — derived FROM THE DATA, not hardcoded, so the same
+    # trainer works on the cylinder (centred at origin) and on MRI/WR (offset anatomy).
+    _all = np.concatenate([PTS.reshape(-1, 3), E], 0)
+    lo, hi = _all.min(0), _all.max(0)
+    co = ((hi + lo) / 2).astype(np.float32)
+    cs = np.maximum((hi - lo) / 2, 1e-6).astype(np.float32)
+    print(f"  coord norm: centre {np.round(co,1)} scale {np.round(cs,1)}")
 
     def make(idx):
         """The ported nets take (coords, condition) separately, not a concatenated 6-D input."""
