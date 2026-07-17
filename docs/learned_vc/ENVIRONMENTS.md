@@ -31,6 +31,26 @@ Both are now version-agnostic, so the scripts run in either env. **But that does
 results comparable across envs.** Any number compared against the Gate 1–4 baselines must be
 produced under `fenicsx-env`, or the comparison is confounded by a torch minor version.
 
+## Meshes: WR's recipe is unrecoverable (2026-07-17)
+
+`save_metadata` never recorded the build flags, and `target_z` turns out not to be the lever:
+
+| DH build | nodes | tets |
+|---|---|---|
+| `--target-z 1.0` (default) | 21311 | 101663 |
+| `--target-z 1.5` (WR's z spacing) | 19393 | 93695 |
+| **forearm_WR.msh (actual)** | **10570** | **42315** |
+
+Resampling z 6.0→1.5 vs 6.0→1.0 moves the count 9% — nowhere near WR's 2× gap. WR's coarseness
+came from `--edge-length`/`--surface-faces` (back-solving the tet ratio: edge_length ≈ 0.026 vs
+the 0.02 default), and those were never stored. **WR's mesh cannot be reproduced.**
+
+Consequence for cross-subject: do **not** try to match WR. Build all four subjects on one
+*recorded* recipe (defaults, ~20k nodes) as a separate set with its own MUAP benchmark, and
+leave the existing WR mesh + `muap_bench_mri.npz` untouched as the fixed-anatomy Gate 1–4
+result. Two benchmarks, nothing invalidated. Otherwise mesh resolution is confounded with
+subject identity.
+
 ## Implication for scaling
 
 This three-way split is an argument *against* a cluster port, not for it. Reproducing it on a
