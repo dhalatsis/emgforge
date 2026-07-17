@@ -115,6 +115,15 @@ def main():
     d = np.load(a.data)
     P, E, PHI = d["points"], d["electrodes"], d["phi"]        # (M,3) (N,3) (N,M)
     N, M = PHI.shape
+    # Hybrid dataset: a shared/cached coverage set + a per-electrode NEAR-FIELD set.
+    # Uniform-in-volume sampling puts only ~0.1% of points within 10mm of the electrode,
+    # starving exactly the high-phi regime the MUAP depends on. The near set fixes that.
+    PTS = np.broadcast_to(P[None], (N, M, 3))                 # (N,M,3) shared
+    if "near_points" in d.files:
+        PTS = np.concatenate([PTS, d["near_points"]], axis=1)         # (N,M+K,3)
+        PHI = np.concatenate([PHI, d["near_phi"]], axis=1)            # (N,M+K)
+        print(f"  hybrid: {M} shared + {d['near_points'].shape[1]} near-field pts/electrode")
+    M = PHI.shape[1]
     # split by ELECTRODE (never leak an electrode across the split)
     rng = np.random.default_rng(0)
     perm = rng.permutation(N)
@@ -123,7 +132,7 @@ def main():
     print(f"{N} electrodes × {M} pts · train {len(tr)} / val {len(va)} electrodes · {dev}")
 
     # r = |point - electrode| per (electrode, point) pair — needed by the phir target
-    R = np.linalg.norm(P[None, :, :] - E[:, None, :], axis=2)          # (N, M)
+    R = np.linalg.norm(PTS - E[:, None, :], axis=2)                    # (N, M)
     tf = PhiTransform(PHI[tr], R[tr], mode=a.target)
     print(f"  target: {a.target} · loss weight |phi|^{a.wpow}")
     # normalise coords to ~[-1,1] (mm → cylinder scale)
@@ -133,7 +142,7 @@ def main():
     def make(idx):
         """The ported nets take (coords, condition) separately, not a concatenated 6-D input."""
         c = np.repeat(((E[idx] - co) / cs)[:, None, :], M, 1).reshape(-1, 3)   # (n*M,3) electrode
-        p = np.broadcast_to(((P - co) / cs)[None], (len(idx), M, 3)).reshape(-1, 3)  # (n*M,3) point
+        p = ((PTS[idx] - co) / cs).reshape(-1, 3)                     # (n*M,3) point
         Y = tf.fwd(PHI[idx], R[idx]).reshape(-1, 1).astype(np.float32)
         w = np.abs(PHI[idx]).reshape(-1) ** a.wpow if a.wpow > 0 else np.ones(Y.shape[0])
         w = (w / w.mean()).astype(np.float32)          # mean-1 so lr stays comparable

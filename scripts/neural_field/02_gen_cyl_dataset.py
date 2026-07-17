@@ -29,7 +29,10 @@ Z_LO, Z_HI = 60.0, 180.0
 
 
 def sample_volume_points(n, seed=0):
-    """Uniform in the cylinder out to the fat boundary, spanning the fibre z-range."""
+    """Uniform in the cylinder out to the fat boundary, spanning the fibre z-range.
+    NOTE: uniform-in-volume starves the near-field — volume grows as r^2, so only ~0.1%
+    of points land within 10mm of any electrode, which is exactly where the tall peaks
+    (and the MUAP signal) live. See sample_near_electrode() for the fix."""
     rng = np.random.default_rng(seed)
     r = 38.0 * np.sqrt(rng.uniform(0, 1, n))          # area-uniform
     th = rng.uniform(0, 2 * np.pi, n)
@@ -37,10 +40,28 @@ def sample_volume_points(n, seed=0):
     return np.column_stack([r * np.cos(th), r * np.sin(th), z])
 
 
+def sample_near_electrode(elec, n, rng, r_max=25.0):
+    """Points concentrated AROUND one electrode, density ~1/r^2 (uniform in r, not volume).
+    This is the near-field the uniform set never sees. Rejected if outside the fat boundary
+    (the field is only meaningful inside the tissue)."""
+    out = []
+    while sum(len(o) for o in out) < n:
+        m = int(2.5 * n)
+        r = rng.uniform(0.5, r_max, m)                       # uniform in r => density ~1/r^2
+        u, v = rng.uniform(-1, 1, m), rng.uniform(0, 2 * np.pi, m)
+        s_ = np.sqrt(1 - u ** 2)
+        p = elec + np.column_stack([r * s_ * np.cos(v), r * s_ * np.sin(v), r * u])
+        ok = (np.hypot(p[:, 0], p[:, 1]) < 38.0) & (p[:, 2] > 5.0) & (p[:, 2] < 235.0)
+        out.append(p[ok])
+    return np.concatenate(out)[:n]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=64, help="training electrodes")
-    ap.add_argument("--points", type=int, default=20000)
+    ap.add_argument("--points", type=int, default=20000, help="shared/cached coverage points")
+    ap.add_argument("--near", type=int, default=5000,
+                    help="per-electrode near-field points (uncached, ~0.3s each)")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -63,16 +84,29 @@ def main():
     elecs = np.array([g.electrode_on_skin(t_, z_) for t_, z_ in zip(th, z)])
 
     PHI = np.zeros((a.n, a.points), dtype=np.float32)
+    NP = np.zeros((a.n, a.near, 3), dtype=np.float32) if a.near else None
+    NPHI = np.zeros((a.n, a.near), dtype=np.float32) if a.near else None
+    rng2 = np.random.default_rng(a.seed + 2)
     for i, e in enumerate(elecs):
         uh = fem.solve_for_point(e)
-        PHI[i] = np.asarray(uh.eval(pts, cids)).reshape(-1)
+        PHI[i] = np.asarray(uh.eval(pts, cids)).reshape(-1)          # cached: ~free
+        if a.near:
+            np_i = sample_near_electrode(e, a.near, rng2)             # per-electrode: ~0.3s
+            NP[i] = np_i
+            NPHI[i] = fem.evaluate_solution_at_points(np_i, uh)
         if (i + 1) % 8 == 0:
             print(f"  {i+1}/{a.n} electrodes ({time.time()-t0:.0f}s)")
 
-    out = OUT / f"cyl_elec_{a.n}.npz"
-    np.savez_compressed(out, points=pts.astype(np.float32), electrodes=elecs.astype(np.float32),
-                        phi=PHI, elec_theta=th, elec_z=z)
-    print(f"\n{a.n} electrodes × {a.points} pts · phi range [{PHI.min():.3e}, {PHI.max():.3e}]")
+    out = OUT / f"cyl_elec_{a.n}{'_near' if a.near else ''}.npz"
+    d = dict(points=pts.astype(np.float32), electrodes=elecs.astype(np.float32),
+             phi=PHI, elec_theta=th, elec_z=z)
+    if a.near:
+        d.update(near_points=NP, near_phi=NPHI)
+    np.savez_compressed(out, **d)
+    print(f"\n{a.n} electrodes × {a.points} shared pts + {a.near} near pts")
+    print(f"phi range shared [{PHI.min():.3e}, {PHI.max():.3e}]")
+    if a.near:
+        print(f"phi range near   [{NPHI.min():.3e}, {NPHI.max():.3e}]  <- the peaks we were missing")
     print(f"wrote {out}  ({out.stat().st_size/1e6:.1f} MB, {time.time()-t0:.0f}s)")
 
 
