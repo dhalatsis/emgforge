@@ -110,3 +110,45 @@ N=64.** Retest at full scale on the cluster.
 
 `_results/neural_field/`: `muap_bench_cyl.npz` (the frozen scoreboard) · `cyl_elec_64.npz`
 (dataset, 4.9 MB) · `cyl_{mlp,siren}.pt` · `score_cyl_{mlp,siren}.npz` · `phase2_final.png`
+
+---
+
+# Gate 4 — MRI learned VC (2026-07-17): PASS, and it settles the target question
+
+`mri_elec_256_near_muscle` (256 electrodes, 218 train / 38 val, muscle-only + hybrid
+near-field) → MLP+Fourier → scored on the 27 held-out frozen MRI benchmark configs
+(21/27 detectable, 0.04–36 µV):
+
+| target | φ rel-L2 | median r | ≥0.94 | **amp-wtd mean** | detectable min r / p2p |
+|---|---|---|---|---|---|
+| φ·(r+r₀) | 0.116 | +0.995 | **27/27** | +0.989 | 0.957 / 1.08 |
+| **raw** | **0.081** | **+0.997** | **27/27** | **+0.995** | 0.977 / **1.03** |
+| asinh | 0.082 | +0.993 | **27/27** | +0.995 | **0.985** / 1.09 |
+
+## The finding: the targets converged — the whole investigation was data starvation
+
+| tallest-peak p2p | cylinder (55 VC, starved) | MRI (218 VC, muscle-only) |
+|---|---|---|
+| asinh | **0.19** ✗ | **1.09** ✅ |
+| φ·(r+r₀) | 0.97 | 1.08 |
+| raw | 0.42 | 1.03 |
+| **spread** | **5×** | **~6%** |
+
+**`asinh` — the target blamed for the entire near-field amplitude bug — passes at 0.995 with
+the best worst-case (0.985).** It was never wrong; the *data* was. Six training runs of target
+engineering (asinh → φ·r → φ·(r+r₀) → raw → |φ|¹ → |φ|²) were all compensating for a dataset
+that sampled **0.1% near-field** and **73% wrong tissue**.
+
+**Winner: `raw`** — no transform at all. Best φ *and* best amp-weighted score. With the right
+data, the clever priors are unnecessary.
+
+**This pre-answers the cluster N-sweep** at 256 electrodes: the prediction was that targets
+converge with enough data and the investigation resolves to "we were data-starved". Demonstrated.
+
+## What actually mattered (in order)
+
+1. **Sample the right domain** — muscle only (73%/86% of points were in tissue no fibre occupies)
+2. **Sample the right regime** — hybrid near-field (uniform-in-volume gave 0.1% near-field)
+3. **Enough VC solutions** — 55 → 218
+4. **Judge on MUAPs, amplitude-weighted** — φ error is anti-correlated with MUAP quality
+5. *(the target/loss choice — irrelevant once 1–4 are right)*
