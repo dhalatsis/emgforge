@@ -58,10 +58,18 @@ LABEL_TO_TISSUE = {
     1: "background",
     2: "bone",
     3: "bone",
-    15: "fat_skin",
-    25: "fat_skin",
+    15: "fat_skin",     # Internal Fat  (all subjects)
+    25: "fat_skin",     # Skin Fat      (all subjects)
+    26: "fat_skin",     # Internal Fat, extra layer — AG + Kostia only
+    27: "fat_skin",     # Internal Fat, extra layer — AG only
 }
-# Everything else maps to "muscle" (default for non-zero labels)
+# Everything else maps to "muscle" (default for non-zero labels).
+#
+# 26/27 MUST be listed. They are subject-specific fat layers (pd_lab_labels.json ->
+# subject_specific), absent in WR/DH but present in AG (26+27) and Kostia (26). Without them
+# the >0 fallthrough calls them muscle: for AG that is 58626 voxels = 12.1% of its "muscle"
+# given sigma 1.2275 instead of 0.0379 S/m (32x), and the muscle-only phi sampler would draw
+# from fat. WR has neither label, so Gate 1-4 are unaffected.
 
 # Tissue conductivities (S/m) — from src/emgforge/fem/constants.py + literature
 CONDUCTIVITIES = {

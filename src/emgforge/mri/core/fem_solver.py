@@ -53,7 +53,7 @@ from emgforge.fem.leadfield import GaussianSource, KSPConfig, LeadField
 # ---------------------------------------------------------------------------
 # Physical tags in the .msh file (tissue_id + 1):
 #   1 = background (tets at mesh boundary / dropped markers) → treat as fat
-#   2 = fat_skin (labels 15, 25)
+#   2 = fat_skin (labels 15, 25, and 26/27 where a subject has the extra fat layers)
 #   3 = connective (unused under the current label key — kept for older meshes)
 #   4 = muscle (the named muscles)
 #   5 = bone (radius + ulna, labels 2/3)
