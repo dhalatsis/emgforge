@@ -1,72 +1,74 @@
-# Cluster scaling — the big-scale experiments
+# Scaling — and why there is (still) no cluster job here
 
-## Why scale is the open question
+**Status 2026-07-17: this plan's headline experiment is CLOSED, and it closed on a
+workstation.** Rewritten from the original "first cluster job" framing, which the measured
+costs do not support. Read `../../docs/learned_vc/RESULTS.md` first.
 
-Every conclusion so far was measured at **55–218 VC solutions**, i.e. ~3–10% of the closed
-Exp 1's **2016 electrodes**. At that size we are characterising **inductive bias, not
-capacity** — several rankings could invert. Specifically unsettled:
+## What the original plan asked, and what actually happened
 
-| finding | measured at | risk at scale |
+| the question | answer | where it was settled |
 |---|---|---|
-| `φ·(r+r₀)` > `raw` > `asinh` | 55 VC (cylinder, 24× range) | the factorisation's edge came partly from *substituting for missing data* — with 30× more, `raw` may catch up |
-| SIREN overfits 128× → loses | 55 VC | overfitting is a **small-data** artifact; SIREN may win at 2048 (prior work's claim) |
-| `\|φ\|^α` helps monotonically | 55 VC | a re-weighting patch for scarcity — may become unnecessary |
+| `φ·(r+r₀)` > `raw` > `asinh` at scale? | **No — they converge.** ~6% spread on MRI, and the φ ranking that motivated the race was *noise* (36% retrain spread) | local, N=256 |
+| SIREN overfits → loses? | **Was a data artifact.** SIREN PASSES on proper data (0.959), still loses to MLP+Fourier (0.996) | local, N=256 |
+| `\|φ\|^α` helps monotonically? | Moot — a re-weighting patch for a starved dataset | local |
+| where does N saturate? | mean at **64**; **worst case not saturated at 256** | local, free (prefix of the 256 set) |
 
-**The whole point of scaling: find out which of these were real and which were artifacts of N.**
+**Every ranking the cluster was meant to adjudicate was adjudicated here, for free.** The
+N-sweep cost *no new FEM at all* — the dataset's electrodes are i.i.d., so a prefix is a valid
+smaller draw. The 1024-electrode extension cost **47 min** of local CPU.
 
-## The split (verified, protect it)
+## The cost case against a cluster (measured, not estimated)
 
-| stage | needs | runs |
-|---|---|---|
-| FEM dataset generation | dolfinx + mesh + segmentation | **local** (CPU) |
-| training | torch only + `.npz` | **cluster** (GPU) |
-| **MUAP scoring** | `emgforge.synthesis` — **no FEM stack** | **either** ✅ |
+| experiment | FEM (CPU) | train (GPU) | verdict |
+|---|---|---|---|
+| fixed anatomy, 2048 electrodes | ~25 min | ~40 min | one workstation |
+| the original 48-run variant race | — | **~4 GPU-h** | **one card, overnight** |
+| cross-subject, 4 subjects × 256 elec | **~19 min** | ~1 h | one workstation |
 
-Verified: `emgforge.synthesis` + `metrics` import **no** dolfinx/mpi4py/petsc4py, while
-`emgforge.mri.core.fem_solver` pulls all three. So the cluster can rank checkpoints by **MUAP
-quality in situ**, not by val loss — which matters, because φ error is *anti-correlated* with
-MUAP quality (measured 4×).
+Local hardware: **12 cores, 62 GB, one RTX 2080 Ti.** Nothing above needs more.
 
-**Rule: no FEM import may leak into the trainer or the scorer.**
+Three independent reasons the port is the wrong investment:
 
-## Cost (measured, not estimated)
+1. **Nothing is cluster-scale.** The largest thing contemplated is ~1 h end-to-end.
+2. **The expensive half can't go anyway.** Dataset generation needs dolfinx; the verified
+   split keeps FEM local. A GPU cluster accelerates the *cheap* half.
+3. **The env is the real cost.** No single env runs the pipeline: mesh generation needs
+   `scifem` (pytetwild), everything else needs `fenicsx-env` (numpy<2 + torch<2.6 — the Gate
+   1–4 baseline; `scifem` shifts rel-L2 ~6% on identical code). See `../../docs/learned_vc/
+   ENVIRONMENTS.md`. Reproducing that remotely costs more than the compute it buys.
 
-| | solve | 2048-electrode dataset |
-|---|---|---|
-| cylinder (194k nodes) | 7.7 s | **~4.5 h** |
-| **WR / MRI (10.5k nodes)** | **0.39 s** | **~25 min** ⭐ |
+## What to spend the effort on instead
 
-Hybrid near-field sampling adds only ~0.3 s/electrode. **The MRI dataset is 20× cheaper — do
-the scaling study there**, not on the cylinder.
+**Leave-one-subject-out cross-subject generalisation.** This is the 594× regime (Regime B,
+varying anatomy ⇒ cache void, mesh generation dominates) *and* the actual scientific claim.
+Unblocked as of today:
 
-## The artifact to ship
+- **4 subjects** share one annotator's label scheme, FCU = label 8 in all: WR, DH, AG, Kostia.
+- Meshing a new subject works (**68.8 s**, ASCII writer) — it was **broken** until today; the
+  gmsh path fails whenever gmsh is importable and the fallback only caught `ImportError`.
+- **AG's internal fat (labels 26/27) was being modelled as muscle** — 12.1% of its muscle
+  volume at 32× the wrong conductivity. Fixed before any data was generated.
 
-Self-contained, no mesh / no dolfinx / no MRI on the cluster:
+**Design constraints (settled — do not re-litigate):**
 
-```
-dataset.npz        points, electrodes, phi, near_points, near_phi   (muscle-only)
-muap_bench_*.npz   the frozen scoreboard (configs + truth + properties)
-config.yaml        arch / target / wpow / epochs
-```
+- Build all four on **one recorded recipe** (defaults, ~20k nodes) as a **separate set with
+  its own MUAP benchmark**. Do **not** re-mesh WR in place: its recipe is unrecoverable
+  (`target_z` is not the lever — 19.4k vs 21.3k nodes; the driver is `edge_length`, never
+  recorded), and re-meshing would invalidate the frozen benchmark Gate 1–4 rest on. Two
+  benchmarks, nothing invalidated, no subject/resolution confound.
+- Score with **both** the amp-weighted mean **and the worst detectable config**. The mean
+  alone is insufficient: under a "worst detectable ≥ 0.94" gate only N=256 passes, while
+  N=64/128 post means of 0.989/0.994. The gate statistic decides three of four verdicts.
+- **Never rank by φ.** It is non-monotonic in N, swings 36% on an identical retrain, and
+  cannot separate SIREN from MLP+Fourier where the MUAP score does so decisively.
 
-Back: `checkpoint.pt` + the MUAP score table.
+**Honest limit:** 4 subjects is a *feasibility check*, not a generalisation claim. Leave-one-out
+over 4 can falsify cross-subject transfer; it cannot establish it.
 
-## The race to run
+## If a cluster is ever justified
 
-| axis | values |
-|---|---|
-| N (VC solutions) | 64 → 256 → 1024 → **2048** (the data-scaling curve is the headline) |
-| target | `raw`, `φ·(r+r₀)`, `asinh`, `raw+\|φ\|¹` |
-| arch | MLP+Fourier, SIREN, **SIREN+relcoords** (untested, was prior work's best small-data) |
-
-That is 4 × 4 × 3 = 48 runs; each ~200 s–20 min on one GPU. **Prioritise the N-sweep for
-`φ·(r+r₀)` and `raw`** — if they converge at 2048, the target question is closed and the
-factorisation was only ever a small-data crutch.
-
-## TODO before submitting (needs human input)
-
-- [ ] scheduler — slurm? something else?
-- [ ] how data reaches the node (scp / shared FS / object store?)
-- [ ] is torch+CUDA provisioned, or do we ship an env spec?
-- [ ] GPU count / walltime limits
-- [ ] then: `submit.sh` + `env.yaml` (torch only — **never** dolfinx)
+It would be by **subject count**, not electrodes or variants — i.e. a real cross-subject study
+needing tens of segmented forearms. That's a data-acquisition problem, not a compute one. Ship
+`dataset.npz` + `muap_bench_*.npz` + `config.yaml`; get back `checkpoint.pt` + the MUAP table.
+**Rule: no FEM import may leak into the trainer or the scorer** (verified: `emgforge.synthesis`
+pulls no dolfinx/mpi4py/petsc4py).
