@@ -82,7 +82,7 @@ def jaggedness(m) -> float:
     High when a waveform carries Nyquist-scale zigzag (e.g. an under-resolved CSD
     integral); ``0`` for a straight line. Returns ``0`` for a flat waveform.
     """
-    return float(np.mean(np.abs(np.diff(m, 2))) / m.ptp()) if m.ptp() > 0 else 0.0
+    return float(np.mean(np.abs(np.diff(m, 2))) / np.ptp(m)) if np.ptp(m) > 0 else 0.0
 
 
 __all__ = [

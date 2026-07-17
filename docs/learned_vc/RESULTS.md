@@ -169,23 +169,31 @@ converge with enough data and the investigation resolves to "we were data-starve
 
 # The MRI N-sweep (2026-07-17) — free, and it settles two things
 
-The 256-electrode dataset's electrodes are i.i.d. random, so a **prefix is a valid smaller
-draw**: the whole curve costs no new FEM. The frozen benchmark is held out by construction at
-every N. All runs in `fenicsx-env` (see `ENVIRONMENTS.md` — this matters, `scifem` shifts
-rel-L2 ~6%).
+Within one dataset the electrodes are i.i.d., so a **prefix is a valid smaller draw**: the
+32→256 points cost no new FEM. The frozen benchmark is held out by construction at every N.
+All runs in `fenicsx-env` (see `ENVIRONMENTS.md` — this matters, `scifem` shifts rel-L2 ~6%).
+
+**One electrode draw for the whole curve.** The entire 32→1024 sweep is prefixes of the single
+1024-electrode dataset. This is not optional bookkeeping: a *different* dataset shares θ but not
+z-fraction (the rng stream position for `zf` depends on `n`), and an earlier splice of the
+256-set with the 1024-set put a **spurious dip at 512** (0.975→0.967→0.990). Caught by checking
+`zfrac[0]` = 0.2599 vs 0.6260. The table below is confound-free.
 
 | N | φ rel-L2 | amp-wtd r | ≥0.94 | worst detectable r | p2p | gate |
 |---|---|---|---|---|---|---|
-| 32 | 0.336 | 0.938 | 17/27 | 0.808 | 1.02 | **FAIL** |
-| 64 | 0.126 | 0.989 | 24/27 | 0.769 | 1.16 | PASS |
-| **128** | **0.097** ← *best φ* | 0.994 | 26/27 | 0.899 | 1.06 | PASS |
-| **256** | 0.110 | **0.996** | **27/27** | **0.975** | **1.01** | PASS |
+| 32 | 0.364 | 0.946 | 21/27 | 0.828 | 0.94 | PASS |
+| 64 | 0.204 | 0.991 | 22/27 | 0.891 | 1.01 | PASS |
+| **128** | **0.096** ← *best φ* | 0.992 | 27/27 | 0.970 | 1.07 | PASS |
+| 256 | 0.108 | 0.996 | 27/27 | 0.973 | 1.07 | PASS |
+| 512 | 0.058 | 0.997 | 26/27 | 0.967 | 0.99 | PASS |
+| **1024** | 0.041 | **0.998** | **27/27** | **0.990** | **0.99** | PASS |
 
-## 1. φ error is the wrong referee — demonstrated twice, both by accident
+## 1. φ error is the wrong referee — demonstrated three ways, all by accident
 
-**(a) φ is non-monotonic in N.** It ranks **N=128 above N=256**, while *every* MUAP measure
-says 256 is strictly better (27/27 vs 26/27, worst case 0.975 vs 0.899, p2p 1.01 vs 1.06).
-**Selecting on φ picks the worse model given more data.**
+**(a) φ is non-monotonic in N — WITHIN one electrode draw.** It ranks **N=128 above N=256**
+(0.096 < 0.108), while every MUAP measure improves 128→256 (worst case 0.970→0.973, amp-wtd
+0.992→0.996). No cross-dataset confound, no retrain-noise excuse — same data, and **selecting
+on φ still picks the worse model given more data.**
 
 **(b) φ is ~300× less stable than the MUAP score.** Retraining the identical N=256 config:
 
@@ -200,22 +208,25 @@ Phase-1 thesis (SFAP ∝ ∫Vm·φ″, so φ error is not the quantity of intere
 evidence nobody designed an experiment to collect.* It also retroactively justifies the
 frozen benchmark's existence.
 
-## 2. The headline saturates at N=64; the TAIL does not
+**(c) φ cannot separate SIREN from MLP+Fourier** (0.159 vs 0.110 — inside the 36% spread of
+(b)), where the MUAP score does so decisively (0.959 vs 0.996). See §3.
 
-amp-weighted mean: 0.989 → 0.994 → 0.996 (flat after 64). Worst detectable config:
-**0.769 → 0.899 → 0.977 — climbing monotonically, not saturated at 256.**
+## 2. The headline saturates at N=64; the TAIL climbs to 1024
 
-So "is more N worth it?" has *two different answers depending on which number you read*, and
-the mean is the misleading one. N=64 even has a **worse** worst case than N=32 (0.769 vs
-0.808) while its weighted mean looks far better. **Gate 4's amp-weighted mean alone is an
-insufficient gate — the worst detectable config must be reported with it.**
+amp-weighted mean: 0.946 → **0.991 at N=64**, then essentially flat (0.992/0.996/0.997/0.998).
+Worst detectable config: **0.828 → 0.891 → 0.970 → 0.973 → 0.990 — climbing all the way to
+1024** (the lone 0.967 at 512 is within noise; 1024 is the best worst-case of the study).
 
-⇒ Extending to 1024 is justified (~45 min of local CPU). Not because the mean needs it —
-because the tail might.
+So "is more N worth it?" has *two answers depending on which number you read*, and the mean is
+the misleading one: it says stop at 64, the tail says keep going to 1024. **Gate 4's
+amp-weighted mean alone is an insufficient gate — the worst detectable config must be reported
+with it.** Under a *"worst detectable ≥ 0.94"* gate the verdict lives entirely in the tail:
+N=32/64 fail (0.828/0.891), N≥128 pass. Same models, different verdict, purely from the gate
+statistic. See `nsweep_mri.png`.
 
-**Sharper still:** under a *"worst detectable ≥ 0.94"* gate, **only N=256 passes** — N=64
-(0.769) and N=128 (0.899) both fail while posting means of 0.989 and 0.994. The choice of gate
-statistic, not the model, decides three of the four verdicts. See `nsweep_mri.png`.
+*(An earlier version of this section, spliced across two datasets, reported the tail as
+saturating at 256. That was the electrode-draw confound noted above; on one draw it climbs to
+1024.)*
 
 ## 3. SIREN was ALSO a data-starvation casualty
 

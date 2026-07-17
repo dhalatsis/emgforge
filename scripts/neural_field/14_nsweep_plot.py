@@ -1,12 +1,16 @@
 """Phase 4.2 — the MRI data-scaling curve: where does N (VC solutions) saturate?
 
-Free experiment: the 256-electrode dataset's electrodes are i.i.d. random, so a prefix of
-n_elec IS a valid smaller draw. No new FEM. The referee (frozen 27-config MRI benchmark) is
-held out by construction at every N, so the curve is apples-to-apples.
+Near-free experiment: within one dataset, a prefix of n_elec IS a valid smaller draw (i.i.d.
+electrodes). No new FEM below the dataset's own N. The referee (frozen 27-config MRI benchmark)
+is held out by construction at every N, so the curve is apples-to-apples.
 
-The question this settles: the cluster plan assumed "scale N to 2048 and the rankings may
-invert". If the curve is already flat at N=64, there is nothing at 2048 to find, and the
-cylinder's target drama was never about N at all -- it was about WHICH points we sampled.
+The whole 32->1024 curve is drawn from the SINGLE 1024-electrode dataset -- crucial, because
+two different datasets share theta but not zfrac and splicing them put a spurious dip at 512.
+
+What it settles: the amp-weighted mean saturates at N=64, but the WORST detectable config keeps
+improving to 1024 (0.83->0.99). "Does more data help?" has two answers; the mean is the
+misleading one. And phi is non-monotonic in N EVEN WITHIN this one draw (128 < 256 while the
+MUAPs improve) -- phi is the wrong referee, with no cross-dataset or retrain-noise excuse left.
 
 Run: PYTHONPATH=src python scripts/neural_field/14_nsweep_plot.py
 """
@@ -21,18 +25,26 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "_results/neural_field"
-NS = (32, 64, 128, 256)
+NS = (32, 64, 128, 256, 512, 1024)
+
+# One ELECTRODE DRAW for the whole curve. 32-256 are prefixes of the 1024-electrode dataset
+# (tag ds1k); 512/1024 are the same dataset (tag mriN). They must NOT be spliced with the
+# original 256-set runs: that set shares theta but not zfrac (the rng stream position for zf
+# depends on n), so mixing them confounds "more electrodes" with "different electrodes" -- it
+# put a spurious dip at 512. Every point below is the SAME draw.
+STEM = {32: "ds1k32", 64: "ds1k64", 128: "ds1k128", 256: "ds1k256",
+        512: "mriN512", 1024: "mriN1024"}
 
 
-def load(tag):
-    f = OUT / f"scoremri_cyl_mlp_raw_mriN{tag}.npz"
+def load(n):
+    f = OUT / f"scoremri_cyl_mlp_raw_{STEM[n]}.npz"
     return np.load(f) if f.exists() else None
 
 
-def rel_l2(tag):
+def rel_l2(n):
     """phi rel-L2 lives in the checkpoint, not the score file."""
     import torch
-    f = OUT / f"cyl_mlp_raw_mriN{tag}.pt"
+    f = OUT / f"cyl_mlp_raw_{STEM[n]}.pt"
     if not f.exists():
         return np.nan
     return float(torch.load(f, map_location="cpu", weights_only=False).get("rel_l2", np.nan))
@@ -77,17 +89,23 @@ def main():
     b0.plot(N, A, "o-", color="tab:blue", lw=2, ms=7, label="amp-wtd MUAP r")
     b0.set_ylabel("amp-weighted MUAP r", color="tab:blue")
     b0.tick_params(axis="y", labelcolor="tab:blue")
-    if np.isfinite(L).all() and L[-1] > L[-2]:
-        a0.annotate("φ says 128 > 256;\nMUAPs say otherwise", xy=(N[-1], L[-1]),
-                    xytext=(0.42, 0.72), textcoords="axes fraction", fontsize=8,
-                    arrowprops=dict(arrowstyle="->", color="tab:red", lw=1.2), color="tab:red")
+    # mark the point where phi INCREASES with N (worse) while the MUAP score improves — the
+    # non-monotonicity is the whole claim, so find it rather than hard-code an index.
+    up = [i for i in range(1, len(L)) if np.isfinite(L[i]) and np.isfinite(L[i-1])
+          and L[i] > L[i-1] and A[i] >= A[i-1]]
+    if up:
+        i = up[0]
+        a0.annotate(f"φ worsens {int(N[i-1])}→{int(N[i])}\nwhile MUAPs improve",
+                    xy=(N[i], L[i]), xytext=(0.30, 0.55), textcoords="axes fraction",
+                    fontsize=8, arrowprops=dict(arrowstyle="->", color="tab:red", lw=1.2),
+                    color="tab:red")
     a0.set_title("φ error is the WRONG referee", fontsize=10)
 
     for a, key, ttl, lo in [
         (ax[1], "ampw", "amplitude-weighted MUAP r\n(saturates at N=64)", 0.90),
-        # lo=0.72, NOT 0.90: the tail's whole point is the 0.769/0.899 climb, and a 0.90
-        # floor clips it off the axis — the interesting curve would be invisible.
-        (ax[2], "dmin", "worst detectable (>1µV) MUAP r\n(still climbing at 256)", 0.72),
+        # lo=0.80, NOT 0.90: the tail's whole point is the 0.83->0.99 climb, and a 0.90
+        # floor clips the low-N points off the axis — the interesting curve would be invisible.
+        (ax[2], "dmin", "worst detectable (>1µV) MUAP r\n(climbs all the way to 1024)", 0.80),
         (ax[3], "p2p", "detectable p2p ratio (1.0 = exact)", None),
     ]:
         y = np.array([s[key] for _, s in rows])
