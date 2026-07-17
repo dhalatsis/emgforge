@@ -212,3 +212,32 @@ insufficient gate — the worst detectable config must be reported with it.**
 
 ⇒ Extending to 1024 is justified (~45 min of local CPU). Not because the mean needs it —
 because the tail might.
+
+**Sharper still:** under a *"worst detectable ≥ 0.94"* gate, **only N=256 passes** — N=64
+(0.769) and N=128 (0.899) both fail while posting means of 0.989 and 0.994. The choice of gate
+statistic, not the model, decides three of the four verdicts. See `nsweep_mri.png`.
+
+## 3. SIREN was ALSO a data-starvation casualty
+
+Same 256-electrode muscle-only data, SIREN vs the MLP+Fourier above:
+
+| | SIREN @ 55 VC (cyl) | SIREN @ 256 (MRI) | MLP+Fourier @ 256 |
+|---|---|---|---|
+| amp-wtd r | 0.883 **FAIL** | **0.959 PASS** | **0.996** |
+| ≥0.94 | 9/27 | 24/27 | **27/27** |
+| worst detectable r | — | 0.896 | **0.975** |
+| p2p | 0.84 | 0.88 | **1.01** |
+| φ rel-L2 | 0.276 | 0.159 | 0.110 |
+
+**Gate 2's "SIREN FAIL" was a statement about the dataset, not the architecture** — the third
+verdict this session to dissolve that way (after the target ranking and the near-field
+amplitude bug). On proper data SIREN passes.
+
+But it still genuinely loses, and *only the MUAP referee can say so*: φ gives 0.159 vs 0.110,
+which is marginal against the measured 36% retrain spread and cannot separate them. The
+amp-weighted score (stable to 0.001) gives 0.959 vs 0.996 — decisive. SIREN under-predicts
+peak amplitude by 12% (p2p 0.88), the classic failure the MUAP p2p ratio was built to catch.
+
+We still do **not** reproduce prior work's "SIREN wins pointwise, loses on MUAPs": here it
+loses on both. Prior used 2016 electrodes and its best small-data variant was
+**SIREN+relcoords**, still untested.

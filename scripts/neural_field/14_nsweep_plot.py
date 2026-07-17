@@ -84,8 +84,10 @@ def main():
     a0.set_title("φ error is the WRONG referee", fontsize=10)
 
     for a, key, ttl, lo in [
-        (ax[1], "ampw", "amplitude-weighted MUAP r", 0.9),
-        (ax[2], "dmin", "worst detectable (>1µV) MUAP r", 0.9),
+        (ax[1], "ampw", "amplitude-weighted MUAP r\n(saturates at N=64)", 0.90),
+        # lo=0.72, NOT 0.90: the tail's whole point is the 0.769/0.899 climb, and a 0.90
+        # floor clips it off the axis — the interesting curve would be invisible.
+        (ax[2], "dmin", "worst detectable (>1µV) MUAP r\n(still climbing at 256)", 0.72),
         (ax[3], "p2p", "detectable p2p ratio (1.0 = exact)", None),
     ]:
         y = np.array([s[key] for _, s in rows])
@@ -106,9 +108,12 @@ def main():
     print(f"\nwrote {p}")
 
     a0, a1 = rows[0][1]["ampw"], rows[-1][1]["ampw"]
-    print(f"\nN={rows[0][0]} -> N={rows[-1][0]}: amp-wtd r {a0:+.3f} -> {a1:+.3f} "
-          f"(Δ {a1-a0:+.4f})")
-    print("If Δ is within noise, the 2048-electrode cluster race has nothing to find.")
+    d0, d1 = rows[0][1]["dmin"], rows[-1][1]["dmin"]
+    print(f"\nN={rows[0][0]} -> N={rows[-1][0]}:")
+    print(f"  amp-weighted mean r : {a0:+.3f} -> {a1:+.3f}  (Δ {a1-a0:+.4f}) — flat after 64")
+    print(f"  worst detectable r  : {d0:+.3f} -> {d1:+.3f}  (Δ {d1-d0:+.4f}) — NOT saturated")
+    print("\nThe mean says stop at 64; the tail says keep going. They disagree, and the mean is")
+    print("the misleading one — hence 1024, and hence reporting the worst case beside the mean.")
 
 
 if __name__ == "__main__":
