@@ -142,6 +142,18 @@ that sampled **0.1% near-field** and **73% wrong tissue**.
 **Winner: `raw`** — no transform at all. Best φ *and* best amp-weighted score. With the right
 data, the clever priors are unnecessary.
 
+> ### ⚠️ RETRACTION (same day, see the N-sweep below)
+> **"Best φ" is not a supported claim.** Retraining the *identical* N=256 `raw` config gave
+> φ rel-L2 **0.1097** where this run gave **0.0809** — 36% apart, from cuDNN/cuBLAS
+> non-determinism alone (a fixed seed does not pin it). `raw` beat `asinh` by 2%
+> (0.0809 vs 0.0824). **That margin is inside the noise; the φ ranking was never real.**
+>
+> What survives, and is strengthened: the amp-weighted MUAP score is stable to **0.1%**
+> across the same retrain (0.995 → 0.996), so `raw` ≈ `asinh` at 0.995 is a genuine tie, and
+> `phir0`'s 0.989 may be a real small deficit. The **convergence** conclusion — the targets
+> are indistinguishable because the data, not the objective, was the problem — gets *stronger*
+> if the residual differences are noise.
+
 **This pre-answers the cluster N-sweep** at 256 electrodes: the prediction was that targets
 converge with enough data and the investigation resolves to "we were data-starved". Demonstrated.
 
@@ -152,3 +164,51 @@ converge with enough data and the investigation resolves to "we were data-starve
 3. **Enough VC solutions** — 55 → 218
 4. **Judge on MUAPs, amplitude-weighted** — φ error is anti-correlated with MUAP quality
 5. *(the target/loss choice — irrelevant once 1–4 are right)*
+
+---
+
+# The MRI N-sweep (2026-07-17) — free, and it settles two things
+
+The 256-electrode dataset's electrodes are i.i.d. random, so a **prefix is a valid smaller
+draw**: the whole curve costs no new FEM. The frozen benchmark is held out by construction at
+every N. All runs in `fenicsx-env` (see `ENVIRONMENTS.md` — this matters, `scifem` shifts
+rel-L2 ~6%).
+
+| N | φ rel-L2 | amp-wtd r | ≥0.94 | worst detectable r | p2p | gate |
+|---|---|---|---|---|---|---|
+| 32 | 0.336 | 0.938 | 17/27 | 0.808 | 1.02 | **FAIL** |
+| 64 | 0.126 | 0.989 | 24/27 | 0.769 | 1.16 | PASS |
+| **128** | **0.097** ← *best φ* | 0.994 | 26/27 | 0.899 | 1.06 | PASS |
+| **256** | 0.110 | **0.996** | **27/27** | **0.975** | **1.01** | PASS |
+
+## 1. φ error is the wrong referee — demonstrated twice, both by accident
+
+**(a) φ is non-monotonic in N.** It ranks **N=128 above N=256**, while *every* MUAP measure
+says 256 is strictly better (27/27 vs 26/27, worst case 0.975 vs 0.899, p2p 1.01 vs 1.06).
+**Selecting on φ picks the worse model given more data.**
+
+**(b) φ is ~300× less stable than the MUAP score.** Retraining the identical N=256 config:
+
+| | Gate 4 run | rerun | spread |
+|---|---|---|---|
+| φ rel-L2 | 0.0809 | 0.1097 | **+36%** |
+| amp-weighted MUAP r | 0.995 | 0.996 | **+0.1%** |
+| worst detectable r | 0.977 | 0.975 | 0.2% |
+
+Two models whose φ error differs by a third produce indistinguishable MUAPs. *This is the
+Phase-1 thesis (SFAP ∝ ∫Vm·φ″, so φ error is not the quantity of interest) confirmed by
+evidence nobody designed an experiment to collect.* It also retroactively justifies the
+frozen benchmark's existence.
+
+## 2. The headline saturates at N=64; the TAIL does not
+
+amp-weighted mean: 0.989 → 0.994 → 0.996 (flat after 64). Worst detectable config:
+**0.769 → 0.899 → 0.977 — climbing monotonically, not saturated at 256.**
+
+So "is more N worth it?" has *two different answers depending on which number you read*, and
+the mean is the misleading one. N=64 even has a **worse** worst case than N=32 (0.769 vs
+0.808) while its weighted mean looks far better. **Gate 4's amp-weighted mean alone is an
+insufficient gate — the worst detectable config must be reported with it.**
+
+⇒ Extending to 1024 is justified (~45 min of local CPU). Not because the mean needs it —
+because the tail might.

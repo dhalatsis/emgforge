@@ -113,9 +113,13 @@ def main():
     # referee (frozen benchmark) is held out by construction at every N, so N is comparable.
     ap.add_argument("--n_elec", type=int, default=0, help="0 = use all")
     ap.add_argument("--tag", default="", help="checkpoint suffix")
+    # Retraining the IDENTICAL config gave phi rel-L2 0.0809 then 0.1097 (36% apart): cuDNN/
+    # cuBLAS backward is not bit-deterministic, so a fixed seed does not pin the result. Any
+    # claim that target A beats target B by a few % is noise until this spread is measured.
+    ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    torch.manual_seed(0)
+    torch.manual_seed(a.seed)
 
     d = np.load(a.data)
     P, E, PHI = d["points"], d["electrodes"], d["phi"]        # (M,3) (N,3) (N,M)

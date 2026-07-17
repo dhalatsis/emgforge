@@ -29,6 +29,15 @@ def load(tag):
     return np.load(f) if f.exists() else None
 
 
+def rel_l2(tag):
+    """phi rel-L2 lives in the checkpoint, not the score file."""
+    import torch
+    f = OUT / f"cyl_mlp_raw_mriN{tag}.pt"
+    if not f.exists():
+        return np.nan
+    return float(torch.load(f, map_location="cpu", weights_only=False).get("rel_l2", np.nan))
+
+
 def summarise(d):
     r, amp = d["r"], d["amp"]
     w = amp / amp.sum()
@@ -45,19 +54,39 @@ def main():
         print("no N-sweep scores found — run the sweep first")
         return
 
-    print(f"{'N':>5}{'amp-wtd r':>11}{'median r':>10}{'≥0.94':>8}"
+    print(f"{'N':>5}{'φ relL2':>9}{'amp-wtd r':>11}{'median r':>10}{'≥0.94':>8}"
           f"{'det min r':>11}{'det p2p':>9}")
-    print("-" * 54)
+    print("-" * 63)
     for n, s in rows:
-        print(f"{n:5d}{s['ampw']:+11.3f}{s['med']:+10.3f}{s['npass']:>4d}/{s['n']:<3d}"
-              f"{s['dmin']:+11.3f}{s['p2p']:9.2f}")
+        print(f"{n:5d}{rel_l2(n):9.4f}{s['ampw']:+11.3f}{s['med']:+10.3f}"
+              f"{s['npass']:>4d}/{s['n']:<3d}{s['dmin']:+11.3f}{s['p2p']:9.2f}")
 
     N = np.array([n for n, _ in rows])
-    fig, ax = plt.subplots(1, 3, figsize=(13, 3.8))
+    fig, ax = plt.subplots(1, 4, figsize=(17, 3.9))
+
+    # Panel 0: the punchline — phi rel-L2 is NON-MONOTONIC in N (it prefers 128 over 256)
+    # while every MUAP measure improves. Ranking by phi picks the WORSE model given MORE data.
+    L = np.array([rel_l2(n) for n, _ in rows])
+    A = np.array([s["ampw"] for _, s in rows])
+    a0 = ax[0]
+    a0.plot(N, L, "s--", color="tab:red", lw=2, ms=7, label="φ rel-L2 (lower=better)")
+    a0.set_ylabel("φ rel-L2", color="tab:red"); a0.tick_params(axis="y", labelcolor="tab:red")
+    a0.set_xscale("log", base=2); a0.set_xticks(N); a0.set_xticklabels(N)
+    a0.set_xlabel("N (VC solutions)"); a0.grid(alpha=0.3)
+    b0 = a0.twinx()
+    b0.plot(N, A, "o-", color="tab:blue", lw=2, ms=7, label="amp-wtd MUAP r")
+    b0.set_ylabel("amp-weighted MUAP r", color="tab:blue")
+    b0.tick_params(axis="y", labelcolor="tab:blue")
+    if np.isfinite(L).all() and L[-1] > L[-2]:
+        a0.annotate("φ says 128 > 256;\nMUAPs say otherwise", xy=(N[-1], L[-1]),
+                    xytext=(0.42, 0.72), textcoords="axes fraction", fontsize=8,
+                    arrowprops=dict(arrowstyle="->", color="tab:red", lw=1.2), color="tab:red")
+    a0.set_title("φ error is the WRONG referee", fontsize=10)
+
     for a, key, ttl, lo in [
-        (ax[0], "ampw", "amplitude-weighted MUAP r", 0.9),
-        (ax[1], "dmin", "worst detectable (>1µV) MUAP r", 0.9),
-        (ax[2], "p2p", "detectable p2p ratio (1.0 = exact)", None),
+        (ax[1], "ampw", "amplitude-weighted MUAP r", 0.9),
+        (ax[2], "dmin", "worst detectable (>1µV) MUAP r", 0.9),
+        (ax[3], "p2p", "detectable p2p ratio (1.0 = exact)", None),
     ]:
         y = np.array([s[key] for _, s in rows])
         a.plot(N, y, "o-", lw=2, ms=7, color="#1f77b4")
