@@ -84,7 +84,7 @@ def main():
         _, r = align_score(t_ms, Wt[k], t_ms, m)
         _, _, eof_p = lobe_metrics(t_ms, m, 12.0)
         rows.append(dict(th=th, zf=zf, mu=int(mi), r=r,
-                         p2p_ratio=float(m.ptp() / (Wt[k].ptp() + 1e-30)),
+                         p2p_ratio=float(np.ptp(m) / (np.ptp(Wt[k]) + 1e-30)),
                          d_jag=float(jaggedness(m) - b["jaggedness"][k]),
                          d_eof=float(eof_p - b["eof"][k]),
                          d_lat=float(t_ms[np.argmax(np.abs(m))] - b["latency"][k])))

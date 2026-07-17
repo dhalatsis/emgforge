@@ -224,11 +224,19 @@ def export_msh(tet_verts, tet_cells, tissue_ids, seg_labels, out_path):
 
     Uses the Gmsh API to produce a .msh file that DOLFINx
     ``dolfinx.io.gmshio.read_from_msh()`` can load with cell_markers.
-    Falls back to a direct ASCII writer if gmsh is not available.
+    Falls back to a direct ASCII writer if the gmsh path is unavailable OR fails.
+
+    The fallback catches Exception, not just ImportError: the gmsh path raises
+    "Volume 1 does not exist" whenever gmsh IS importable, because it addNodes() into
+    entity (3,1) before addDiscreteEntity() creates it. Every mesh this project has
+    actually validated (incl. forearm_WR.msh) therefore came from the ASCII writer, in
+    an env where gmsh was absent and ImportError triggered the fallback. Installing gmsh
+    used to turn a working build into a hard failure.
     """
     try:
         return _export_msh_gmsh_api(tet_verts, tet_cells, tissue_ids, out_path)
-    except ImportError:
+    except Exception as e:  # noqa: BLE001 — any gmsh failure must not lose the mesh
+        print(f"  gmsh export failed ({type(e).__name__}: {e}) — using the ASCII writer")
         return _export_msh_ascii(tet_verts, tet_cells, tissue_ids, seg_labels, out_path)
 
 

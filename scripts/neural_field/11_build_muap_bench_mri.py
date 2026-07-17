@@ -88,7 +88,7 @@ def main():
                 tr, _, after = lobe_metrics(res.t_ms, res.muap, 12.0)
                 cfgs.append((fcu_ang + th_off, zf, m, mu.size))
                 waves.append(res.muap)
-                props.append(dict(p2p=float(res.muap.ptp()),
+                props.append(dict(p2p=float(np.ptp(res.muap)),
                                   duration_ms=float(res.metrics.get("duration_ms", 0.0)),
                                   jaggedness=float(jaggedness(res.muap)), eof=float(after),
                                   latency=float(res.t_ms[np.argmax(np.abs(res.muap))]),

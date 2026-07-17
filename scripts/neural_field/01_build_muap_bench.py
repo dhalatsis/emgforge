@@ -53,7 +53,7 @@ def mu_fibre_paths(g, depth):
 
 def muap_properties(t, m):
     trough, before, after = lobe_metrics(t, m, win_ms=12.0)
-    return dict(p2p=float(m.ptp()), duration_ms=0.0, jaggedness=float(jaggedness(m)),
+    return dict(p2p=float(np.ptp(m)), duration_ms=0.0, jaggedness=float(jaggedness(m)),
                 eof=float(after), latency=float(t[np.argmax(np.abs(m))]), trough=float(trough))
 
 

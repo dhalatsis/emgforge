@@ -71,7 +71,7 @@ for n, ck, sc, col in V:
     net, c = S.load(str(OUT / ck), dev)
     phi = np.array([S.predict_phi(net, c, dev, p, elec) for p in paths])
     m = field_to_muap(phi, sb, S.SPCFG).muap
-    axC.plot(t, m * 1e6, color=col, lw=1.4, alpha=0.9, label=f"{n} ({m.ptp()*1e6:.2f}µV)")
+    axC.plot(t, m * 1e6, color=col, lw=1.4, alpha=0.9, label=f"{n} ({np.ptp(m)*1e6:.2f}µV)")
 axC.set_xlim(-10, 55); axC.axhline(0, color="k", lw=0.3)
 axC.set_xlabel("t (ms)"); axC.set_ylabel("µV")
 axC.set_title(f"The tallest benchmark MUAP recreated by each variant "

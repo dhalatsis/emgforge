@@ -44,7 +44,10 @@ def mu_fibre_paths(g, depth):
 
 
 def load(ckpt, dev):
-    c = torch.load(ckpt, map_location=dev)
+    # weights_only=False: the checkpoint is ours and holds numpy arrays (co/cs/val_elec).
+    # torch>=2.6 flipped this default to True, which rejects them; be explicit so the scorer
+    # behaves identically across the torch versions in the local envs and on any cluster.
+    c = torch.load(ckpt, map_location=dev, weights_only=False)
     net = (MLP(in_dim=6, hidden_dim=256, n_layers=6, out_dim=1, use_fourier=True,
                n_frequencies=64, fourier_scale=3.0) if c["arch"] == "mlp"
            else SIREN(in_dim=6, hidden_dim=256, n_layers=6, out_dim=1, omega_0=30.0))
@@ -98,7 +101,7 @@ def main():
         tr_t, _, eof_t = lobe_metrics(t_ms, Wt[k], 12.0)
         tr_p, _, eof_p = lobe_metrics(t_ms, m, 12.0)
         rows.append(dict(th=th, z=z, dep=dep, r=r,
-                         p2p_ratio=float(m.ptp() / (Wt[k].ptp() + 1e-30)),
+                         p2p_ratio=float(np.ptp(m) / (np.ptp(Wt[k]) + 1e-30)),
                          d_jag=float(jaggedness(m) - b["jaggedness"][k]),
                          d_eof=float(eof_p - eof_t),
                          d_lat=float(t_ms[np.argmax(np.abs(m))] - b["latency"][k])))

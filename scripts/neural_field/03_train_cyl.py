@@ -108,18 +108,28 @@ def main():
     # high-|phi| points are RARE (top decile, near the electrode), so plain MSE under-weights
     # them by scarcity. wpow>0 counteracts that: be accurate where it matters.
     ap.add_argument("--wpow", type=float, default=0.0)
+    # Data-scaling sweep: take the first n_elec electrodes. Free — the dataset's electrodes
+    # are already i.i.d. random, so a prefix IS a valid smaller draw, no new FEM needed. The
+    # referee (frozen benchmark) is held out by construction at every N, so N is comparable.
+    ap.add_argument("--n_elec", type=int, default=0, help="0 = use all")
+    ap.add_argument("--tag", default="", help="checkpoint suffix")
     a = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(0)
 
     d = np.load(a.data)
     P, E, PHI = d["points"], d["electrodes"], d["phi"]        # (M,3) (N,3) (N,M)
+    if a.n_elec and a.n_elec < len(E):
+        E, PHI = E[:a.n_elec], PHI[:a.n_elec]
+        d = {k: (d[k][:a.n_elec] if k in ("near_points", "near_phi") else d[k])
+             for k in d.files}
+        print(f"  N-sweep: using {a.n_elec} electrodes")
     N, M = PHI.shape
     # Hybrid dataset: a shared/cached coverage set + a per-electrode NEAR-FIELD set.
     # Uniform-in-volume sampling puts only ~0.1% of points within 10mm of the electrode,
     # starving exactly the high-phi regime the MUAP depends on. The near set fixes that.
     PTS = np.broadcast_to(P[None], (N, M, 3))                 # (N,M,3) shared
-    if "near_points" in d.files:
+    if "near_points" in d:
         PTS = np.concatenate([PTS, d["near_points"]], axis=1)         # (N,M+K,3)
         PHI = np.concatenate([PHI, d["near_phi"]], axis=1)            # (N,M+K)
         print(f"  hybrid: {M} shared + {d['near_points'].shape[1]} near-field pts/electrode")
@@ -194,7 +204,8 @@ def main():
             rel = np.linalg.norm(yp - yt) / np.linalg.norm(yt)
             print(f"  ep {ep+1:4d} train {tot/n:.5f} val {vl:.5f} relL2(phi) {rel:.4f} "
                   f"({time.time()-t0:.0f}s)")
-    ck = OUT / (f"cyl_{a.arch}_{a.target}" + (f"_w{a.wpow:g}" if a.wpow else "") + ".pt")
+    ck = OUT / (f"cyl_{a.arch}_{a.target}" + (f"_w{a.wpow:g}" if a.wpow else "")
+                + (f"_{a.tag}" if a.tag else "") + ".pt")
     torch.save(dict(state=net.state_dict(), arch=a.arch, tf=tf.dump(),
                     cs=cs, co=co, val_elec=va, rel_l2=float(rel)), ck)
     print(f"\nwrote {ck} · final rel-L2(phi) on held-out electrodes = {rel:.4f}")

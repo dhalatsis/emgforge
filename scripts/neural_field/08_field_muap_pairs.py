@@ -70,12 +70,12 @@ for col, k in enumerate(picks):
     # --- bottom: the MUAP it produces ---
     a = axes[1, col]
     a.plot(t, Wt[k] * 1e6, "k", lw=2.4, label=f"FEM MUAP ({p2p_t[k]*1e6:.2f}µV)")
-    a.plot(t, m_pred * 1e6, "tab:blue", lw=1.6, label=f"learned ({m_pred.ptp()*1e6:.2f}µV, r={r:+.2f})")
+    a.plot(t, m_pred * 1e6, "tab:blue", lw=1.6, label=f"learned ({np.ptp(m_pred)*1e6:.2f}µV, r={r:+.2f})")
     a.set_xlim(-10, 55); a.axhline(0, color="k", lw=0.3)
     a.set_xlabel("t (ms)"); a.set_ylabel("µV"); a.legend(fontsize=7); a.grid(alpha=0.3)
     print(f"  θ{th:3.0f} z{z:3.0f} d{dep:2.0f}: φ peak {phi_true.mean(0).max()*1e3:6.2f} → "
           f"{phi_pred.mean(0).max()*1e3:6.2f} mV ({err*100:5.1f}% err) | "
-          f"MUAP {p2p_t[k]*1e6:5.2f} → {m_pred.ptp()*1e6:5.2f} µV, r={r:+.3f}")
+          f"MUAP {p2p_t[k]*1e6:5.2f} → {np.ptp(m_pred)*1e6:5.2f} µV, r={r:+.3f}")
 
 fig.suptitle("Recreated FIELD (top) → the MUAP it produces (bottom)  ·  "
              "left 2 = worst configs, right 2 = best", fontsize=13)
