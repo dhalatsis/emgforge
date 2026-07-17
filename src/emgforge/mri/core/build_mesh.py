@@ -376,13 +376,20 @@ def export_xdmf(tet_verts, tet_cells, tissue_ids, seg_labels, out_dir):
 
 
 def save_metadata(out_path, nifti_path, seg_data, voxel_size,
-                  tet_verts, tet_cells, tissue_ids, seg_labels):
-    """Save mesh metadata as JSON."""
+                  tet_verts, tet_cells, tissue_ids, seg_labels, build_params=None):
+    """Save mesh metadata as JSON.
+
+    build_params records the CLI args that produced the mesh. Without it a mesh is not
+    reproducible and, worse, not comparable: forearm_WR.msh is 10.5k nodes while pd-DH at
+    default settings is 21.3k, and nothing on disk says which flags made the difference.
+    Cross-subject work needs every subject meshed identically, so record the recipe.
+    """
     unique_labels, counts = np.unique(seg_labels, return_counts=True)
     label_stats = {int(l): int(c) for l, c in zip(unique_labels, counts)}
 
     meta = {
         "source_nifti": str(nifti_path),
+        "build_params": build_params or {},
         "segmentation_shape": list(seg_data.shape),
         "voxel_size_mm": list(voxel_size),
         "n_vertices": int(len(tet_verts)),
@@ -463,6 +470,8 @@ def main():
         str(out_dir / f"{stem}_metadata.json"),
         args.nifti, seg_data, voxel_size,
         tet_verts, tet_cells, tissue_ids, seg_labels,
+        build_params=dict(target_z=args.target_z, edge_length=args.edge_length,
+                          surface_faces=args.surface_faces, smooth_iters=args.smooth_iters),
     )
 
     dt = time.time() - t_total
