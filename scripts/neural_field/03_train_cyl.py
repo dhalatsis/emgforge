@@ -26,25 +26,66 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "_results/neural_field"
 
 
-class PhiTransform:
-    """asinh(phi/s)/k, standardised. Compresses the 1/r dynamic range, invertible."""
+R_MIN = 0.5   # mm — guard the 1/r inverse near the source
+R0 = 3.0      # mm — the Gaussian source sigma: phi ~ 1/(r+R0), NOT 1/r
 
-    def __init__(self, phi):
-        self.s = float(np.percentile(np.abs(phi), 50)) or 1.0
-        y = np.arcsinh(phi / self.s)
+
+class PhiTransform:
+    """Target transform. Two modes:
+
+    'phir' (default) — fit phi*r, standardised. The physics: phi ~ C/r dominates, and
+        measured |phi|*r is flat (0.26/0.30/0.28/0.23 across r=2-40mm) while |phi| itself
+        varies 8.6x. Factoring the known 1/r out flattens the target ~7x, so neither the
+        near-source peak nor the far field dominates the loss.
+    'asinh' — the original. KEPT ONLY FOR COMPARISON: it is wrong for this data. The range
+        is 30x (~1.5 decades), not the 6+ decades asinh is for, and d(asinh)/dphi collapses
+        21x at the peak (0.033 vs 0.707 at the median) -> the loss cannot feel the tallest
+        values, then sinh() amplifies the residual. That is the near-field amplitude bug.
+    """
+
+    def __init__(self, phi, r, mode="phir"):
+        self.mode = mode
+        if mode == "phir":
+            y = phi * np.maximum(r, R_MIN)
+            self.s = 1.0
+        elif mode == "phir0":
+            # phi*(r+R0). Keeps phir's flat target, but the inverse divides by (r+R0) >= R0,
+            # so it cannot amplify near the source the way 1/r does. Physically right: the
+            # source is a Gaussian of sigma=R0, so phi ~ 1/(r+R0).
+            y = phi * (r + R0)
+            self.s = 1.0
+        elif mode == "raw":
+            # no transform at all — the range is only 30x (~1.5 decades), so maybe none is needed
+            y = phi.copy()
+            self.s = 1.0
+        else:
+            self.s = float(np.percentile(np.abs(phi), 50)) or 1.0
+            y = np.arcsinh(phi / self.s)
         self.mu, self.sd = float(y.mean()), float(y.std()) or 1.0
 
-    def fwd(self, phi):
-        return (np.arcsinh(phi / self.s) - self.mu) / self.sd
+    def fwd(self, phi, r):
+        if self.mode == "phir":
+            y = phi * np.maximum(r, R_MIN)
+        elif self.mode == "phir0":
+            y = phi * (r + R0)
+        elif self.mode == "raw":
+            y = phi
+        else:
+            y = np.arcsinh(phi / self.s)
+        return (y - self.mu) / self.sd
 
-    def inv(self, y):
-        return np.sinh(y * self.sd + self.mu) * self.s
-
-    def inv_t(self, y):
-        return torch.sinh(y * self.sd + self.mu) * self.s
+    def inv(self, y, r):
+        u = y * self.sd + self.mu
+        if self.mode == "phir":
+            return u / np.maximum(r, R_MIN)
+        if self.mode == "phir0":
+            return u / (r + R0)
+        if self.mode == "raw":
+            return u
+        return np.sinh(u) * self.s
 
     def dump(self):
-        return dict(s=self.s, mu=self.mu, sd=self.sd)
+        return dict(s=self.s, mu=self.mu, sd=self.sd, mode=self.mode, r_min=R_MIN, r0=R0)
 
 
 def build(arch, in_dim=6):
@@ -62,6 +103,11 @@ def main():
     ap.add_argument("--batch", type=int, default=65536)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--val_frac", type=float, default=0.15)
+    ap.add_argument("--target", default="raw", choices=["phir", "phir0", "raw", "asinh"])
+    # loss weight = |phi|^wpow. The MUAP is driven by phi'' where phi is high+sharp, and
+    # high-|phi| points are RARE (top decile, near the electrode), so plain MSE under-weights
+    # them by scarcity. wpow>0 counteracts that: be accurate where it matters.
+    ap.add_argument("--wpow", type=float, default=0.0)
     a = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(0)
@@ -76,7 +122,10 @@ def main():
     va, tr = perm[:n_val], perm[n_val:]
     print(f"{N} electrodes × {M} pts · train {len(tr)} / val {len(va)} electrodes · {dev}")
 
-    tf = PhiTransform(PHI[tr])
+    # r = |point - electrode| per (electrode, point) pair — needed by the phir target
+    R = np.linalg.norm(P[None, :, :] - E[:, None, :], axis=2)          # (N, M)
+    tf = PhiTransform(PHI[tr], R[tr], mode=a.target)
+    print(f"  target: {a.target} · loss weight |phi|^{a.wpow}")
     # normalise coords to ~[-1,1] (mm → cylinder scale)
     cs = np.array([40.0, 40.0, 120.0], dtype=np.float32)
     co = np.array([0.0, 0.0, 120.0], dtype=np.float32)
@@ -85,11 +134,15 @@ def main():
         """The ported nets take (coords, condition) separately, not a concatenated 6-D input."""
         c = np.repeat(((E[idx] - co) / cs)[:, None, :], M, 1).reshape(-1, 3)   # (n*M,3) electrode
         p = np.broadcast_to(((P - co) / cs)[None], (len(idx), M, 3)).reshape(-1, 3)  # (n*M,3) point
-        Y = tf.fwd(PHI[idx]).reshape(-1, 1).astype(np.float32)
+        Y = tf.fwd(PHI[idx], R[idx]).reshape(-1, 1).astype(np.float32)
+        w = np.abs(PHI[idx]).reshape(-1) ** a.wpow if a.wpow > 0 else np.ones(Y.shape[0])
+        w = (w / w.mean()).astype(np.float32)          # mean-1 so lr stays comparable
         return (torch.from_numpy(p.astype(np.float32)),
-                torch.from_numpy(c.astype(np.float32)), torch.from_numpy(Y))
+                torch.from_numpy(c.astype(np.float32)), torch.from_numpy(Y),
+                R[idx].reshape(-1).astype(np.float32),
+                torch.from_numpy(w).reshape(-1, 1))
 
-    Ptr, Ctr, Ytr = make(tr); Pva, Cva, Yva = make(va)
+    Ptr, Ctr, Ytr, Rtr, Wtr = make(tr); Pva, Cva, Yva, Rva, _ = make(va)
     Pva, Cva, Yva = Pva.to(dev), Cva.to(dev), Yva.to(dev)
     net = build(a.arch).to(dev)
     opt = torch.optim.Adam(net.parameters(), lr=a.lr)
@@ -113,20 +166,22 @@ def main():
         tot = 0.0
         for i in range(0, n, a.batch):
             b = idx[i:i + a.batch]
-            pb, cb, yb = (Ptr[b].to(dev, non_blocking=True), Ctr[b].to(dev, non_blocking=True),
-                          Ytr[b].to(dev, non_blocking=True))
-            opt.zero_grad(); l = lossf(net(pb, cb).reshape(-1, 1), yb); l.backward(); opt.step()
+            pb, cb, yb, wb = (Ptr[b].to(dev, non_blocking=True), Ctr[b].to(dev, non_blocking=True),
+                              Ytr[b].to(dev, non_blocking=True), Wtr[b].to(dev, non_blocking=True))
+            opt.zero_grad()
+            l = (wb * (net(pb, cb).reshape(-1, 1) - yb) ** 2).mean()
+            l.backward(); opt.step()
             tot += l.item() * len(b)
         sch.step()
         if (ep + 1) % 25 == 0 or ep == 0:
             net.eval()
             yv = val_chunked()
             vl = float(((yv - Yva.reshape(-1)) ** 2).mean())
-            yp = tf.inv(yv.cpu().numpy()); yt = tf.inv(Yva.cpu().numpy().ravel())
+            yp = tf.inv(yv.cpu().numpy(), Rva); yt = tf.inv(Yva.cpu().numpy().ravel(), Rva)
             rel = np.linalg.norm(yp - yt) / np.linalg.norm(yt)
             print(f"  ep {ep+1:4d} train {tot/n:.5f} val {vl:.5f} relL2(phi) {rel:.4f} "
                   f"({time.time()-t0:.0f}s)")
-    ck = OUT / f"cyl_{a.arch}.pt"
+    ck = OUT / (f"cyl_{a.arch}_{a.target}" + (f"_w{a.wpow:g}" if a.wpow else "") + ".pt")
     torch.save(dict(state=net.state_dict(), arch=a.arch, tf=tf.dump(),
                     cs=cs, co=co, val_elec=va, rel_l2=float(rel)), ck)
     print(f"\nwrote {ck} · final rel-L2(phi) on held-out electrodes = {rel:.4f}")

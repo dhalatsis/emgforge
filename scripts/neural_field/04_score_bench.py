@@ -54,7 +54,8 @@ def load(ckpt, dev):
 
 def predict_phi(net, c, dev, pts, elec):
     """phi at `pts` (P,3) for one electrode (3,) — inverts the training transform.
-    The nets take (coords, condition) separately, condition broadcast across points."""
+    The nets take (coords, condition) separately, condition broadcast across points.
+    'phir' mode fits phi*r, so the inverse needs r = |point - electrode|."""
     cs, co, tf = c["cs"], c["co"], c["tf"]
     p = ((pts - co) / cs).astype(np.float32)
     e = np.broadcast_to(((elec - co) / cs).astype(np.float32), p.shape)
@@ -62,7 +63,15 @@ def predict_phi(net, c, dev, pts, elec):
     E = torch.from_numpy(np.ascontiguousarray(e)).to(dev)
     with torch.no_grad():
         y = net(P, E).reshape(-1).cpu().numpy()
-    return np.sinh(y * tf["sd"] + tf["mu"]) * tf["s"]
+    u = y * tf["sd"] + tf["mu"]
+    mode = tf.get("mode", "asinh")
+    if mode in ("phir", "phir0"):
+        r = np.linalg.norm(pts - elec, axis=-1)
+        return u / (np.maximum(r, tf.get("r_min", 0.5)) if mode == "phir"
+                    else r + tf.get("r0", 3.0))
+    if mode == "raw":
+        return u
+    return np.sinh(u) * tf["s"]
 
 
 def main():
