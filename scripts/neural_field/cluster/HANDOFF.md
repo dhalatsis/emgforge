@@ -20,6 +20,17 @@ Held-out benchmark anatomies sit at half-steps interior to the grid (interpolati
 extrapolation): fat {37,39,41,43} × pennation {2.5,7.5,12.5,17.5}. `experiment.py` asserts the
 train grid never collides with them.
 
+## Where the code and data live
+
+- **Code**: git branch `feat/learned-vc` on `origin` (github.com/dhalatsis/emgforge). Clone +
+  `git checkout feat/learned-vc`. Do NOT copy the local worktree folder — its `.git` is a
+  pointer into the main repo and won't resolve elsewhere.
+- **Non-git data** (`_results/`: FEM meshes, datasets, checkpoints, benchmarks, plots): Google
+  Drive `work/emgforge/_results`, synced via `scripts/sync_drive.sh` (rclone `gdrive:` remote).
+  On a fresh checkout: `scripts/sync_drive.sh pull`. For the cluster you need almost none of it —
+  the DAG regenerates datasets; only `_results/sanity/fem_cache/forearm_WR.{msh,_fibers.json}`
+  (~1.9 MB) are required inputs, plus the segmentation which is in git.
+
 ## The environment — one env does everything
 
 `environment.yml` → `fenicsx-env`: **dolfinx 0.7.3 + gmsh 4.13 + torch 2.3.1/cu121, numpy 1.26**.
