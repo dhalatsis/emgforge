@@ -97,6 +97,12 @@ python scripts/neural_field/cluster/run_job.py --name score_cyl         # GPU ->
 `score_cyl` prints the anatomy-benchmark table and PASS/FAIL (Gate 5: amp-weighted MUAP r ≥ 0.94
 on held-out anatomies). `score_mri_<N>` does the same for the electrode sweep.
 
+**Verified end-to-end locally** (20→21→22→23). A deliberately under-trained smoke model (2 tiny
+anatomies, 25 epochs) scores amp-weighted **0.434 · 6/72 · p2p 0.15 → FAIL** — the expected
+"plumbing works, model starved" baseline. A real grid run (36 anatomies × 96 electrodes × 300
+epochs) is what produces a meaningful Gate 5. If your first real run lands near 0.43, it did not
+train; if it errors before printing a table, the chain broke — bisect with `--name`.
+
 ## What is NOT built (deliberately — decide if you need them)
 
 - Submit scripts are **templates**, not runnable as-is (queue/account/env unknown to me).
