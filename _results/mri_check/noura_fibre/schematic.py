@@ -24,7 +24,7 @@ for xo in np.linspace(-0.42,0.42,7): fibre(ax[0],xo,-0.95,xo,0.95,"#2ca02c")
 ax[0].plot([0,0],[-1.05,-0.9],"k",lw=3); ax[0].plot([0,0],[0.9,1.05],"k",lw=3)
 ax[0].plot([-0.28,0.28],[0,0],color="#8c2d04",lw=1.4,ls=":"); ax[0].text(0.46,0,"IZ",color="#8c2d04",fontsize=9,va="center")
 ax[0].text(0,-1.09,"tendon",ha="center",fontsize=8)
-ax[0].set_title("Fusiform / parallel\n(brachioradialis)\nlong fibres ≈ span belly, 1 IZ band",fontsize=10)
+ax[0].set_title("Fusiform / parallel\n(palmaris longus)\nlong fibres ≈ span belly, 1 IZ band",fontsize=10)
 
 # 2. Unipennate — one aponeurosis, fibres tilt to it
 belly(ax[1])

@@ -148,15 +148,21 @@ stage feeds downstream:</p>
 <p>A forearm muscle fibre is ~40–60&nbsp;mm (Lieber 1990: FCU ~42&nbsp;mm; Fridén, Lovering &amp; Lieber 2004:
 FCU ~63&nbsp;mm, with ~2× regional variation), i.e. <span class="mono">L<sub>f</sub>/L<sub>m</sub>&nbsp;≈&nbsp;0.2</span>.
 In a 222&nbsp;mm belly (FDS, Fig&nbsp;1, whose own fibres run ~75&nbsp;mm) that is <strong>three or more fibres
-end-to-end</strong>, each with its own two ends and its own innervation zone. Only the body's very longest fibres (in the ~50&nbsp;cm sartorius) reach hundreds of mm.</p>
+end-to-end</strong>, each with its own two ends and its own innervation zone. This end-to-end, one-IZ-per-fibre
+arrangement <em>is</em> the <strong>series-fibered</strong> architecture the new method builds for every muscle — and
+in some muscles it is the literal anatomy: <strong>brachioradialis carries 3–6 endplate zones</strong> along its
+length, clustered in the proximal third (Lateva, McGill &amp; Johanson 2010, HD-sEMG decomposition). Only the body's very
+longest fibres (in the ~50&nbsp;cm sartorius) reach hundreds of mm.</p>
 <h3>2 · Muscles have a definite fibre architecture</h3>
 <figure>
   <img alt="Schematic of fusiform, unipennate and bipennate muscle fibre architecture" src="data:image/png;base64,{sch_img}">
-  <figcaption><b>Figure 2 — the three architecture classes.</b> <b>Fusiform</b> (brachioradialis): long fibres
+  <figcaption><b>Figure 2 — the three architecture classes.</b> <b>Fusiform</b> (palmaris longus): long fibres
   roughly spanning the belly, one innervation band. <b>Unipennate</b> (FPL, EPL): short fibres tilting to a single
   aponeurosis. <b>Bipennate / herringbone</b> (FCU, ECU, pronator teres): a <em>central tendon</em> with two fibre
-  populations attaching from either side. A fibre-placement method must take the muscle's architecture class as an
-  input — the fibres attach to these aponeuroses.</figcaption>
+  populations attaching from either side. (These are the <em>pennation</em> classes; orthogonal to them, a muscle can
+  be <em>series-fibered</em> — brachioradialis — with fibres in tandem and multiple endplate bands, which is exactly
+  what the short-in-series method produces.) A fibre-placement method must take the muscle's architecture as an input —
+  the fibres attach to these aponeuroses.</figcaption>
 </figure>
 <h3>3 · Innervation is one zone per motor unit, scattered across the muscle</h3>
 <p>Every muscle fibre has a single endplate; the fibres of one motor unit share <strong>one</strong> localised
