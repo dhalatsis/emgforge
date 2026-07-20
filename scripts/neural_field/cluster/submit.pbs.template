@@ -1,0 +1,53 @@
+#!/bin/bash
+# ===========================================================================
+# PBS/Torque submit TEMPLATE for the anatomy-conditioning experiment.
+# This is a STARTING POINT for the cluster agent — fill in the <<...>> fields
+# for the specific cluster (queue names, account, module paths, walltime).
+#
+# Two array jobs share one run_job.py (scheduler-agnostic dispatch):
+#   1. CPU array  — FEM dataset + benchmark generation (dolfinx, the bottleneck)
+#   2. GPU array  — training + scoring (torch), submitted with a dependency on (1)
+#
+# Sizes come from:  python scripts/neural_field/cluster/run_job.py --list
+#   -> "Array sizes: PBS -J 0-41 (cpu), 0-9 (gpu)."   (52 jobs at the 6x6 grid)
+# ===========================================================================
+
+# ----- STAGE 1: CPU FEM generation (array over the 42 cpu jobs) -------------
+#PBS -N emg_gen
+#PBS -q <<CPU_QUEUE>>
+#PBS -A <<ACCOUNT>>
+#PBS -l select=1:ncpus=8:mem=16gb
+#PBS -l walltime=02:00:00
+#PBS -J 0-41
+#PBS -o logs/gen.^array_index^.out
+#PBS -j oe
+
+set -euo pipefail
+cd "$PBS_O_WORKDIR"                      # submit from the repo root
+export PYTHONPATH=src
+
+# --- activate the ONE env (dolfinx 0.7.3 + gmsh + torch) — pick ONE line ---
+# module load <<DOLFINX_MODULE>>
+# source /shared/conda/etc/profile.d/conda.sh && conda activate fenicsx-env
+# source /shared/venvs/fenicsx-env/bin/activate
+<<ENV_ACTIVATE>>
+
+python scripts/neural_field/cluster/run_job.py --where cpu --index "$PBS_ARRAY_INDEX"
+
+# ===========================================================================
+# ----- STAGE 2: GPU training/scoring — submit SEPARATELY with a dep --------
+# Submit stage 1, capture its job id, then:
+#   qsub -W depend=afterokarray:<STAGE1_ID>[] submit.pbs.gpu
+# where submit.pbs.gpu is this file with the block below instead of stage 1:
+#
+#   #PBS -N emg_train
+#   #PBS -q <<GPU_QUEUE>>
+#   #PBS -l select=1:ncpus=8:ngpus=1:mem=32gb
+#   #PBS -l walltime=01:00:00
+#   #PBS -J 0-9
+#   ... same cd / env activate ...
+#   python scripts/neural_field/cluster/run_job.py --where gpu --index "$PBS_ARRAY_INDEX"
+#
+# run_job.py checks each job's dependency sentinels on the shared FS, so a GPU
+# train job that starts before its gen job finished exits rc=3 and can be requeued.
+# ===========================================================================

@@ -25,6 +25,33 @@ def _analytical_muscle() -> np.ndarray:
     return np.diag([c, c, ANISOTROPY_RATIO * c])
 
 
+def pennation_rotation_matrix(alpha_deg: float, axis: str = "x") -> np.ndarray:
+    """Rotation that tilts the fibre direction (nominally +z) by ``alpha_deg`` (pennation).
+
+    The SAME matrix must rotate both the muscle σ tensor AND the fibre query paths, or the
+    conductivity anisotropy and the fibre geometry disagree. Import it in both places rather
+    than re-deriving the convention. ``axis`` is the in-plane axis the fibre tilts about:
+    'x' tilts z→(0,sinα,cosα), 'y' tilts z→(sinα,0,cosα).
+    """
+    a = np.radians(alpha_deg)
+    ca, sa = np.cos(a), np.sin(a)
+    if axis == "x":
+        return np.array([[1, 0, 0], [0, ca, -sa], [0, sa, ca]])
+    if axis == "y":
+        return np.array([[ca, 0, sa], [0, 1, 0], [-sa, 0, ca]])
+    raise ValueError(f"axis must be 'x' or 'y', got {axis!r}")
+
+
+def rotate_muscle_tensor(sigma: np.ndarray, alpha_deg: float, axis: str = "x") -> np.ndarray:
+    """σ' = R σ Rᵀ — rotate an anisotropic muscle tensor by the pennation angle.
+
+    Eigenvalues (the physical conductivities) are invariant; only the fibre axis tilts. At
+    α=0 this is the identity; at α=90 it swaps the fibre axis into the in-plane direction.
+    """
+    R = pennation_rotation_matrix(alpha_deg, axis)
+    return R @ np.asarray(sigma) @ R.T
+
+
 class TissueTable(dict):
     """{tissue_name: σ} — σ scalar (iso) or 3×3 (anisotropic). Drop-in for
     ``FEMModel(..., conductivity=…)`` and ``MRIFEMModel(..., conductivity=…)``."""
@@ -47,6 +74,18 @@ class TissueTable(dict):
             "Cortical Bone": 0.02,
             "Cancellous Bone": 0.02,  # single-bone analytical
         })
+
+    @classmethod
+    def analytical_pennated(cls, alpha_deg: float, axis: str = "x") -> "TissueTable":
+        """analytical() with the muscle tensor tilted by pennation ``alpha_deg``.
+
+        This is the cross-pennation knob: the field φ changes because the anisotropy axis
+        rotates. The fibre query paths must be rotated by the same angle (see
+        ``pennation_rotation_matrix``) at scoring time.
+        """
+        t = cls.analytical()
+        t["Muscle"] = rotate_muscle_tensor(_analytical_muscle(), alpha_deg, axis)
+        return t
 
     @classmethod
     def mri_analytical(cls) -> "TissueTable":

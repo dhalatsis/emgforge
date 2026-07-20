@@ -1,0 +1,31 @@
+# The ONE environment for the whole pipeline (FEM generation AND training).
+# Reproduces the local `fenicsx-env` that produced Gate 1-4. dolfinx pins the
+# stack; conda-forge is the channel that ships a matching dolfinx + petsc + gmsh.
+#
+# NOTE: pytetwild is NOT needed — this experiment meshes cylinders via gmsh and
+# reuses the cached WR mesh for MRI; no marching-cubes tetrahedralisation.
+#
+# Verified versions (local): dolfinx 0.7.3 · gmsh 4.13.1 · torch 2.3.1+cu121
+#                            numpy 1.26.4 · scipy 1.13.1 · python 3.10
+#
+# The numpy<2 / torch<2.6 pins matter: numpy 2 removed ndarray.ptp and torch 2.6
+# flipped torch.load(weights_only) — both bit the scorer (see ENVIRONMENTS.md).
+name: fenicsx-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - fenics-dolfinx=0.7.3
+  - mpich
+  - petsc
+  - python-gmsh=4.13
+  - numpy=1.26
+  - scipy=1.13
+  - nibabel
+  - matplotlib
+  - pip
+  - pip:
+      # CUDA torch is easiest from the official index; match the cluster's CUDA.
+      # torch==2.3.1  (cu121)  — install with:
+      #   pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+      - torch==2.3.1
