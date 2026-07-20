@@ -171,6 +171,18 @@ converge with enough data and the investigation resolves to "we were data-starve
 
 Within one dataset the electrodes are i.i.d., so a **prefix is a valid smaller draw**: the
 32→256 points cost no new FEM. The frozen benchmark is held out by construction at every N.
+
+> **What "held out" means, precisely** (checked on the N=1024 model). The 9 benchmark
+> electrodes sit at fixed FCU-relative (θ, z); training draws (θ, z) continuously — so **0/9
+> match a training electrode's parameters**. Physically, though, `get_skin_surface_point`
+> snaps to the ~6000-vertex mesh boundary, so 5/9 round onto the *same vertex* as some training
+> electrode (0 mm), and only **4/9 are genuinely new positions** (2.9–5.5 mm from the nearest
+> training electrode). Those 4 score **mean r +0.997 / worst +0.990** vs +0.998/+0.996 for the
+> coincident ones — indistinguishable, so the field genuinely **interpolates to new electrode
+> positions**. Two caveats: (i) even coincident electrodes are queried at fibre-path points
+> that were never training samples (training sampled random muscle volume + near-field, not
+> fibre trajectories), so no config is pure memorisation; (ii) this is **interpolation within**
+> the trained electrode domain — extrapolation (hold out a whole angular sector) is untested.
 All runs in `fenicsx-env` (see `ENVIRONMENTS.md` — this matters, `scifem` shifts rel-L2 ~6%).
 
 **One electrode draw for the whole curve.** The entire 32→1024 sweep is prefixes of the single
