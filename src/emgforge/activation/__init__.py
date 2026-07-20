@@ -13,6 +13,9 @@ the FEM-derived MUAPs from ``emgforge.synthesis`` to make interference EMG.
 """
 
 from emgforge.activation import drive  # noqa: F401
+from emgforge.activation.dynamic import (
+    amp_from_angle, angle_track, drive_from_angle, dynamic_compound_emg, warp_from_angle,
+)
 from emgforge.activation.emg import (
     compound_emg, compound_emg_multi, single_diff, double_diff, rms_envelope,
 )
@@ -20,4 +23,6 @@ from emgforge.activation.pool import DEFAULTS, ISI_CV, MotoneuronPool
 from emgforge.activation.twitch import TwitchPool
 
 __all__ = ["MotoneuronPool", "TwitchPool", "DEFAULTS", "ISI_CV", "drive",
-           "compound_emg", "compound_emg_multi", "single_diff", "double_diff", "rms_envelope"]
+           "compound_emg", "compound_emg_multi", "single_diff", "double_diff", "rms_envelope",
+           "angle_track", "drive_from_angle", "amp_from_angle", "warp_from_angle",
+           "dynamic_compound_emg"]
