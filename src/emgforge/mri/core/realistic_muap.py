@@ -38,10 +38,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-from emgforge.mri.core.fem_solver import MRIFEMModel
-from emgforge.mri.core.fiber_directions import MuscleFiberModel
 from emgforge.synthesis.api import MUAPConfig, generate_muap_from_phi
 from emgforge.mri.core._pipeline_config import build_muap_config
+
+# NOTE: ``fem_solver`` (FEniCS/ufl) and ``MuscleFiberModel`` are imported lazily
+# inside ``main()`` so this module's reusable helpers (``compute_per_fiber_muap``,
+# ``compute_harmonic_muap``, the sampling utilities) import cleanly in
+# environments without the heavy FEM stack.
 
 NIFTI = "mri/data/PD_PROPELLER_5MM_FATS_FLX_0012/full.nii.gz"
 MESH = "mri/mesh/forearm.msh"
@@ -269,6 +272,87 @@ def compute_per_fiber_muap(phi_mat, dz, half_mm, vs_per_fiber, posz_per_fiber,
     return t_common, muap_sum
 
 
+def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
+                          vs_per_fiber=None, config=None):
+    """Sum SHORT-fibre SFAPs for a harmonic motor unit via the spatial engine.
+
+    Unlike :func:`compute_per_fiber_muap` (one global ``half_mm``, mid-belly
+    NMJ — the RED/GREY assumption), this consumes the PER-FIBRE semi-lengths
+    and placed NMJ produced by
+    :mod:`emgforge.mri.core.harmonic_fibers` / a ``method="harmonic"``
+    ``FiberBed``. Each fibre's lead field ``phi_per_fiber[i]`` is sampled at
+    uniform ``dz_mm`` along its short path; it is routed through
+    :func:`emgforge.synthesis.engines.spatial.compute_sfap_spatial` with that
+    fibre's ``len1_mm=half1``, ``len2_mm=half2`` and ``posz_mm`` — so the
+    active propagation band spans only ~one fascicle length, not the whole
+    muscle.
+
+    Parameters
+    ----------
+    phi_per_fiber : sequence of (Nz_i,) arrays
+        Lead field along each short fibre (fibres may differ in length).
+    dz_mm : float
+        Uniform arc-length step of every fibre's ``phi`` (== the bed ``dz_mm``).
+    half1_mm, half2_mm, posz_mm : (N,) arrays
+        Per-fibre semi-lengths and NMJ position (bed ``half1_mm`` etc.).
+    vs_per_fiber : (N,) array or None
+        Optional per-fibre conduction velocity (m/s). If None, the config ``v``
+        is used for all fibres.
+    config : SpatialConfig or None
+        Spatial-engine config. Defaults to ``SpatialConfig()``.
+
+    Returns
+    -------
+    (t_ms, muap) : the common time axis and the summed MUAP.
+    """
+    from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
+
+    cfg = config or SpatialConfig()
+    n_fib = len(phi_per_fiber)
+    half1_mm = np.asarray(half1_mm, dtype=float)
+    half2_mm = np.asarray(half2_mm, dtype=float)
+    posz_mm = np.asarray(posz_mm, dtype=float)
+    t_common = None
+    muap_sum = None
+    for fi in range(n_fib):
+        c = cfg
+        if vs_per_fiber is not None and float(vs_per_fiber[fi]) != cfg.v:
+            c = SpatialConfig(**{**cfg.__dict__, "v": float(vs_per_fiber[fi])})
+        t_ms, sfap, _ = compute_sfap_spatial(
+            np.asarray(phi_per_fiber[fi], dtype=float), dz_mm,
+            len1_mm=float(half1_mm[fi]), len2_mm=float(half2_mm[fi]),
+            posz_mm=float(posz_mm[fi]), config=c,
+        )
+        if t_common is None:
+            t_common = t_ms
+            muap_sum = sfap.copy()
+        else:
+            muap_sum += sfap
+    return t_common, muap_sum
+
+
+def compute_muap_from_bed(bed, phi_per_fiber, fiber_idxs=None,
+                          vs_per_fiber=None, config=None):
+    """Convenience wrapper: MUAP from a ``method="harmonic"`` ``FiberBed``.
+
+    Pulls each selected fibre's ``half1_mm`` / ``half2_mm`` / ``posz_mm`` from
+    the bed and forwards to :func:`compute_harmonic_muap`. ``phi_per_fiber``
+    must be aligned with ``fiber_idxs`` (or with all bed fibres if
+    ``fiber_idxs`` is None).
+    """
+    if not getattr(bed, "is_harmonic", False):
+        raise ValueError(
+            "compute_muap_from_bed requires a method='harmonic' FiberBed; "
+            "use compute_per_fiber_muap for uniform/poisson/hex beds."
+        )
+    idx = np.arange(len(bed.half1_mm)) if fiber_idxs is None else np.asarray(fiber_idxs)
+    return compute_harmonic_muap(
+        phi_per_fiber, bed.dz_mm,
+        bed.half1_mm[idx], bed.half2_mm[idx], bed.posz_mm[idx],
+        vs_per_fiber=vs_per_fiber, config=config,
+    )
+
+
 def _align(t, x):
     return t - t[np.argmax(np.abs(x))], x
 
@@ -296,6 +380,9 @@ def main():
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    from emgforge.mri.core.fem_solver import MRIFEMModel
+    from emgforge.mri.core.fiber_directions import MuscleFiberModel
 
     fm = MuscleFiberModel(NIFTI)
     fm.estimate_centerlines()

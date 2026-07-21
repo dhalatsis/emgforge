@@ -527,7 +527,7 @@ class MuscleInfo:
         # Manual override
         self.start_point_mm: np.ndarray | None = None  # proximal attachment
         self.end_point_mm: np.ndarray | None = None    # distal attachment
-        self.direction_source: str = "pca"  # "pca" or "manual"
+        self.direction_source: str = "pca"  # "pca" | "endpoints" | "harmonic" | "manual"
 
         # Pennation: fiber direction tilts away from centerline tangent
         # by this angle (degrees). Real pennate muscles: 5-30°.
@@ -675,6 +675,9 @@ class MuscleFiberModel:
         method : str
             "pca" — principal component analysis of voxel coordinates
             "endpoints" — connect z-extent start/end centroids
+            "harmonic" — volume-averaged direction of the masked-Laplace
+                harmonic field (Noura's streamline method). Falls back to PCA
+                if the field solve fails or the muscle is too small.
         """
         for label, m in self.muscles.items():
             if m.tissue_type != "muscle":
@@ -691,6 +694,10 @@ class MuscleFiberModel:
                 self._estimate_pca(m, coords)
             elif method == "endpoints":
                 self._estimate_endpoints(m, coords)
+            elif method == "harmonic":
+                self._estimate_harmonic(m, coords)
+            else:
+                raise ValueError(f"unknown method={method!r}")
 
     def _estimate_pca(self, m: MuscleInfo, coords: np.ndarray):
         """Fiber direction from PCA of voxel coordinates."""
@@ -764,6 +771,35 @@ class MuscleFiberModel:
         cos_angle = abs(np.dot(m.fiber_direction, np.array([0, 0, 1])))
         m.fiber_angle_from_z_deg = float(np.degrees(np.arccos(np.clip(cos_angle, 0, 1))))
         m.direction_source = "endpoints"
+
+    def _estimate_harmonic(self, m: MuscleInfo, coords: np.ndarray):
+        """Fiber direction from the volume-averaged masked-Laplace field.
+
+        Solves ∇²φ=0 in the muscle (φ=0 proximal cap, φ=1 distal cap,
+        insulated walls) and averages the normalised ∇φ over the muscle to
+        get a single representative fiber direction. Falls back to PCA if the
+        muscle is too small or the solve fails for any reason — so this method
+        is always at least as robust as ``method="pca"``.
+        """
+        if len(coords) < 10:
+            self._estimate_pca(m, coords)
+            return
+        try:
+            from emgforge.mri.core.harmonic_fibers import HarmonicFibreField
+
+            mask = self.seg_data == m.label
+            field = HarmonicFibreField(mask, self.voxel_size, solve=True)
+            direction = field.mean_direction()
+        except Exception:
+            # Any numerical failure → robust PCA fallback (keeps direction_source
+            # meaningful and the pipeline running).
+            self._estimate_pca(m, coords)
+            return
+
+        m.fiber_direction = direction / np.linalg.norm(direction)
+        cos_angle = abs(np.dot(m.fiber_direction, np.array([0, 0, 1])))
+        m.fiber_angle_from_z_deg = float(np.degrees(np.arccos(np.clip(cos_angle, 0, 1))))
+        m.direction_source = "harmonic"
 
     def set_manual_fiber(
         self, label: int,
