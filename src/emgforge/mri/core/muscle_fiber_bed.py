@@ -12,14 +12,18 @@ Four sampling methods supported (see ``build_muscle_beds``):
   - "uniform"   uniform density on the muscle cross-section
   - "poisson"   Bridson Poisson-disk → minimum-spacing biology-like packing
   - "hex"       hex lattice + small jitter (most anatomical, simplest math)
-  - "harmonic"  masked-Laplace streamlines cut into SHORT in-series fibres,
-                each with ONE atlas-placed NMJ (Noura's fibre-geometry method,
-                :mod:`emgforge.mri.core.harmonic_fibers`).
+  - "harmonic"  masked-Laplace streamlines (Noura's fibre-geometry method,
+                :mod:`emgforge.mri.core.harmonic_fibers`). Default = single-NMJ:
+                one full-length fibre per streamline, mid-belly NMJ. With
+                ``series=True`` (EXPERIMENTAL) each streamline is cut into SHORT
+                in-series fibres, each with an atlas-placed NMJ.
 
 The uniform/poisson/hex methods record each fibre as a FULL-length morphing-disk
 path with a single global ``half_mm`` (the RED/GREY assumption). The "harmonic"
-method instead records SHORT fibres, each carrying its own semi-lengths and NMJ
-position in the per-fibre arrays ``half1_mm`` / ``half2_mm`` / ``posz_mm``.
+method uses curved, non-crossing, depth-following streamlines instead, and records
+each fibre's own semi-lengths + NMJ in the per-fibre arrays ``half1_mm`` /
+``half2_mm`` / ``posz_mm`` (single-NMJ full-length by default; short in-series when
+``series=True``).
 
 The bed records each fiber as a dict:
   - r_norm, theta_deg     morphing-disk coordinates (harmonic: geometric proxy)
@@ -36,6 +40,7 @@ Typical use:
 """
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -155,14 +160,15 @@ def _build_hex(R_max, mx, my, cs, z_mid, density, rng, jitter_frac=0.15):
     return keys
 
 
-def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas):
-    """Build a SHORT-fibre / placed-IZ FiberBed for one muscle via the
-    masked-Laplace streamline method (``emgforge.mri.core.harmonic_fibers``).
+def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas, series=False):
+    """Build a harmonic-streamline FiberBed for one muscle
+    (``emgforge.mri.core.harmonic_fibers``).
 
-    Unlike the morphing-disk methods, harmonic fibres are short (~one fascicle
-    length) and each carries its own semi-lengths + NMJ, so the returned bed
-    populates ``half1_mm`` / ``half2_mm`` / ``posz_mm`` and stores the
-    variable-length paths/tangents as object arrays.
+    ``series=False`` (default) → single-NMJ: one full-length fibre per streamline,
+    mid-belly NMJ. ``series=True`` → EXPERIMENTAL series-fibering: short in-series
+    fibres with atlas-placed IZs. Either way each fibre carries its own semi-lengths
+    + NMJ, so the bed populates ``half1_mm`` / ``half2_mm`` / ``posz_mm`` and stores
+    the variable-length paths/tangents as object arrays.
     """
     from emgforge.mri.core.harmonic_fibers import (
         HarmonicFibreField,
@@ -173,9 +179,12 @@ def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas):
     mask = fiber_model.seg_data == label
     vs = np.asarray(fiber_model.voxel_size, dtype=float)
 
-    Lf, iz, _ = atlas_fibre_params(label, atlas)
     field = HarmonicFibreField(mask, vs, solve=True)
-    fibres = field.short_fibers(Lf, iz, grid_mm=grid_mm, dz_mm=dz)
+    if series:
+        Lf, iz, _ = atlas_fibre_params(label, atlas)
+        fibres = field.short_fibers(Lf, iz, grid_mm=grid_mm, dz_mm=dz)
+    else:
+        fibres = field.long_fibers(grid_mm=grid_mm, dz_mm=dz)
     if len(fibres) < min_fibers:
         return None
 
@@ -229,6 +238,7 @@ def build_muscle_beds(
     min_fibers=30,
     grid_mm=2.0,
     atlas=None,
+    series=False,
 ):
     """Build a FiberBed for each muscle in ``fiber_model``.
 
@@ -243,9 +253,12 @@ def build_muscle_beds(
     method : {"uniform", "poisson", "hex", "harmonic"}
         The morphing-disk methods ("uniform"/"poisson"/"hex") build
         full-length fibres with a single global ``half_mm``. "harmonic"
-        builds SHORT masked-Laplace-streamline fibres with per-fibre
-        semi-lengths + placed atlas IZs (needs only ``seg_data``, not
-        centerlines / cross-sections).
+        builds masked-Laplace-streamline fibres (needs only ``seg_data``, not
+        centerlines / cross-sections) — single-NMJ full-length by default.
+    series : bool
+        (harmonic only) EXPERIMENTAL. When True, cut each streamline into short
+        in-series fibres with atlas-placed multiple IZs instead of one mid-belly
+        NMJ. Emits a warning; the single-NMJ model is the production default.
     dz : float
         z-spacing for fiber paths (mm). For "harmonic" this is the uniform
         arc-length spacing of the short-fibre polylines.
@@ -268,6 +281,12 @@ def build_muscle_beds(
     beds = {}
 
     if method == "harmonic":
+        if series:
+            warnings.warn(
+                "harmonic series-fibering (multi-NMJ) is EXPERIMENTAL; the single-NMJ "
+                "model (series=False) is the production default.",
+                stacklevel=2,
+            )
         if labels is None:
             labels = sorted(
                 l for l, mm in fiber_model.muscles.items()
@@ -275,7 +294,7 @@ def build_muscle_beds(
             )
         for label in labels:
             bed = _build_harmonic_bed(
-                fiber_model, label, dz, min_fibers, grid_mm, atlas,
+                fiber_model, label, dz, min_fibers, grid_mm, atlas, series=series,
             )
             if bed is not None:
                 beds[label] = bed

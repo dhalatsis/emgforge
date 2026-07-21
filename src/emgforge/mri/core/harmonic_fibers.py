@@ -453,27 +453,60 @@ class HarmonicFibreField:
             raise RuntimeError("Laplace field not solved; call .solve() first")
         iz = sorted(iz_fractions)
         step = float(np.clip(Lf / self.Lm, 0.12, 0.6))
+        fibres: List[HarmonicFiber] = []
+        for f in self._seed_streamlines(grid_mm, min_pts):
+            fibres.extend(self._cut_streamline(f, iz, step, dz_mm, min_seg_pts))
+        return fibres
+
+    def _seed_streamlines(self, grid_mm: float, min_pts: int):
+        """Yield each in-mask seed's contained streamline — shared by the single-NMJ
+        (:meth:`long_fibers`) and series (:meth:`short_fibers`) builders."""
         zc = 0.5 * (self.z0 + self.z1)
         zi = int(round(zc / self.vs[2]))
         sm = np.argwhere(self.mask[:, :, zi])
         if len(sm) == 0:
-            return []
+            return
         st_x = grid_mm / self.vs[0]
         st_y = grid_mm / self.vs[1]
         shape = np.array(self.mask.shape)
-
-        fibres: List[HarmonicFiber] = []
         for gx in np.arange(sm[:, 0].min(), sm[:, 0].max(), st_x):
             for gy in np.arange(sm[:, 1].min(), sm[:, 1].max(), st_y):
                 c = np.array([int(gx), int(gy), zi])
                 if not (np.all(c >= 0) and np.all(c < shape) and self.mask[tuple(c)]):
                     continue
                 f = self._streamline(np.array([gx * self.vs[0], gy * self.vs[1], zc]))
-                if len(f) < min_pts:
-                    continue
-                fibres.extend(
-                    self._cut_streamline(f, iz, step, dz_mm, min_seg_pts)
-                )
+                if len(f) >= min_pts:
+                    yield f
+
+    def long_fibers(
+        self, grid_mm: float = 2.0, dz_mm: float = 1.0, min_pts: int = 15,
+    ) -> List[HarmonicFiber]:
+        """One FULL-LENGTH fibre per streamline, single mid-belly NMJ.
+
+        The **single-NMJ model on harmonic geometry** — the production default: the
+        same curved, non-crossing, depth-following streamlines as
+        :meth:`short_fibers`, but each streamline is kept whole and innervated once at
+        mid-belly. Series-fibering (cutting into short fibres with multiple placed IZs)
+        is the experimental :meth:`short_fibers`.
+        """
+        if self.g is None:
+            raise RuntimeError("Laplace field not solved; call .solve() first")
+        fibres: List[HarmonicFiber] = []
+        for f in self._seed_streamlines(grid_mm, min_pts):
+            rs = _resample_arc(f, dz_mm)
+            if len(rs) < 3:
+                continue
+            arc = _arc_length(rs)
+            total = float(arc[-1])
+            nmj_arc = 0.5 * total                             # mid-belly NMJ
+            j = int(np.argmin(np.abs(arc - nmj_arc)))
+            frac = self._long_fraction(rs)
+            fibres.append(HarmonicFiber(
+                path=rs, tangents=_tangents(rs), dz_mm=float(dz_mm),
+                nmj_xyz=rs[j].copy(), nmj_arc_mm=nmj_arc,
+                half1_mm=max(nmj_arc, 1e-6), half2_mm=max(total - nmj_arc, 1e-6),
+                iz_fraction=float(frac[j]), is_atlas=False, band=0,
+            ))
         return fibres
 
     def _cut_streamline(
@@ -528,23 +561,28 @@ def build_harmonic_fibers(
     dz_mm: float = 1.0,
     Lf: Optional[float] = None,
     iz_fractions=None,
+    series: bool = False,
 ) -> List[HarmonicFiber]:
-    """Build the short harmonic fibres for one muscle label of a
+    """Build harmonic-streamline fibres for one muscle label of a
     :class:`~emgforge.mri.core.fiber_directions.MuscleFiberModel`.
 
-    Reads the muscle mask from ``fiber_model.seg_data == label`` and the
-    fascicle length / IZ fractions from the forearm atlas (overridable via
-    ``Lf`` / ``iz_fractions``).
+    ``series=False`` (default) → the **single-NMJ model**: one full-length fibre per
+    streamline, innervated once at mid-belly (needs only the mask — no atlas).
+    ``series=True`` → **experimental series-fibering**: each streamline is cut into
+    short in-series fibres, each with an atlas-placed NMJ (reads fascicle length / IZ
+    fractions from the forearm atlas, overridable via ``Lf`` / ``iz_fractions``).
     """
     if not hasattr(fiber_model, "seg_data"):
         raise RuntimeError("fiber_model has no seg_data; load a segmentation first")
     mask = fiber_model.seg_data == int(label)
     vs = np.asarray(fiber_model.voxel_size, dtype=float)
+    field = HarmonicFibreField(mask, vs, solve=True)
+    if not series:
+        return field.long_fibers(grid_mm=grid_mm, dz_mm=dz_mm)
     if Lf is None or iz_fractions is None:
         Lf_a, iz_a, _ = atlas_fibre_params(label, atlas)
         Lf = Lf_a if Lf is None else Lf
         iz_fractions = iz_a if iz_fractions is None else iz_fractions
-    field = HarmonicFibreField(mask, vs, solve=True)
     return field.short_fibers(Lf, iz_fractions, grid_mm=grid_mm, dz_mm=dz_mm)
 
 
