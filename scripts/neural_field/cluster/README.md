@@ -1,74 +1,61 @@
-# Scaling — and why there is (still) no cluster job here
+# The cluster job: anatomy-conditioning (fat × pennation) + MRI electrode sweep
 
-**Status 2026-07-17: this plan's headline experiment is CLOSED, and it closed on a
-workstation.** Rewritten from the original "first cluster job" framing, which the measured
-costs do not support. Read `../../docs/learned_vc/RESULTS.md` first.
+**Operational contract: `HANDOFF.md`. The DAG as code: `experiment.py` (run it to print).**
+This file is the *why*.
 
-## What the original plan asked, and what actually happened
+## Why this one IS a cluster job (when the electrode sweeps were not)
 
-| the question | answer | where it was settled |
+An earlier version of this file argued — correctly — that the **electrode sweeps don't need a
+cluster**: fixed anatomy means the FEM cache holds, a 2048-electrode MRI sweep is ~15 min, and
+the whole target/SIREN/N-scaling question got settled locally for free (see
+`../../docs/learned_vc/RESULTS.md`). That still stands.
+
+What changed is the *experiment*. Cross-**fat** and cross-**pennation** are **varying anatomy** —
+every `r_fat` is a new mesh, every pennation a new σ-assembly + solve. That is Regime B (Gate
+0b): the cell-id cache is void and meshing dominates, ~**594× the surrogate's net cost per
+sample**. It is also embarrassingly parallel across the 36 anatomies. That combination — genuinely
+expensive, trivially parallel — is exactly what a CPU cluster is for. The GPU training that
+follows is cheap; it rides along on the GPU nodes.
+
+So the split you asked for is the right one: **FEM generation fans out on CPU, training on GPU,
+shared filesystem.**
+
+## One env, not the three-way split
+
+The earlier "the env is the real cost" objection was about the MRI meshing path (pytetwild). This
+experiment **meshes cylinders via gmsh** and reuses the cached WR mesh for the MRI axis, so there
+is **no pytetwild** — the whole pipeline runs in a single `fenicsx-env` (dolfinx 0.7.3 + gmsh 4.13
++ torch 2.3.1). `environment.yml` reproduces it. That removes the main provisioning risk.
+
+## The matrix (see `experiment.py`)
+
+| axis | grid | mechanism |
 |---|---|---|
-| `φ·(r+r₀)` > `raw` > `asinh` at scale? | **No — they converge.** ~6% spread on MRI, and the φ ranking that motivated the race was *noise* (36% retrain spread) | local, N=256 |
-| SIREN overfits → loses? | **Was a data artifact.** SIREN PASSES on proper data (0.959), still loses to MLP+Fourier (0.996) | local, N=256 |
-| `\|φ\|^α` helps monotonically? | Moot — a re-weighting patch for a starved dataset | local |
-| where does N saturate? | mean at **64**; **worst case not saturated at 256** | local, free (prefix of the 256 set) |
+| fat | `r_fat ∈ {36,38,40,42,44,46}` mm | new gmsh mesh per value (the cost driver) |
+| pennation | `{0,5,10,15,20,25}°` | rotates the muscle σ tensor (same mesh, new solve) |
+| electrode | 96 per anatomy | source position |
+| MRI electrode | N ∈ {256,512,1024,2048} | single WR anatomy, cheap solves |
 
-**Every ranking the cluster was meant to adjudicate was adjudicated here, for free.** The
-N-sweep cost *no new FEM at all* — the dataset's electrodes are i.i.d., so a prefix is a valid
-smaller draw. The 1024-electrode extension cost **47 min** of local CPU.
+**Held-out benchmark anatomies** sit at half-steps interior to the fat/pennation grid
+(interpolation, not extrapolation); `experiment.py` asserts the train grid never collides with
+them. Models are judged on **MUAP reconstruction** (Gate 5: amp-weighted r ≥ 0.94 on held-out
+anatomies), **never on φ error** — φ is non-monotonic and 36%-noisy (RESULTS.md).
 
-## The cost case against a cluster (measured, not estimated)
+## Settled design rules (do not re-litigate)
 
-| experiment | FEM (CPU) | train (GPU) | verdict |
-|---|---|---|---|
-| fixed anatomy, 2048 electrodes | ~25 min | ~40 min | one workstation |
-| the original 48-run variant race | — | **~4 GPU-h** | **one card, overnight** |
-| cross-subject, 4 subjects × 256 elec | **~19 min** | ~1 h | one workstation |
+- Judge on the MUAP benchmark, reporting the amp-weighted mean **and** the worst detectable
+  config. The gate statistic, not the model, decides most verdicts.
+- Never rank by φ.
+- `r_fat > r_muscle (=35)` is required (guarded); pennation is a σ-rotation with z-aligned
+  benchmark fibres (`21_build_bench_anatomy.py` header).
+- **No FEM import may leak into the trainer or scorer** — the GPU stages stay dolfinx-free
+  (verified). This is what lets them run on GPU nodes at all.
 
-Local hardware: **12 cores, 62 GB, one RTX 2080 Ti.** Nothing above needs more.
+## Future direction (NOT this job)
 
-Three independent reasons the port is the wrong investment:
-
-1. **Nothing is cluster-scale.** The largest thing contemplated is ~1 h end-to-end.
-2. **The expensive half can't go anyway.** Dataset generation needs dolfinx; the verified
-   split keeps FEM local. A GPU cluster accelerates the *cheap* half.
-3. **The env is the real cost.** No single env runs the pipeline: mesh generation needs
-   `scifem` (pytetwild), everything else needs `fenicsx-env` (numpy<2 + torch<2.6 — the Gate
-   1–4 baseline; `scifem` shifts rel-L2 ~6% on identical code). See `../../docs/learned_vc/
-   ENVIRONMENTS.md`. Reproducing that remotely costs more than the compute it buys.
-
-## What to spend the effort on instead
-
-**Leave-one-subject-out cross-subject generalisation.** This is the 594× regime (Regime B,
-varying anatomy ⇒ cache void, mesh generation dominates) *and* the actual scientific claim.
-Unblocked as of today:
-
-- **4 subjects** share one annotator's label scheme, FCU = label 8 in all: WR, DH, AG, Kostia.
-- Meshing a new subject works (**68.8 s**, ASCII writer) — it was **broken** until today; the
-  gmsh path fails whenever gmsh is importable and the fallback only caught `ImportError`.
-- **AG's internal fat (labels 26/27) was being modelled as muscle** — 12.1% of its muscle
-  volume at 32× the wrong conductivity. Fixed before any data was generated.
-
-**Design constraints (settled — do not re-litigate):**
-
-- Build all four on **one recorded recipe** (defaults, ~20k nodes) as a **separate set with
-  its own MUAP benchmark**. Do **not** re-mesh WR in place: its recipe is unrecoverable
-  (`target_z` is not the lever — 19.4k vs 21.3k nodes; the driver is `edge_length`, never
-  recorded), and re-meshing would invalidate the frozen benchmark Gate 1–4 rest on. Two
-  benchmarks, nothing invalidated, no subject/resolution confound.
-- Score with **both** the amp-weighted mean **and the worst detectable config**. The mean
-  alone is insufficient: under a "worst detectable ≥ 0.94" gate only N=256 passes, while
-  N=64/128 post means of 0.989/0.994. The gate statistic decides three of four verdicts.
-- **Never rank by φ.** It is non-monotonic in N, swings 36% on an identical retrain, and
-  cannot separate SIREN from MLP+Fourier where the MUAP score does so decisively.
-
-**Honest limit:** 4 subjects is a *feasibility check*, not a generalisation claim. Leave-one-out
-over 4 can falsify cross-subject transfer; it cannot establish it.
-
-## If a cluster is ever justified
-
-It would be by **subject count**, not electrodes or variants — i.e. a real cross-subject study
-needing tens of segmented forearms. That's a data-acquisition problem, not a compute one. Ship
-`dataset.npz` + `muap_bench_*.npz` + `config.yaml`; get back `checkpoint.pt` + the MUAP table.
-**Rule: no FEM import may leak into the trainer or the scorer** (verified: `emgforge.synthesis`
-pulls no dolfinx/mpi4py/petsc4py).
+**Leave-one-subject-out cross-subject** (WR/DH/AG/Kostia) is unblocked — the label scheme is
+shared (FCU = label 8), meshing a new subject works (~69 s), and AG's internal-fat-as-muscle bug
+is fixed. It is a *different* scientific claim (across real subjects, not synthetic anatomy) and a
+*different* env (MRI meshing needs `scifem`/pytetwild). Parked deliberately; pick it up after the
+anatomy grid if the conditioning generalises. Four subjects can falsify cross-subject transfer,
+not establish it.

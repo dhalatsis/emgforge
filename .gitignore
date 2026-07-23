@@ -74,3 +74,6 @@ _refactor/
 
 # investigation working folders (plots + summaries; committed refs live in docs/)
 _investigations/
+
+# stray surface dump written to cwd by the meshing libs (pytetwild/gmsh)
+/__tracked_surface.stl
