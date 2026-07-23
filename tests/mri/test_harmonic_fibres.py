@@ -68,13 +68,15 @@ def test_estimate_fibers_harmonic(fm):
     assert mu.fiber_angle_from_z_deg < 35.0
 
 
-def test_single_nmj_is_full_length_one_iz(fm, bed):
-    """Default = single-NMJ: full-length fibres, one mid-belly NMJ (not atlas-placed)."""
+def test_single_nmj_at_shared_iz(fm, bed):
+    """Default = single-NMJ: full-length fibres, all innervated at the SHARED IZ (frac 0.5),
+    so the NMJs are co-located along the muscle even when fibre lengths differ — a truncated
+    streamline gets unequal half-lengths, not an off-centre NMJ, keeping SFAPs time-aligned.
+    """
     lengths = bed.half1_mm + bed.half2_mm
     assert float(lengths.mean()) > 100.0                  # spans the muscle, not ~Lf
-    assert not bool(bed.is_atlas.any())                   # mid-belly, no atlas IZ pinning
-    assert float(np.abs(bed.posz_mm).max()) < 20.0        # NMJ ~ centred (posz ≈ 0)
-    assert float(np.median(np.abs(bed.iz_fractions - 0.5))) < 0.2   # NMJ near mid-length
+    assert not bool(bed.is_atlas.any())                   # single IZ, not the atlas series bands
+    assert float(np.abs(bed.iz_fractions - 0.5).max()) < 0.05   # every NMJ on the shared IZ band
 
     poisson = build_muscle_beds(fm, method="poisson", labels=[FCU], min_fibers=10)[FCU]
     ratio = float(lengths.mean() / 2) / poisson.half_mm   # both are full-length models

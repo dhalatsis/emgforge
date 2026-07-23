@@ -480,14 +480,18 @@ class HarmonicFibreField:
 
     def long_fibers(
         self, grid_mm: float = 2.0, dz_mm: float = 1.0, min_pts: int = 15,
+        iz_fraction: float = 0.5,
     ) -> List[HarmonicFiber]:
-        """One FULL-LENGTH fibre per streamline, single mid-belly NMJ.
+        """One FULL-LENGTH fibre per streamline, single NMJ at the shared innervation zone.
 
-        The **single-NMJ model on harmonic geometry** — the production default: the
-        same curved, non-crossing, depth-following streamlines as
-        :meth:`short_fibers`, but each streamline is kept whole and innervated once at
-        mid-belly. Series-fibering (cutting into short fibres with multiple placed IZs)
-        is the experimental :meth:`short_fibers`.
+        The **single-NMJ model on harmonic geometry** — the production default: the same
+        curved, non-crossing, depth-following streamlines as :meth:`short_fibers`, but each
+        streamline is kept whole and innervated ONCE at the muscle's innervation zone
+        (longitudinal fraction ``iz_fraction``). Placing the NMJ at a shared z-band — rather
+        than each fibre's own mid-belly — keeps a motor unit's fibres co-innervated even when
+        their lengths differ (a truncated streamline just gets unequal half-lengths, not an
+        off-centre NMJ), so their SFAPs stay time-aligned. Series-fibering is the experimental
+        :meth:`short_fibers`.
         """
         if self.g is None:
             raise RuntimeError("Laplace field not solved; call .solve() first")
@@ -498,9 +502,9 @@ class HarmonicFibreField:
                 continue
             arc = _arc_length(rs)
             total = float(arc[-1])
-            nmj_arc = 0.5 * total                             # mid-belly NMJ
-            j = int(np.argmin(np.abs(arc - nmj_arc)))
             frac = self._long_fraction(rs)
+            j = int(np.argmin(np.abs(frac - iz_fraction)))   # NMJ at the shared IZ, not mid-belly
+            nmj_arc = float(arc[j])
             fibres.append(HarmonicFiber(
                 path=rs, tangents=_tangents(rs), dz_mm=float(dz_mm),
                 nmj_xyz=rs[j].copy(), nmj_arc_mm=nmj_arc,
