@@ -475,6 +475,16 @@ class HarmonicFibreField:
                 if not (np.all(c >= 0) and np.all(c < shape) and self.mask[tuple(c)]):
                     continue
                 f = self._streamline(np.array([gx * self.vs[0], gy * self.vs[1], zc]))
+                # TODO(streamline-quality): reject or morph non-physiological streamlines.
+                # The RK2 tracer occasionally misbehaves at the muscle surface — a sharp
+                # BOUNDARY KINK (e.g. a >~15 deg turn/step where the mask-aware gradient
+                # jerks the path back inside) or EARLY TRUNCATION (the streamline exits the
+                # mask well before the distal tendon, so it spans too little of the muscle).
+                # ~3/55 FCU fibres; these don't look physiological. Options: (a) drop any
+                # streamline whose max turn/step exceeds a threshold OR whose longitudinal
+                # span < ~0.7 of the muscle; (b) re-seed nearby / smooth-morph the path onto
+                # a clean trajectory. The IZ-fix hides the SIGNAL impact (aligned NMJs) but
+                # the GEOMETRY is still wrong — fix before this is a serious fibre model.
                 if len(f) >= min_pts:
                     yield f
 
