@@ -32,6 +32,14 @@ class MotorUnit:
     size: int                     # = len(fiber_idxs)
     recruitment_threshold: float  # arbitrary units (lower = recruited first)
     firing_rate_hz: float         # tonic firing rate when active
+    # --- innervation-zone geometry (harmonic beds only; None otherwise) ---
+    iz_fraction: Optional[float] = None
+    # ^ single innervation-zone band centre this MU sits in (longitudinal
+    #   fraction). Literature: one MU = ONE compact endplate cluster, not
+    #   endplates smeared across the whole muscle. See sample_henneman_pool.
+    half1_mm: Optional[np.ndarray] = None   # (size,) NMJ→prox tendon, jittered
+    half2_mm: Optional[np.ndarray] = None   # (size,) NMJ→dist tendon, jittered
+    nmj_posz_mm: Optional[np.ndarray] = None  # (size,) NMJ axial offset, jittered
 
 
 def sample_henneman_pool(
@@ -42,6 +50,9 @@ def sample_henneman_pool(
     distribution="exponential",
     overlap_ok=True,
     seed=0,
+    single_iz=True,
+    iz_band_tol=0.03,
+    nmj_jitter_mm=3.0,
 ):
     """Sample a pool of ``n_mu`` motor units from a fibre bed.
 
@@ -64,12 +75,46 @@ def sample_henneman_pool(
         region). If False, fibre indices are partitioned so each fibre
         belongs to exactly one MU.
     seed : int
+    single_iz : bool
+        LITERATURE-ALIGNMENT (default True). A motor unit's endplates form a
+        single, compact innervation zone — one NMJ band per MU — not endplates
+        scattered across every band of the muscle (Masuda & Sadoyama 1991;
+        Beck 2012; Merletti & Farina). On a ``method="harmonic"`` bed the fibres
+        carry a per-fibre ``iz_fractions`` (their NMJ band). Selecting a MU by
+        (x, y) proximity ALONE — the previous behaviour — pulls fibres from all
+        bands, giving the physiologically-wrong "multiple NMJs per MU". With
+        ``single_iz`` the candidate pool for each MU is first restricted to
+        fibres whose IZ band is within ``iz_band_tol`` of the anchor's band,
+        THEN the closest ``size`` in (x, y) are taken. No effect on uniform/
+        poisson/hex beds (all full-length mid-belly NMJ → nothing to constrain).
+    iz_band_tol : float
+        Half-width (in longitudinal fraction) of the IZ band a single MU may
+        occupy. Bands in a harmonic bed are discrete (e.g. 0.17, 0.62 for a
+        bipennate FCU), so the default 0.03 (≈6 mm over a 210 mm fibre) snaps
+        each MU to exactly one band while tolerating float noise.
+    nmj_jitter_mm : float
+        Physiological endplate scatter WITHIN the MU's single IZ. Real endplates
+        are not perfectly aligned; the innervation zone has a Gaussian axial
+        spread of σ≈3–8 mm (Roeleveld 1997; Merletti). Applied as a per-fibre
+        N(0, σ) shift of the NMJ, which co-adjusts the two semi-lengths
+        (half1 -= δ, half2 += δ). Set 0.0 to disable. Stored on each MotorUnit
+        as ``half1_mm``/``half2_mm``/``nmj_posz_mm`` for the MUAP path — see
+        :func:`mu_fiber_geometry`. This REPLACES the old habit of a single global
+        ``posz=0`` synchronous NMJ (which made MUAPs 4× too sharp) with a
+        controlled, single-cluster scatter.
 
     Returns
     -------
     list[MotorUnit] sorted by ascending size (Henneman: small recruited first).
     """
     rng = np.random.default_rng(seed)
+
+    # Per-fibre IZ band (longitudinal fraction of each NMJ) — only harmonic beds
+    # carry this. When present we constrain each MU to one band (single_iz).
+    iz_fr = getattr(bed, "iz_fractions", None)
+    use_iz = bool(single_iz) and iz_fr is not None
+    if use_iz:
+        iz_fr = np.asarray(iz_fr, dtype=float)
 
     # 1. Sample MU sizes
     if distribution == "exponential":
@@ -114,11 +159,34 @@ def sample_henneman_pool(
         order = np.argsort(d)
         if not overlap_ok:
             order = order[~used[order]]
+        # SINGLE-IZ CONSTRAINT: keep only candidates in the anchor's endplate
+        # band, so the MU has ONE innervation zone (not one per band). Done
+        # before the closest-`size` cut so proximity is judged within the band.
+        mu_iz = None
+        if use_iz:
+            mu_iz = float(iz_fr[anchor])
+            order = order[np.abs(iz_fr[order] - mu_iz) <= iz_band_tol]
         chosen = order[: int(size)]
         if not overlap_ok:
             used[chosen] = True
         actual_size = len(chosen)
         territory_R = float(d[chosen].max()) if actual_size else 0.0
+
+        # Per-fibre NMJ geometry with physiological endplate scatter within the
+        # single IZ (harmonic beds only). δ ~ N(0, σ) shifts the NMJ along the
+        # fibre and co-adjusts the two semi-lengths.
+        h1 = h2 = posz = None
+        if use_iz and actual_size and getattr(bed, "half1_mm", None) is not None:
+            h1 = np.asarray(bed.half1_mm[chosen], dtype=float).copy()
+            h2 = np.asarray(bed.half2_mm[chosen], dtype=float).copy()
+            posz = np.asarray(bed.posz_mm[chosen], dtype=float).copy()
+            if nmj_jitter_mm > 0:
+                delta = rng.normal(0.0, nmj_jitter_mm, actual_size)
+                # keep each semi-length physically positive (>=1 mm)
+                delta = np.clip(delta, -(h1 - 1.0), (h2 - 1.0))
+                h1 = h1 - delta
+                h2 = h2 + delta
+                posz = posz + delta
 
         # Recruitment threshold ~ proportional to size^(1.5) (matches
         # Fuglevand: threshold force ~ size with steeper-than-linear)
@@ -134,6 +202,10 @@ def sample_henneman_pool(
             size=actual_size,
             recruitment_threshold=thr,
             firing_rate_hz=fr,
+            iz_fraction=mu_iz,
+            half1_mm=h1,
+            half2_mm=h2,
+            nmj_posz_mm=posz,
         ))
 
     # Sort by size ascending (Henneman: smallest first to recruit)
@@ -143,6 +215,23 @@ def sample_henneman_pool(
         mu.idx = new_idx
         mu.recruitment_threshold = float(mu.size ** 1.5)
     return mus
+
+
+def mu_fiber_geometry(mu, bed):
+    """Per-fibre NMJ geometry for a motor unit's MUAP, aligned to ``mu.fiber_idxs``.
+
+    Returns ``(half1_mm, half2_mm, posz_mm)`` for the fibres of ``mu``. Uses the
+    MU's single-IZ + endplate-jittered values when the pool was sampled with
+    ``single_iz`` on a harmonic bed; otherwise falls back to the bed's stored
+    per-fibre semi-lengths (or ``None`` for non-harmonic beds). Feed the result
+    straight into :func:`realistic_muap.compute_muap_from_bed` overrides.
+    """
+    if mu.half1_mm is not None:
+        return mu.half1_mm, mu.half2_mm, mu.nmj_posz_mm
+    idx = np.asarray(mu.fiber_idxs)
+    if getattr(bed, "half1_mm", None) is None:
+        return None, None, None
+    return bed.half1_mm[idx], bed.half2_mm[idx], bed.posz_mm[idx]
 
 
 def simulate_compound_emg(
