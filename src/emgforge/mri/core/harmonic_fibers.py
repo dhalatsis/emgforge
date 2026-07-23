@@ -480,7 +480,7 @@ class HarmonicFibreField:
 
     def long_fibers(
         self, grid_mm: float = 2.0, dz_mm: float = 1.0, min_pts: int = 15,
-        iz_fraction: float = 0.5,
+        iz_fraction: float = 0.5, iz_jitter_mm: float = 0.0, seed: int = 0,
     ) -> List[HarmonicFiber]:
         """One FULL-LENGTH fibre per streamline, single NMJ at the shared innervation zone.
 
@@ -492,9 +492,15 @@ class HarmonicFibreField:
         their lengths differ (a truncated streamline just gets unequal half-lengths, not an
         off-centre NMJ), so their SFAPs stay time-aligned. Series-fibering is the experimental
         :meth:`short_fibers`.
+
+        ``iz_jitter_mm`` (>0) scatters each NMJ along its fibre by ``N(0, iz_jitter_mm)`` about
+        the IZ — the innervation zone is a band a few mm wide, not a line, so a small jitter
+        adds physiological (de-synchronised) temporal dispersion to the MUAP. ``seed`` makes it
+        reproducible; default 0 jitter keeps the pool deterministic.
         """
         if self.g is None:
             raise RuntimeError("Laplace field not solved; call .solve() first")
+        rng = np.random.default_rng(int(seed))
         fibres: List[HarmonicFiber] = []
         for f in self._seed_streamlines(grid_mm, min_pts):
             rs = _resample_arc(f, dz_mm)
@@ -505,6 +511,9 @@ class HarmonicFibreField:
             frac = self._long_fraction(rs)
             j = int(np.argmin(np.abs(frac - iz_fraction)))   # NMJ at the shared IZ, not mid-belly
             nmj_arc = float(arc[j])
+            if iz_jitter_mm > 0:                              # IZ is a band, not a perfect line
+                nmj_arc = float(np.clip(nmj_arc + rng.normal(0.0, iz_jitter_mm), 0.5, total - 0.5))
+                j = int(np.argmin(np.abs(arc - nmj_arc)))
             fibres.append(HarmonicFiber(
                 path=rs, tangents=_tangents(rs), dz_mm=float(dz_mm),
                 nmj_xyz=rs[j].copy(), nmj_arc_mm=nmj_arc,
@@ -566,6 +575,8 @@ def build_harmonic_fibers(
     Lf: Optional[float] = None,
     iz_fractions=None,
     series: bool = False,
+    iz_jitter_mm: float = 0.0,
+    seed: int = 0,
 ) -> List[HarmonicFiber]:
     """Build harmonic-streamline fibres for one muscle label of a
     :class:`~emgforge.mri.core.fiber_directions.MuscleFiberModel`.
@@ -582,7 +593,8 @@ def build_harmonic_fibers(
     vs = np.asarray(fiber_model.voxel_size, dtype=float)
     field = HarmonicFibreField(mask, vs, solve=True)
     if not series:
-        return field.long_fibers(grid_mm=grid_mm, dz_mm=dz_mm)
+        return field.long_fibers(grid_mm=grid_mm, dz_mm=dz_mm,
+                                 iz_jitter_mm=iz_jitter_mm, seed=seed)
     if Lf is None or iz_fractions is None:
         Lf_a, iz_a, _ = atlas_fibre_params(label, atlas)
         Lf = Lf_a if Lf is None else Lf

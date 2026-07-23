@@ -160,7 +160,8 @@ def _build_hex(R_max, mx, my, cs, z_mid, density, rng, jitter_frac=0.15):
     return keys
 
 
-def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas, series=False):
+def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas, series=False,
+                        iz_jitter_mm=0.0, seed=0):
     """Build a harmonic-streamline FiberBed for one muscle
     (``emgforge.mri.core.harmonic_fibers``).
 
@@ -184,7 +185,8 @@ def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas, seri
         Lf, iz, _ = atlas_fibre_params(label, atlas)
         fibres = field.short_fibers(Lf, iz, grid_mm=grid_mm, dz_mm=dz)
     else:
-        fibres = field.long_fibers(grid_mm=grid_mm, dz_mm=dz)
+        fibres = field.long_fibers(grid_mm=grid_mm, dz_mm=dz,
+                                   iz_jitter_mm=iz_jitter_mm, seed=seed)
     if len(fibres) < min_fibers:
         return None
 
@@ -239,6 +241,7 @@ def build_muscle_beds(
     grid_mm=2.0,
     atlas=None,
     series=False,
+    iz_jitter_mm=0.0,
 ):
     """Build a FiberBed for each muscle in ``fiber_model``.
 
@@ -259,6 +262,11 @@ def build_muscle_beds(
         (harmonic only) EXPERIMENTAL. When True, cut each streamline into short
         in-series fibres with atlas-placed multiple IZs instead of one mid-belly
         NMJ. Emits a warning; the single-NMJ model is the production default.
+    iz_jitter_mm : float
+        (harmonic single-NMJ only) scatter each NMJ along its fibre by
+        ``N(0, iz_jitter_mm)`` about the innervation zone — the IZ is a band a few mm
+        wide, so a small jitter adds physiological MUAP dispersion. 0 = deterministic
+        (uses ``seed``).
     dz : float
         z-spacing for fiber paths (mm). For "harmonic" this is the uniform
         arc-length spacing of the short-fibre polylines.
@@ -295,6 +303,7 @@ def build_muscle_beds(
         for label in labels:
             bed = _build_harmonic_bed(
                 fiber_model, label, dz, min_fibers, grid_mm, atlas, series=series,
+                iz_jitter_mm=iz_jitter_mm, seed=seed,
             )
             if bed is not None:
                 beds[label] = bed
