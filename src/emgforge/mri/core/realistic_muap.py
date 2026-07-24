@@ -272,45 +272,16 @@ def compute_per_fiber_muap(phi_mat, dz, half_mm, vs_per_fiber, posz_per_fiber,
     return t_common, muap_sum
 
 
-def apply_finite_electrode(phi, dz_mm, electrode_diameter_mm):
-    """Finite-electrode spatial low-pass of a lead field ``phi(z)``.
-
-    A real recording electrode integrates the potential over its surface, which
-    spatially averages (low-passes) the field along the fibre. Point-electrode
-    reciprocity omits this, leaving high-frequency content the electrode would
-    smooth away — which shows up as ringing when the SFAP is assembled (most
-    visibly in the Fourier/`pare` engine) and decorrelates the MUAP from a
-    full-FEM reference (NeuroDec), whose electrodes have area.
-
-    Modelled as a Gaussian along-fibre kernel with ``σ = diameter / 4`` mm (a
-    smooth stand-in for averaging over a disk of that diameter). ``0`` disables
-    it (point electrode) and is byte-identical to no filtering. Validated on the
-    NeuroDec MU-113 twin (denoise="none" baseline, per-fibre v/polarity held
-    fixed): sweeping the diameter gives a clean unimodal shape-NCC curve —
-    median 0.70 at D=0, rising to a peak ~0.87 near D≈13 mm, then declining
-    gently (0.85 by D=20 mm). The optimum diameter is physically sensible for a
-    surface electrode and leaves the end-of-fibre amplitude (which the Fourier
-    engine already gets right) unchanged. Note this gain is SEPARATE from — and
-    additive with — using denoise="none" instead of the default butterworth
-    (which contributes a further ~+0.15 on its own); don't conflate the two.
-    """
-    if not electrode_diameter_mm or electrode_diameter_mm <= 0:
-        return np.asarray(phi, dtype=float)
-    from scipy.ndimage import gaussian_filter1d
-    sigma_samples = (electrode_diameter_mm / 4.0) / float(dz_mm)
-    return gaussian_filter1d(np.asarray(phi, dtype=float), sigma_samples)
-
-
 def _spatial_to_muap_config(config):
     """Coerce ``None`` / a ``SpatialConfig`` / a ``MUAPConfig`` → ``MUAPConfig``.
 
     Lets ``compute_harmonic_muap(engine="fourier")`` accept a spatial-engine
     config (or none) without the caller juggling two config types.
 
-    The constructed configs use ``denoise="none"``: the finite-electrode model
-    (:func:`apply_finite_electrode`) is the physically-motivated low-pass on this
-    path, and stacking the default φ butterworth on top over-smooths (drops the
-    all-electrode NCC vs NeuroDec by ~0.15). An explicitly-passed ``MUAPConfig``
+    The constructed configs use ``denoise="none"``: the reciprocity lead field
+    ``phi(z)`` is used as-is (no ad-hoc butterworth smoothing of a physical
+    quantity), which on the NeuroDec MU-113 twin raises the all-electrode shape
+    NCC by ~0.15 vs the default butterworth. An explicitly-passed ``MUAPConfig``
     is honoured verbatim, so callers who want the butterworth can still set it.
     """
     from emgforge.synthesis.api import MUAPConfig
@@ -335,7 +306,7 @@ def _spatial_to_muap_config(config):
 
 def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
                           vs_per_fiber=None, config=None,
-                          engine="fourier", electrode_diameter_mm=0.0):
+                          engine="fourier"):
     """Sum SHORT-fibre SFAPs for a harmonic motor unit.
 
     Unlike :func:`compute_per_fiber_muap` (one global ``half_mm``, mid-belly
@@ -363,29 +334,37 @@ def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
         accepted for either engine (translated for the Fourier path).
     engine : {"fourier", "spatial"}
         Forward operator (default "fourier"). The **Fourier/`pare`** engine
-        (Farina 2004) models tendon generation/extinction explicitly and
-        reproduces the end-of-fibre potential — on the NeuroDec twin its
-        far-field EOF/wave matches (7.9 vs 7.6) and the amplitude scale is
-        correct, where the **spatial** engine (no `pare`, end term only a
-        window-derivative byproduct) under-produces the EOF ~15× in the far
-        field and under-scales amplitude ~20×. Use "spatial" only for
-        near, wave-dominated pickups where its smoothness is an asset.
-    electrode_diameter_mm : float
-        Finite-electrode spatial low-pass (default 0 = point electrode). See
-        :func:`apply_finite_electrode`. Recommended ~10 mm for surface-EMG /
-        full-FEM comparisons; needed for the Fourier engine to match a
-        finite-electrode reference without high-frequency ringing.
+        (Farina 2004) models tendon generation/extinction explicitly and so
+        reproduces the end-of-fibre potential, which the **spatial** engine (no
+        `pare`, end term only a window-derivative byproduct) under-produces
+        ~15× in the far field. With a point electrode the Fourier end-effect
+        MAGNITUDE matches a full-FEM reference well (NeuroDec MU-113: far-field
+        end/wave ratio 7.9 vs 7.6). Use "spatial" only for near, wave-dominated
+        pickups where its smoothness is an asset.
 
     Returns
     -------
     (t_ms, muap) : the common time axis and the summed MUAP.
+
+    Notes
+    -----
+    Uses a **point electrode** (the reciprocity lead field as-is). Two honest
+    residuals vs the NeuroDec MU-113 twin remain, neither a wrong method:
+      * amplitude ~1.6× too big — a calibration item (source strength / fibre
+        count / conductivity normalization), to settle against an own-FEM solve;
+      * waveform shape carries high-frequency ringing (all-electrode median NCC
+        ~0.5, worst on the small-signal electrodes) because a REAL electrode
+        integrates over its area — a spatial low-pass we do NOT have. That is a
+        genuine point-vs-area-electrode difference; model the true electrode
+        geometry in the volume conductor to remove it. Do NOT fit an along-fibre
+        Gaussian to paper over it: doing so also suppresses the (correct) EOF and
+        drives the amplitude the wrong way.
     """
     half1_mm = np.asarray(half1_mm, dtype=float)
     half2_mm = np.asarray(half2_mm, dtype=float)
     posz_mm = np.asarray(posz_mm, dtype=float)
     n_fib = len(phi_per_fiber)
-    phi_e = [apply_finite_electrode(phi_per_fiber[fi], dz_mm, electrode_diameter_mm)
-             for fi in range(n_fib)]
+    phi_list = [np.asarray(phi_per_fiber[fi], dtype=float) for fi in range(n_fib)]
 
     if engine == "fourier":
         from emgforge.synthesis.api import generate_muap_from_phi
@@ -393,9 +372,9 @@ def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
         # matrix the Fourier engine consumes. Pad SYMMETRICALLY so each fibre's
         # electrode-centred midpoint stays at the array centre (the engine
         # treats the array midpoint as the electrode-nearest z=0).
-        nz = max(len(p) for p in phi_e)
+        nz = max(len(p) for p in phi_list)
         phi_mat = np.zeros((n_fib, nz), dtype=float)
-        for fi, p in enumerate(phi_e):
+        for fi, p in enumerate(phi_list):
             off = (nz - len(p)) // 2
             phi_mat[fi, off:off + len(p)] = p
         mcfg = _spatial_to_muap_config(config)
@@ -418,7 +397,7 @@ def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
             if vs_per_fiber is not None and float(vs_per_fiber[fi]) != cfg.v:
                 c = SpatialConfig(**{**cfg.__dict__, "v": float(vs_per_fiber[fi])})
             t_ms, sfap, _ = compute_sfap_spatial(
-                phi_e[fi], dz_mm,
+                phi_list[fi], dz_mm,
                 len1_mm=float(half1_mm[fi]), len2_mm=float(half2_mm[fi]),
                 posz_mm=float(posz_mm[fi]), config=c,
             )
@@ -435,7 +414,7 @@ def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
 def compute_muap_from_bed(bed, phi_per_fiber, fiber_idxs=None,
                           vs_per_fiber=None, config=None,
                           half1_mm=None, half2_mm=None, posz_mm=None,
-                          engine="fourier", electrode_diameter_mm=0.0):
+                          engine="fourier"):
     """Convenience wrapper: MUAP from a ``method="harmonic"`` ``FiberBed``.
 
     Pulls each selected fibre's ``half1_mm`` / ``half2_mm`` / ``posz_mm`` from
@@ -446,9 +425,8 @@ def compute_muap_from_bed(bed, phi_per_fiber, fiber_idxs=None,
     To render a motor unit with literature-aligned single-IZ + endplate-jitter
     geometry, pass the ``half1_mm``/``half2_mm``/``posz_mm`` overrides from
     :func:`motor_unit_pool.mu_fiber_geometry` — they take precedence over the
-    bed's stored per-fibre semi-lengths. ``engine`` and ``electrode_diameter_mm``
-    are forwarded to :func:`compute_harmonic_muap` (default: Fourier/`pare`
-    engine, point electrode).
+    bed's stored per-fibre semi-lengths. ``engine`` is forwarded to
+    :func:`compute_harmonic_muap` (default: Fourier/`pare`, point electrode).
     """
     if not getattr(bed, "is_harmonic", False):
         raise ValueError(
@@ -461,8 +439,7 @@ def compute_muap_from_bed(bed, phi_per_fiber, fiber_idxs=None,
     pz = bed.posz_mm[idx] if posz_mm is None else posz_mm
     return compute_harmonic_muap(
         phi_per_fiber, bed.dz_mm, h1, h2, pz,
-        vs_per_fiber=vs_per_fiber, config=config,
-        engine=engine, electrode_diameter_mm=electrode_diameter_mm,
+        vs_per_fiber=vs_per_fiber, config=config, engine=engine,
     )
 
 
