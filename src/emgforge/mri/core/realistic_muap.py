@@ -285,9 +285,14 @@ def apply_finite_electrode(phi, dz_mm, electrode_diameter_mm):
     Modelled as a Gaussian along-fibre kernel with ``σ = diameter / 4`` mm (a
     smooth stand-in for averaging over a disk of that diameter). ``0`` disables
     it (point electrode) and is byte-identical to no filtering. Validated on the
-    NeuroDec MU-113 twin: a ~10–13 mm electrode lifts the all-electrode median
-    shape NCC from ~0.50 to ~0.71 (near electrodes to ~0.89) with no change to
-    the end-of-fibre amplitude the Fourier engine already gets right.
+    NeuroDec MU-113 twin (denoise="none" baseline, per-fibre v/polarity held
+    fixed): sweeping the diameter gives a clean unimodal shape-NCC curve —
+    median 0.70 at D=0, rising to a peak ~0.87 near D≈13 mm, then declining
+    gently (0.85 by D=20 mm). The optimum diameter is physically sensible for a
+    surface electrode and leaves the end-of-fibre amplitude (which the Fourier
+    engine already gets right) unchanged. Note this gain is SEPARATE from — and
+    additive with — using denoise="none" instead of the default butterworth
+    (which contributes a further ~+0.15 on its own); don't conflate the two.
     """
     if not electrode_diameter_mm or electrode_diameter_mm <= 0:
         return np.asarray(phi, dtype=float)

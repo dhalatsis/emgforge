@@ -182,8 +182,11 @@ def sample_henneman_pool(
             posz = np.asarray(bed.posz_mm[chosen], dtype=float).copy()
             if nmj_jitter_mm > 0:
                 delta = rng.normal(0.0, nmj_jitter_mm, actual_size)
-                # keep each semi-length physically positive (>=1 mm)
-                delta = np.clip(delta, -(h1 - 1.0), (h2 - 1.0))
+                # keep each semi-length physically positive (>=1 mm). The NMJ
+                # slides by +delta: h1 -= delta, h2 += delta. So h1>=1 bounds
+                # delta above (delta <= h1-1) and h2>=1 bounds it below
+                # (delta >= -(h2-1)). (Rails were swapped before 2026-07-24.)
+                delta = np.clip(delta, -(h2 - 1.0), (h1 - 1.0))
                 h1 = h1 - delta
                 h2 = h2 + delta
                 posz = posz + delta
