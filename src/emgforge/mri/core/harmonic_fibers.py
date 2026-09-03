@@ -458,9 +458,20 @@ class HarmonicFibreField:
             fibres.extend(self._cut_streamline(f, iz, step, dz_mm, min_seg_pts))
         return fibres
 
-    def _seed_streamlines(self, grid_mm: float, min_pts: int):
+    def _seed_streamlines(self, grid_mm: float, min_pts: int,
+                          max_turn_deg: float = 15.0, min_span_frac: float = 0.3):
         """Yield each in-mask seed's contained streamline — shared by the single-NMJ
-        (:meth:`long_fibers`) and series (:meth:`short_fibers`) builders."""
+        (:meth:`long_fibers`) and series (:meth:`short_fibers`) builders.
+
+        Rejects the clear RK2 tracing failures at the muscle surface: a sharp BOUNDARY KINK
+        (any turn/step > ``max_turn_deg`` — well-formed streamlines turn ~2 deg/step) and a
+        DEGENERATE STREAMLINE whose longitudinal span is below ``min_span_frac`` of the
+        muscle (default 0.3 — a "fibre" spanning a third of the muscle is a tracer failure,
+        not a short fibre). The span cut is deliberately conservative: the FCU span
+        distribution is bimodal (a full-length group near 0.85 and a distinct ~0.5 half-length
+        cluster), and pruning the half-length cluster is a modelling choice, not an artifact
+        threshold — raise ``min_span_frac`` to enforce a full-length-only pool.
+        """
         zc = 0.5 * (self.z0 + self.z1)
         zi = int(round(zc / self.vs[2]))
         sm = np.argwhere(self.mask[:, :, zi])
@@ -475,18 +486,22 @@ class HarmonicFibreField:
                 if not (np.all(c >= 0) and np.all(c < shape) and self.mask[tuple(c)]):
                     continue
                 f = self._streamline(np.array([gx * self.vs[0], gy * self.vs[1], zc]))
-                # TODO(streamline-quality): reject or morph non-physiological streamlines.
-                # The RK2 tracer occasionally misbehaves at the muscle surface — a sharp
-                # BOUNDARY KINK (e.g. a >~15 deg turn/step where the mask-aware gradient
-                # jerks the path back inside) or EARLY TRUNCATION (the streamline exits the
-                # mask well before the distal tendon, so it spans too little of the muscle).
-                # ~3/55 FCU fibres; these don't look physiological. Options: (a) drop any
-                # streamline whose max turn/step exceeds a threshold OR whose longitudinal
-                # span < ~0.7 of the muscle; (b) re-seed nearby / smooth-morph the path onto
-                # a clean trajectory. The IZ-fix hides the SIGNAL impact (aligned NMJs) but
-                # the GEOMETRY is still wrong — fix before this is a serious fibre model.
-                if len(f) >= min_pts:
+                if len(f) >= min_pts and self._streamline_ok(f, max_turn_deg, min_span_frac):
                     yield f
+
+    def _streamline_ok(self, f: np.ndarray, max_turn_deg: float, min_span_frac: float) -> bool:
+        """Reject a streamline with a sharp boundary kink or too-short longitudinal span."""
+        p = np.asarray(f)[:, :3]
+        d = np.diff(p, axis=0)
+        d = d / np.maximum(np.linalg.norm(d, axis=1, keepdims=True), 1e-9)
+        if len(d) >= 2:
+            cos = np.clip(np.sum(d[:-1] * d[1:], axis=1), -1.0, 1.0)
+            if float(np.degrees(np.arccos(cos)).max()) > max_turn_deg:   # boundary kink
+                return False
+        frac = self._long_fraction(p)
+        if float(frac.max() - frac.min()) < min_span_frac:               # early truncation
+            return False
+        return True
 
     def long_fibers(
         self, grid_mm: float = 2.0, dz_mm: float = 1.0, min_pts: int = 15,
