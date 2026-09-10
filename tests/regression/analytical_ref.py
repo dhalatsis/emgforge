@@ -4,7 +4,7 @@ Wraps the Farina 2004 analytical model — the vendored ``emgforge.analytical``
 package (multilayer cylindrical volume conductor). Provides two things the
 bench needs:
 
-1. ``analytical_muap(...)``        — the reference MUAP waveform.
+1. ``analytical_muap(...)``        — the reference MUAP waveform in volts.
 2. ``analytical_phi_along_fibre`` — the analytical lead field φ(z) along
    the fibre, extracted from the SignalGenerator internals via the
    `compute_C_from_phi_z` inverse identity (φ(z) = ifftc(C) / dz).
@@ -83,12 +83,16 @@ def _build(case: AnalyticalCase):
         n_fibers=1,
         radius=0.1,
         y0=y0,
-        innervation_spread=0.1,
+        # This reference represents one deterministic fibre with the geometry in
+        # AnalyticalCase. Random endplate/tendon scatter belongs in a separate
+        # motor-unit test; hiding it here makes the nominal analytical case and
+        # the reciprocal-field pipeline subtly inconsistent.
+        innervation_spread=0.0,
         zi=0.0,
         L1=case.L1_mm,
         L2=case.L2_mm,
-        Ten1=0.1,
-        Ten2=0.1,
+        Ten1=0.0,
+        Ten2=0.0,
         distfib=case.distfib_deg,
         r=ANAL_GEOMETRY["r_skin"],
         h=ANAL_GEOMETRY["r_skin"] - ANAL_GEOMETRY["r_fat"],
@@ -116,11 +120,16 @@ def _build(case: AnalyticalCase):
 
 
 def analytical_muap(case: AnalyticalCase) -> Tuple[np.ndarray, np.ndarray]:
-    """Return (t_ms, muap) from the analytical 4-layer cylinder."""
+    """Return ``(t_ms, muap_V)`` from the analytical 4-layer cylinder.
+
+    ``SignalGenerator`` is a direct MATLAB translation and retains its original
+    millivolt convention. The rest of emgforge uses volts, so the reference
+    adapter performs the unit conversion at this boundary.
+    """
     _, _, _, sg = _build(case)
     with contextlib.redirect_stdout(io.StringIO()):
         t, sig_arr, _ = sg.generate_muap()
-    return t, np.asarray(sig_arr[0]).flatten()
+    return t, 1e-3 * np.asarray(sig_arr[0]).flatten()
 
 
 def analytical_phi_along_fibre(

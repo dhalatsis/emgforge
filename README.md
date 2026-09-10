@@ -105,15 +105,23 @@ emgforge/
 
 ## Validation
 
-- **vs analytical model:** the Fourier pipeline reaches mean Pearson
-  **r ≈ 0.99 (0.990–0.997)** against the Farina & Merletti (2004) multilayer
-  cylindrical analytical model across muscle-region fibre depths.
+- **analytical operator:** analytical cylinder φ passed through the public
+  production pipeline reproduces the independently assembled Farina waveform to
+  machine precision in signed shape and SI-scaled amplitude.
+- **vs cylinder FEM:** the established five-layer FEM campaign reaches mean Pearson
+  **r ≈ 0.99 (0.990–0.997)** against the four-layer cylindrical analytical model
+  across muscle-region fibre depths; a like-for-like convergence tier is specified
+  in the validation plan.
 - **regression bench:** the 200-case snapshot bench passes its **90/90** sanity
   gate; the spatial engine matches the Fourier reference at **r = 0.997** on the
   12-case golden cylindrical set.
 - The remaining analytical-vs-FEM gap (~5%) is a physical model difference
   (finite vs infinite cylinder, Gaussian vs point source, 5- vs 4-layer), not a
   pipeline artifact.
+
+The [validation plan](docs/validation/README.md) defines the automated gates and
+the [research bibliography](docs/validation/BIBLIOGRAPHY.md) maps forward-model
+evidence to MUAP sanity checks.
 
 Snapshots and meshes used by the heavier regression tests are regenerable and are
 kept out of the repository; the unit tests under `tests/` run without them.

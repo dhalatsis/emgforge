@@ -14,6 +14,7 @@ from emgforge.synthesis.metrics import (
     normalize_peak,
     nrmse_aligned,
     raw_r_vs,
+    waveform_features,
 )
 
 T = np.linspace(0.0, 30.0, 601)      # dt = 0.05 ms
@@ -74,3 +75,41 @@ def test_jaggedness_smooth_below_noisy_and_flat_is_zero():
     noisy = smooth + 0.05 * rng.standard_normal(T.size)
     assert jaggedness(smooth) < jaggedness(noisy)
     assert jaggedness(np.ones(100)) == 0.0
+
+
+def test_waveform_features_capture_balance_spectrum_and_tails():
+    t = np.arange(0.0, 1000.0, 1.0)
+    balanced = bump(12.0, 1.0) - bump(18.0, 1.0)
+    # Use the module's short T axis for morphology, and a separate exact sinusoid
+    # for the spectral check.
+    f = waveform_features(T, balanced)
+    assert f["peak_to_peak"] > 0
+    assert f["duration_ms"] > 0
+    assert f["n_phases"] == 2
+    assert f["dc_area_ratio"] < 0.02
+    assert f["tail_energy_ratio"] < 1e-4
+
+    sine = np.sin(2 * np.pi * 120.0 * t / 1000.0)
+    sf = waveform_features(t, sine)
+    assert sf["dominant_frequency_hz"] == pytest.approx(120.0, abs=1.0)
+    assert sf["median_frequency_hz"] == pytest.approx(120.0, abs=1.0)
+
+
+def test_waveform_features_reject_bad_axes_and_nonfinite_values():
+    with pytest.raises(ValueError):
+        waveform_features([0.0, 1.0], [1.0])
+    with pytest.raises(ValueError):
+        waveform_features([0.0, 0.0], [1.0, 2.0])
+    with pytest.raises(ValueError):
+        waveform_features([0.0, 1.0], [1.0, np.nan])
+    with pytest.raises(ValueError, match="uniformly sampled"):
+        waveform_features([0.0, 1.0, 2.1], [0.0, 1.0, 0.0])
+    with pytest.raises(ValueError, match="positive"):
+        waveform_features([0.0, 1.0], [0.0, 1.0], hf_cutoff_hz=0.0)
+
+
+def test_waveform_features_tail_energy_does_not_double_count_overlap():
+    features = waveform_features(
+        np.arange(3, dtype=float), np.ones(3), tail_fraction=0.5
+    )
+    assert features["tail_energy_ratio"] == pytest.approx(1.0)

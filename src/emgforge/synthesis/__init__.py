@@ -37,6 +37,7 @@ from emgforge.synthesis.conventions import (  # noqa: F401
     FARINA_DEFAULT,
     FEM_NEURODEC,
 )
+from emgforge.synthesis.metrics import waveform_features  # noqa: F401
 
 __all__ = [
     "MUAPConfig",
@@ -56,4 +57,5 @@ __all__ = [
     "Conventions",
     "FARINA_DEFAULT",
     "FEM_NEURODEC",
+    "waveform_features",
 ]

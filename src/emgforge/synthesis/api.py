@@ -15,6 +15,7 @@ import numpy as np
 from emgforge.synthesis.config import SynthesisConfig
 from emgforge.synthesis.conventions import FARINA_DEFAULT, Conventions
 from emgforge.synthesis.fibres import FibreBed
+from emgforge.synthesis.metrics import waveform_features
 from emgforge.synthesis.engines.fourier import (
     build_fourier_grids,
     build_spe2_iap_spectrum,
@@ -152,7 +153,7 @@ class MUAPResult:
     t_ms: np.ndarray
     muap: np.ndarray
     config: SynthesisConfig
-    metrics: Dict[str, float] = field(default_factory=dict)
+    metrics: Dict[str, float | int] = field(default_factory=dict)
     bed: "FibreBed | None" = None       # the fibre bed this MUAP was summed over
     # Where the returned ``t_ms`` puts the waveform. "window_centred": the Fourier
     # radon pins the MUAP to the window centre — peak location does NOT encode
@@ -488,8 +489,8 @@ def _resolve_bed(
     return FibreBed.from_arrays(dz_mm, len1, len2, posz, v), needs
 
 
-def _compute_metrics(t_ms: np.ndarray, muap: np.ndarray) -> Dict[str, float]:
-    metrics: Dict[str, float] = {}
+def _compute_metrics(t_ms: np.ndarray, muap: np.ndarray) -> Dict[str, float | int]:
+    metrics: Dict[str, float | int] = {}
     # Skip per-MUAP metrics for multi-electrode output — caller can compute
     # per-channel metrics themselves from the (n_elec, n_time) array.
     if muap.ndim != 1:
@@ -497,29 +498,7 @@ def _compute_metrics(t_ms: np.ndarray, muap: np.ndarray) -> Dict[str, float]:
         metrics["n_time"]     = int(muap.shape[-1])
         metrics["peak_to_peak_max"] = float(np.max(muap) - np.min(muap))
         return metrics
-    dt_ms = t_ms[1] - t_ms[0] if len(t_ms) > 1 else 1.0
-    metrics["peak_to_peak"] = float(np.max(muap) - np.min(muap))
-    metrics["rms_amplitude"] = float(np.sqrt(np.mean(muap**2)))
-
-    if len(muap) > 2:
-        d2 = (muap[2:] - 2 * muap[1:-1] + muap[:-2]) / (dt_ms**2)
-        metrics["roughness"] = float(np.mean(d2**2))
-
-    fft_muap = np.fft.rfft(muap)
-    freqs = np.fft.rfftfreq(len(muap), d=dt_ms / 1000)
-    power = np.abs(fft_muap) ** 2
-    total_power = np.sum(power)
-    if total_power > 0:
-        metrics["hf_ratio"] = float(np.sum(power[freqs > 500]) / total_power)
-
-    threshold = 0.1 * metrics["peak_to_peak"]
-    above = np.abs(muap) > threshold
-    if np.any(above):
-        first = int(np.argmax(above))
-        last = len(above) - 1 - int(np.argmax(above[::-1]))
-        metrics["duration_ms"] = float((last - first) * dt_ms)
-
-    return metrics
+    return dict(waveform_features(t_ms, muap))
 
 
 # ---------------------------------------------------------------------------

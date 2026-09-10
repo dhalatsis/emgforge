@@ -17,12 +17,11 @@ at the window edges, so the Fourier reference is artifact-free:
 Cases sweep width/depth, L1/L2 (symmetric + asymmetric), v, and NMJ offset posz
 (electrode-over-NMJ AND electrode-offset, the realistic propagating case).
 
-NOTE on `analytical_phi_along_fibre`: it is NOT used here. Its extracted φ is
-mutually inconsistent with the Fourier pipeline (Fourier-on-extracted-φ vs
-`analytical_muap` only r≈0.72; and it does not decay at the window edges →
-FFT wraparound). That is a φ-extraction problem, not an engine problem — the
-engine matches Fourier at r≈0.99 on every clean φ (mono AND biphasic). Realistic
-FEM-φ validation is the MRI tier's separate job.
+NOTE on `analytical_phi_along_fibre`: it is not used here because this fixture is
+the fast engine-to-engine gate built from simple, edge-decayed fields. The strict
+independent cylinder oracle lives in `tests/validation/test_cylinder_oracle.py`;
+it confirms that analytical φ → production Fourier pipeline reproduces the
+analytical MUAP in both shape and SI-scaled amplitude.
 
 Output: golden_cylindrical.npz (committed-small) + a Drive copy via the manifest.
 Run: python \
