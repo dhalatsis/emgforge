@@ -2,8 +2,8 @@
 
 radii {33,30,27,25,20,15} mm × fibre angle {0,10,20,30,45}° × NMJ offset {0,−20,−40} mm ×
 electrode axial position {−40 … +40 step 10} mm: analytical (Farina 2004) and FEM lead
-fields on the engine grid, the golden SFAP on each, and the Farina-generator MUAP for the
-same case. Written to _results/paper/datasets/cylinder_sfap_atlas.{npz,json}.
+fields on the engine grid, the SFAP from direct line-source synthesis on each, and the
+Farina-generator MUAP for the same case. Written to _results/paper/datasets/cylinder_sfap_atlas.{npz,json}.
 
 Frame: z = 0 is the array centre; the fibre always spans [−60, +60] mm with its NMJ at
 nmj_mm[j]; the electrode sits at z_el_mm[k] (a z-invariant cylinder, so electrode at +z ≡
@@ -85,8 +85,8 @@ recipe = asdict(cfg)
 manifest = dict(
     name="cylinder_sfap_atlas", file="cylinder_sfap_atlas.npz", size_MB=round(size_mb, 2), dtype="float32",
     description="Single-fibre action potentials in the 4-layer cylinder (bone 10 / muscle 35 / fat 38 / skin 40 mm; "
-                "Farina 2004 conductivities) from the analytical and the FEM lead field through the golden spatial "
-                "recipe, plus the Farina-2004 generator MUAP for the same case.",
+                "Farina 2004 conductivities) from the analytical and the FEM lead field through direct line-source "
+                "synthesis (the spatial engine's production recipe), plus the Farina-2004 generator MUAP for the same case.",
     axes=dict(radius_mm=RADII.tolist(), depth_below_skin_mm=(G["r_skin"] - RADII).tolist(), angle_deg=ANGLES.tolist(),
               nmj_mm=NMJ.tolist(), z_el_mm=ZEL.tolist(),
               t_ms=f"({W},) {t_ms[0]:g} … {t_ms[-1]:.2f} ms, fs = {FS:g} Hz, t = 0 when the NMJ fires",
@@ -98,9 +98,9 @@ manifest = dict(
                      note="FEniCSx reciprocal solve, σ = 5 mm Gaussian electrode source on the skin at θ = 0; re-gridded from "
                           "the 0.5 mm validation cache (_results/validation/fem_cache/cyl_lines.npz)"),
         sfap_analytical=dict(shape=list(sf_a.shape), dims="(radius, angle, nmj, electrode, t)", units="a.u. (∝ V)",
-                             note="golden recipe on phi_analytical translated to the electrode position"),
+                             note="direct recipe on phi_analytical translated to the electrode position"),
         sfap_fem=dict(shape=list(sf_f.shape), dims="(radius, angle, nmj, electrode, t)", units="a.u. (∝ V)",
-                      note="golden recipe on phi_fem translated to the electrode position"),
+                      note="direct recipe on phi_fem translated to the electrode position"),
         farina_muap=dict(shape=list(mu_F.shape), dims="(radius, angle, nmj, electrode, t)", units="a.u. (Farina port)",
                          note="farina(depth=r, zi=-nmj, L1=L2=60, distfib=angle, channels=9, dint=10), physical time, "
                               "cubic-spline resampled from the generator's window-centred axis (-31.25 … +31 ms) onto t_ms "

@@ -1,7 +1,7 @@
 # emgforge white paper — build plan
 
 Target: an arXiv technical report (q-bio.QM / eess.SP), ~12–16 pages, plain and clean,
-describing the whole pipeline step by step with the **golden SFAP synthesis method** at
+describing the whole pipeline step by step with the **direct line-source SFAP synthesis** at
 its centre, its first-principles and literature validation, the anatomical (MRI) tier,
 the motor-unit/activation layer, generated datasets, and honest limitations. Compiled
 with `tectonic` from `paper/main.tex`; figures are vector PDFs in `paper/figures/`
@@ -21,7 +21,7 @@ volume-conductor lead fields to motor-unit action potentials and interference si
    twins, generative surrogates); the gap (open, inspectable, validated to first
    principles, anatomy-capable); contributions.
 2. Overview of the pipeline (Fig 1, TikZ): anatomy → volume conductor (analytical / FEM)
-   → reciprocal lead field φ(z) along fibres → SFAP synthesis (golden method) → fibre bed
+   → reciprocal lead field φ(z) along fibres → SFAP synthesis (direct line-source) → fibre bed
    & motor-unit pool → MUAP (single / HD grid) → motoneuron pool & twitch model →
    interference EMG & force (static and non-stationary).
 3. Volume conductor and lead fields
@@ -30,7 +30,7 @@ volume-conductor lead fields to motor-unit action potentials and interference si
    3.3 FEM (FEniCSx): mesh, tissue tensors (5:1 muscle anisotropy), Gaussian electrode
        source, one solve per electrode → all fibres; the MRI forearm (segmentation →
        mesh → fibre-aligned σ). Fig 2 (cylinder lead fields), Fig 5 (MRI).
-4. The golden SFAP synthesis method
+4. Direct line-source SFAP synthesis
    4.1 Line-source model: SFAP = ∫ i_m φ dz, i_m = σ_in π a² ∂²V_m/∂z², Rosenfalck IAP,
        the bidirectional wave V_m(v t − |z − z_NMJ|) windowed to the fibre; the dual
        form ∫ V_m·win·φ'' dz; generation + end-of-fibre terms and the monopole-free identity.
@@ -68,18 +68,18 @@ volume-conductor lead fields to motor-unit action potentials and interference si
 |---|---|---|---|
 | 1 | `fig_pipeline` (TikZ in main.tex) | pipeline block diagram | me |
 | 2 | `fig_cylinder_leadfield` | (a) cylinder cross-section schematic with layers, electrode, fibre depths; (b) φ(z) analytical vs FEM at 3 depths; (c) transverse φ across the skin; (d) FEM lead-field map on the cross-section (one solve, evaluated on an xy grid at the electrode plane, log colour) | F1 |
-| 3 | `fig_golden_anatomy` | (a) Rosenfalck V_m(z), V_m', V_m'' (tripole); (b) CSD(z,t) image with the two counter-propagating tripoles, NMJ cusp, tendon ends (boxcar) and the same with one_sided; (c) the three fibre-end windows; (d) FEM φ raw vs monopole-denoised vs analytical (+ their φ''); (e) SFAPs: raw-FEM, denoised-FEM, analytical-φ, showing the ripple removal | F1 |
+| 3 | `fig_recipe_anatomy` | (a) Rosenfalck V_m(z), V_m', V_m'' (tripole); (b) CSD(z,t) image with the two counter-propagating tripoles, NMJ cusp, tendon ends (boxcar) and the same with one_sided; (c) the three fibre-end windows; (d) FEM φ raw vs monopole-denoised vs analytical (+ their φ''); (e) SFAPs: raw-FEM, denoised-FEM, analytical-φ, showing the ripple removal | F1 |
 | 4 | `fig_first_principles` | (a) spatial engine vs closed-form oracle at NMJ 0/−20/−30 (overlay, r=1.0000); (b) Fourier engine vs oracle (anti-phase, lag); (c) amplitude ratio vs v (= 1/v); (d) monopole-free source: Σ_z i_m(t) at machine precision | F1 |
-| 5 | `fig_physical_time` | golden SFAP waterfall along a 9-electrode array on FEM φ: mono (boxcar) with the propagating lobe walking at Δz/v and the EOF pinned at L/v (annotated), and the SD montage with phase reversal at the IZ | F1 |
+| 5 | `fig_physical_time` | direct-method SFAP waterfall along a 9-electrode array on FEM φ: mono (boxcar) with the propagating lobe walking at Δz/v and the EOF pinned at L/v (annotated), and the SD montage with phase reversal at the IZ | F1 |
 | 6 | `fig_mri_fibres` | (a) WR forearm segmentation slice, FCU highlighted, skin electrode grid; (b) FCU fibre beds: Poisson straight vs harmonic streamlines (single NMJ), IZ marked, 2 projections; (c) reciprocal lead field of one skin electrode on the mesh (slice) and φ along 3 fibres; (d) containment / streamline stats (small inset or numbers in caption) | F2 |
-| 7 | `fig_mu_pool_muaps` | (a) MU territories in the FCU cross-section, colour = size; (b) size distribution + recruitment threshold vs index; (c) golden MUAPs of a small/medium/large MU; (d) MUAP p2p vs size (log) | F2 |
+| 7 | `fig_mu_pool_muaps` | (a) MU territories in the FCU cross-section, colour = size; (b) size distribution + recruitment threshold vs index; (c) direct-method MUAPs of a small/medium/large MU; (d) MUAP p2p vs size (log) | F2 |
 | 8 | `fig_hdemg_activation` | (a) one MU on the 5×5 grid (propagation along columns, footprint across); (b) interference HD-EMG plateau snippet on the grid + SD column; (c) recruitment/rate coding; (d) trapezoid: drive, raster, EMG, force; (e) dynamic movement: angle & EMG | F2 |
 | 9 | `fig_validation_features` | compact 2×3 of tier-B results in paper style: depth power law (mono/SD/Farina/FEM), fat vs Kuiken, EOF ratio vs depth, CV recovered vs set, IZ SD array, transverse spread | F1 |
 
 ## Tables
 
 1. Tissue conductivities and cylinder geometry (analytical and FEM).
-2. The golden recipe parameters (SpatialConfig) with one-line rationale each.
+2. The direct-recipe parameters (SpatialConfig) with one-line rationale each.
 3. Validation scoreboard (tiers A/B/C/S) — from `docs/validation/REPORT.md`.
 4. Released datasets (name, contents, shape, size).
 
@@ -87,10 +87,10 @@ volume-conductor lead fields to motor-unit action potentials and interference si
 
 - **D1 `cylinder_sfap_atlas.npz`** [F1]: radii {33,30,27,25,20,15} mm (depth below skin
   7–25) × fibre angle {0,10,20,30,45}° × NMJ offset {0,−20,−40} mm × electrode axial
-  position {−40…+40 step 10}: analytical φ, FEM φ (from the validation cache), golden
+  position {−40…+40 step 10}: analytical φ, FEM φ (from the validation cache), direct-method
   SFAP on each, plus the Farina-generator MUAP for the same case; t axis; parameters. < 25 MB.
 - **D2 `forearm_fcu_mu_pool.npz`** [F2]: the 100-MU FCU pool (fibre indices, sizes,
-  territory centroids/radii, recruitment order), single-channel golden MUAPs (100×256 @
+  territory centroids/radii, recruitment order), single-channel direct-method MUAPs (100×256 @
   2048 Hz), the 5×5 HD grid MUAP tensor for as many MUs as feasible (≥ 42, target 100),
   electrode xyz, t axis, metadata (density, IZ_FRAC, config).
 - **D3 `interference_emg_trials.npz`** [F2]: trapezoid contractions at drive 0.1/0.2/0.35/
@@ -102,7 +102,7 @@ volume-conductor lead fields to motor-unit action potentials and interference si
 F1: r/lag of spatial vs oracle; Fourier r/lag; amplitude ratio at v=2/4; monopole
 residual; A1 φ r and FWHM per depth; A2.1 r per depth; CV recovered (Farina/pipeline);
 EOF onset (expected/Farina/pipeline); depth-law exponents; fat retained (analytical,
-FEM golden, FEM smoothed) ; EOF ratio vs depth; IZ SD null; transverse widths.
+FEM direct, FEM smoothed) ; EOF ratio vs depth; IZ SD null; transverse widths.
 F2: number of fibres in the FCU bed (poisson/harmonic), containment %, streamline span
 stats; MU sizes min/median/max; MUAP p2p range and median duration; HD-grid IED; CV
 from the grid; recruitment counts vs drive; RMS vs drive; force at drives; dynamic

@@ -1,6 +1,6 @@
 """Shared helpers for the F1 figure scripts (figs 2, 3, 4, 5, 9 and dataset D1).
 
-Re-exports the validation harness (golden recipe, analytical oracle, signal helpers),
+Re-exports the validation harness (the direct line-source synthesis recipe, analytical oracle, signal helpers),
 opens the cylinder FEM cache, and provides ``record()`` which merges each script's
 printed numbers into ``paper/figures/key_numbers_f1.json``.
 """
@@ -23,7 +23,7 @@ import cyl_fem                   # noqa: E402
 
 DZ = V * 1000.0 / FS                         # 0.977 mm — the cylinder-tier φ grid
 Z = (np.arange(W) - W // 2) * DZ             # centred z grid of a φ line (mm)
-T_AX = np.arange(W) / FS * 1000.0 - 10.0     # golden time axis (ms), t = 0 at the NMJ
+T_AX = np.arange(W) / FS * 1000.0 - 10.0     # the direct recipe's time axis (ms), t = 0 at the NMJ
 CACHE = cyl_fem.build_cache()
 Z_ABS, RADII, THETAS, ZE = CACHE["z_abs"], CACHE["radii"], CACHE["thetas"], float(CACHE["ze"])
 KEY = ROOT / "paper/figures/key_numbers_f1.json"

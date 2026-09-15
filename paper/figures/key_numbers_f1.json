@@ -92,7 +92,7 @@
    ]
   }
  },
- "fig3_golden_anatomy": {
+ "fig3_recipe_anatomy": {
   "iap": {
    "vm_peak_mV": 129.04808120950335,
    "vm_peak_at_mm": 3.0,
@@ -326,7 +326,7 @@
     6,
     8
    ],
-   "fem_p2p_retained_golden": [
+   "fem_p2p_retained_direct": [
     1.0,
     0.7146959095609312,
     0.45125851288494145,
@@ -417,12 +417,12 @@
     "d20": 1.1303301386981592
    }
   },
-  "runtime_s": 60.95481514930725
+  "runtime_s": 34.25415349006653
  },
  "dataset_d1": {
   "file": "/home/dc23/projects/emgforge/_results/paper/datasets/cylinder_sfap_atlas.npz",
   "size_MB": 1.658693,
-  "runtime_s": 192.06865048408508,
+  "runtime_s": 109.05161762237549,
   "shapes": {
    "phi_analytical": [
     6,

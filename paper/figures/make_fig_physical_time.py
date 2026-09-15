@@ -1,7 +1,8 @@
-"""Figure 5 — physical time: golden SFAPs on the FEM lead field along a 9-electrode
-array. (a) monopolar, boxcar tendons: the propagating lobe walks at |z|/v, the
-end-of-fibre potential is pinned at L/v; (b) single-differential montage with the
-phase reversal at the innervation zone; (c) monopolar with the golden one-sided window.
+"""Figure 5 — physical time: SFAPs from direct line-source synthesis on the FEM lead field
+along a 9-electrode array. (a) monopolar, boxcar tendons: the propagating lobe walks at
+|z|/v, the end-of-fibre potential is pinned at L/v; (b) single-differential montage with
+the phase reversal at the innervation zone; (c) monopolar with the direct recipe's
+one-sided window.
 
 Run from the repo root:  python paper/figures/make_fig_physical_time.py   (~5 s)
 """
@@ -63,7 +64,7 @@ D0 = NUM["propagating_lobe"]["lobe_delay_at_z0_ms"]      # the negative lobe tra
 guide = np.abs(ZC) / V + D0
 panels = [(mono_box, "a", COL["mono"], "monopolar, boxcar tendons"),
           (sd_box, "b", COL["sd"], f"single differential (IED {IED:g} mm), boxcar"),
-          (mono_os, "c", COL["golden"], "monopolar, one-sided tendon window")]
+          (mono_os, "c", COL["direct"], "monopolar, one-sided tendon window")]
 for ax, (stack, let, col, tag) in zip(axes, panels):
     scale = 0.55 * STEP / np.abs(stack).max()
     for k, (z, s) in enumerate(zip(ZC, stack)):

@@ -36,7 +36,9 @@ The volume conductor enters *only* through φ(z). Feed it an analytical
 path (MRI tier) — the engine does not care where φ comes from.
 
 See ``README.md`` in this package for the method, the spatial-vs-Fourier
-comparison, and the golden-set verification workflow.
+comparison, and the reference-set verification workflow; the production recipe
+built on this engine (direct line-source synthesis) is justified step by step in
+``synthesis/DIRECT_LINE_SOURCE.md``.
 """
 
 from __future__ import annotations
@@ -183,7 +185,7 @@ def build_csd_matrix(
     field* — rather than evaluating an analytic kernel per half-fibre — is what
     captures the **source terms at the NMJ junction** (the |·| cusp) and the
     **tendon ends** (the window edges). An earlier per-half / opposite-sign
-    construction missed both and scored only r≈0.05–0.2 on the golden set.
+    construction missed both and scored only r≈0.05–0.2 on the cylindrical reference set.
     """
     v = cfg.v
     # fibre-end window over the z-grid, split at the NMJ; boxcar = sharp tendon

@@ -3,7 +3,7 @@
   A0  engine vs FIRST PRINCIPLES  (closed-form φ, infinite anisotropic medium; no
       volume-conductor model in the loop — a pure test of the SFAP integral)
   A1  FEM lead field φ(z) vs the Farina-2004 analytical cylinder φ(z)
-  A2  full pipeline (FEM φ → golden recipe) vs the analytical-φ pipeline and vs the
+  A2  full pipeline (FEM φ → direct recipe) vs the analytical-φ pipeline and vs the
       Farina generator: waveform, EOF timing, propagation / CV
   A3  volume-conductor symmetries the cylinder must obey: rotation, z-translation,
       reciprocity (interior points)
@@ -79,7 +79,7 @@ check(T, "A0.3 Fourier engine vs first principles (signed r, lag)",
       principle="the Fourier (Farina 2001) engine is the repo's shape oracle (r=0.997 vs MATLAB); "
                 "if it matches the mirrored IAP better, its IAP orientation/sign conventions are "
                 "the source of the pinned engine disagreements (anti-phase, ~2 ms lag)",
-      refs="GOLDEN_METHOD.md §6, §8; Farina & Merletti 2001", known=True)
+      refs="DIRECT_LINE_SOURCE.md §6, §8; Farina & Merletti 2001", known=True)
 
 # --- A0.4 engine invariances -----------------------------------------------------
 t_a, s_a = sfap(phi0, DZ, 60, 60, -20.0, golden_cfg(fsamp=4096.0))
@@ -189,7 +189,7 @@ def drift(dim1=5.0, cfg=None, route="spatial"):
         else:
             ra.append(p2p(sfap(pf, DZ, 60, 60, -20.0, cfg)[1]) / p2p(sfap(pa, DZ, 60, 60, -20.0, cfg)[1]))
     ra = np.array(ra); return float(ra.max() / ra.min()), ra / ra[0]
-d_gold = drift(5.0)
+d_direct = drift(5.0)
 d_none = drift(5.0, golden_cfg(denoise="none"))
 d_four = drift(5.0, route="fourier")
 d_p5, d_p7 = drift(5.0, golden_cfg(denoise_n_poles=5))[0], drift(5.0, golden_cfg(denoise_n_poles=7))[0]
@@ -203,9 +203,9 @@ def drift_lp(cfg):
         sf = filtfilt(_b, _a, sfap(fem_phi(r, 0.0), DZ, 60, 60, -20.0, cfg)[1])
         ra.append(p2p(sf) / p2p(sa))
     ra = np.array(ra); return float(ra.max() / ra.min()), ra / ra[0]
-lp_gold, lp_none = drift_lp(golden_cfg()), drift_lp(golden_cfg(denoise="none"))
+lp_direct, lp_none = drift_lp(golden_cfg()), drift_lp(golden_cfg(denoise="none"))
 # hypothesis: the σ=5 mm Gaussian "electrode" reaches into the muscle → slower depth decay.
-# Repeat the Fourier-route and golden drifts with a σ=1 mm source.
+# Repeat the Fourier-route and direct-method drifts with a σ=1 mm source.
 phi_s1 = cyl_fem.sigma1_lines()
 def fem_phi_s1(r):
     return cyl_fem.window(phi_s1[int(np.argmin(np.abs(RADII - r))), 0], Z_ABS, ZE, W, DZ)
@@ -218,24 +218,24 @@ def drift_s1(route):
         else:
             ra.append(p2p(filtfilt(_b, _a, sfap(pf, DZ, 60, 60, -20.0)[1])) / p2p(filtfilt(_b, _a, sfap(pa, DZ, 60, 60, -20.0)[1])))
     ra = np.array(ra); return float(ra.max() / ra.min()), ra / ra[0]
-s1_four, s1_gold = drift_s1("fourier"), drift_s1("golden")
+s1_four, s1_direct = drift_s1("fourier"), drift_s1("direct")
 # and the spatial engine with the Fourier route's own φ smoothing (Butterworth 0.03 cyc/sample ≈ 32 mm)
 d_butter = drift(5.0, golden_cfg(denoise="butterworth"))
-FIG["a12"] = (d_four[1], s1_four[1], lp_gold[1], s1_gold[1])
+FIG["a12"] = (d_four[1], s1_four[1], lp_direct[1], s1_direct[1])
 check(T, "A1.2 FEM/analytical SFAP amplitude ratio is one constant across depth (same depth law)",
       d_butter[0] <= 1.35 and s1_four[0] <= 1.5,
-      f"p2p ratio FEM/ana, r=33→20 mm, rel. to r=33 — golden: {np.round(d_gold[1], 2).tolist()} "
-      f"(spread {d_gold[0]:.2f}×); no denoise: {np.round(d_none[1], 2).tolist()} ({d_none[0]:.2f}×); "
+      f"p2p ratio FEM/ana, r=33→20 mm, rel. to r=33 — direct method: {np.round(d_direct[1], 2).tolist()} "
+      f"(spread {d_direct[0]:.2f}×); no denoise: {np.round(d_none[1], 2).tolist()} ({d_none[0]:.2f}×); "
       f"5/7 poles: {d_p5:.2f}×/{d_p7:.2f}×; Fourier route: {np.round(d_four[1], 2).tolist()} ({d_four[0]:.2f}×). "
-      f"After a 500 Hz low-pass — golden: {np.round(lp_gold[1], 2).tolist()} ({lp_gold[0]:.2f}×), "
+      f"After a 500 Hz low-pass — direct method: {np.round(lp_direct[1], 2).tolist()} ({lp_direct[0]:.2f}×), "
       f"no denoise: {np.round(lp_none[1], 2).tolist()} ({lp_none[0]:.2f}×).  "
       f"With a σ=1 mm electrode source instead of σ=5 mm — Fourier route: {np.round(s1_four[1], 2).tolist()} "
-      f"({s1_four[0]:.2f}×), golden in-band: {np.round(s1_gold[1], 2).tolist()} ({s1_gold[0]:.2f}×).  "
+      f"({s1_four[0]:.2f}×), direct method in-band: {np.round(s1_direct[1], 2).tolist()} ({s1_direct[0]:.2f}×).  "
       f"Spatial engine with Butterworth φ-smoothing (the Fourier route's, ≈32 mm cutoff): "
       f"{np.round(d_butter[1], 2).tolist()} ({d_butter[0]:.2f}×)",
       "TWO findings. (i) A smooth 1.3–1.4× drift survives every preprocessing and a σ=1 mm source: the FEM "
       "cylinder decays ~30 % slower with depth than the analytical one over 7→20 mm — a volume-conductor "
-      "difference still to be attributed (mesh/skin-layer resolution vs the analytical k-grid). (ii) The golden "
+      "difference still to be attributed (mesh/skin-layer resolution vs the analytical k-grid). (ii) The direct "
       "recipe's SFAP amplitude on FEM φ is erratic at the ±40 % level (not high-frequency: survives a 500 Hz "
       "low-pass; differs between σ=5 and σ=1 sources) because it integrates φ'' faithfully down to ~8 mm "
       "wavelengths where FEM φ carries mesh structure; the 3-monopole fit does not remove it (5/7 poles neither) "
@@ -269,16 +269,16 @@ for r in (33.0, 25.0, 20.0):
     four_r.append(float(np.corrcoef(ma_, mf_)[0, 1]))
 check(T, "A2.1 pipeline on FEM φ ≡ pipeline on analytical φ (4 depths × 2 NMJ offsets)",
       min(pipe_r) >= 0.95,
-      f"golden spatial: r = {np.round(pipe_r, 3).tolist()} (depth 33,33,30,30,25,25,20,20 mm; no denoise: "
+      f"direct method: r = {np.round(pipe_r, 3).tolist()} (depth 33,33,30,30,25,25,20,20 mm; no denoise: "
       f"{np.round(pipe_r_raw, 3).tolist()});  Fourier route (r=33/25/20): {np.round(four_r, 3).tolist()}",
-      "r ≥ 0.95 with the golden recipe; deep fibres ≥ 0.99. The shallow-fibre residual is the FEM field "
+      "r ≥ 0.95 with the direct recipe; deep fibres ≥ 0.99. The shallow-fibre residual is the FEM field "
       "(electrode model + mesh ripple through φ''), not the engine (A0.1)",
       principle="same engine on both φ, so this isolates the volume conductor's accuracy at the SFAP level",
       known=True)
 check(T, "A2.2 monopole denoise removes FEM mesh ripple without changing the analytical answer",
       all(jf <= jn for jn, jf in jag) and min(pipe_r) >= min(pipe_r_raw) - 1e-6,
       f"SFAP jaggedness raw→denoised = {[f'{a:.3f}→{b:.3f}' for a, b in jag[:4]]} …",
-      "denoised jaggedness ≤ raw; agreement not reduced", refs="GOLDEN_METHOD.md §2")
+      "denoised jaggedness ≤ raw; agreement not reduced", refs="DIRECT_LINE_SOURCE.md §2")
 
 # --- A2.3 vs the Farina generator: timing of the end-of-fibre potential ---------
 # EOF isolated by subtraction: SFAP(tendon at L) − SFAP(tendon at L+60): the two are identical
@@ -371,7 +371,7 @@ for r, a, f in FIG["a1"]:
     ax.plot(z, a / a.max(), lw=2, alpha=.5, label=f"analytical r={r:g}"); ax.plot(z, f / f.max(), "k--", lw=.8)
 ax.set_xlim(-80, 80); ax.set_title("A1  φ(z): analytical (solid) vs FEM (dashed)"); ax.set_xlabel("z (mm)"); ax.legend(fontsize=7)
 ax = axes[1, 0]; t_a, s_a, t_f2, s_f2, s_n = FIG["a2"]
-ax.plot(t_a, s_a, "k", lw=2, label="analytical φ → golden"); ax.plot(t_f2, s_f2, "C0--", label="FEM φ → golden"); ax.plot(t_f2, s_n, "C1:", lw=.8, label="FEM φ, no denoise")
+ax.plot(t_a, s_a, "k", lw=2, label="analytical φ → direct"); ax.plot(t_f2, s_f2, "C0--", label="FEM φ → direct"); ax.plot(t_f2, s_n, "C1:", lw=.8, label="FEM φ, no denoise")
 ax.set_xlim(-3, 30); ax.set_title("A2.1/2.2  pipeline: FEM vs analytical φ (r=20, NMJ −20)"); ax.legend(fontsize=7)
 ax = axes[1, 1]; t_F, s_F, stack, zc = FIG["a2cv"]
 for k in range(4):                                       # each channel peak-normalised

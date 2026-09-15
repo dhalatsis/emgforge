@@ -1,8 +1,8 @@
-"""Figure 3 — anatomy of the golden SFAP recipe: (a) Rosenfalck IAP and its derivatives,
+"""Figure 3 — anatomy of the direct line-source synthesis recipe: (a) Rosenfalck IAP and its derivatives,
 (b) the CSD(z, t) source matrix (boxcar and one-sided tendon windows), (c) the fibre-end
 windows, (d) FEM φ raw vs monopole-denoised vs analytical, with φ'', (e) the resulting SFAPs.
 
-Run from the repo root:  python paper/figures/make_fig_golden_anatomy.py   (~10 s)
+Run from the repo root:  python paper/figures/make_fig_recipe_anatomy.py   (~10 s)
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from emgforge.synthesis.metrics import jaggedness
 
 use()
 NUM = {}
-POSZ, LEN1, LEN2 = -20.0, 40.0, 80.0             # golden test fibre: NMJ 20 mm from the electrode
+POSZ, LEN1, LEN2 = -20.0, 40.0, 80.0             # the direct recipe's reference test fibre: NMJ 20 mm from the electrode
 
 # ------------------------------------------------------------------ (a) IAP
 xi = np.linspace(0, 15, 1501)
@@ -142,7 +142,7 @@ cb.outline.set_linewidth(0.4)
 ax = fig.add_subplot(gs[1, 0])
 zpad = np.r_[-70, -60 - 1e-6, z_w, 60, 70]
 sty = {"boxcar": dict(color=COL["first"], lw=0.9), "tukey (α = 0.25)": dict(color=COL["raw"], lw=0.9, ls="--"),
-       "one-sided (α = 0.25)": dict(color=COL["golden"], lw=1.3)}
+       "one-sided (α = 0.25)": dict(color=COL["direct"], lw=1.3)}
 for name, wv in wins.items():
     ax.plot(zpad, np.r_[0, 0, wv, 0, 0], label=name, **sty[name])
 ax.axvline(0, color="0.85", lw=0.5, zorder=0)
@@ -178,7 +178,7 @@ letter(axd1, "d", dx=-0.25)
 ax = fig.add_subplot(gs[1, 2])
 ax.plot(t, normed(s_raw), color=COL["raw"], lw=1.4, label=f"FEM φ, no denoise (r = {NUM['sfap_r30_nmj-20']['r_raw_vs_ana']:.3f})")
 ax.plot(t, normed(s_ana), color=COL["analytical"], lw=0.9, label="analytical φ (reference)")
-ax.plot(t, normed(s_den), color=COL["fem"], lw=0.9, ls="--", label=f"FEM φ, golden (r = {NUM['sfap_r30_nmj-20']['r_den_vs_ana']:.3f})")
+ax.plot(t, normed(s_den), color=COL["fem"], lw=0.9, ls="--", label=f"FEM φ, direct (r = {NUM['sfap_r30_nmj-20']['r_den_vs_ana']:.3f})")
 ax.axhline(0, color="0.85", lw=0.5, zorder=0)
 ax.set_xlim(-2, 30); ax.set_ylim(-1.6, 1.35); ax.set_yticks([-1, -0.5, 0, 0.5, 1])
 ax.set_xlabel("t (ms), t = 0 at the NMJ"); ax.set_ylabel("SFAP (norm.)")
@@ -188,5 +188,5 @@ ax.text(0.02, 0.02, f"r = 30 mm, NMJ at −20 mm, fibre [−60, 60]\njaggedness 
         f"{NUM['sfap_r30_nmj-20']['jaggedness_den']:.3f}", transform=ax.transAxes, fontsize=6, ha="left", va="bottom", color="0.3")
 letter(ax, "e", dx=-0.25)
 
-save(fig, "fig_golden_anatomy")
-record("fig3_golden_anatomy", NUM)
+save(fig, "fig_recipe_anatomy")
+record("fig3_recipe_anatomy", NUM)

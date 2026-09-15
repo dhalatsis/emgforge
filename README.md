@@ -12,7 +12,7 @@ quantitative EMG literature (`docs/validation/`).
 
 ```
 anatomy ──▶ volume conductor ──▶ lead field φ(z) ──▶ SFAP synthesis ──▶ MUAPs ──▶ activation ──▶ EMG & force
- cylinder /   analytical or FEM    reciprocity,       the golden method   per MU,     pool, twitch,   static /
+ cylinder /   analytical or FEM    reciprocity,       direct line-source  per MU,     pool, twitch,   static /
  MRI mask     (FEniCSx + gmsh)     one solve/electrode (CSD ⋅ φ, physical  HD grid     drive          dynamic
                                                        time)
    └──▶ fibre bed (straight / harmonic streamlines) ──▶ motor-unit pool (Henneman sizes) ──┘
@@ -37,7 +37,8 @@ NumPy/SciPy and works with `pip install -r requirements.txt` alone.
 
 ## Quickstart
 
-**A single-fibre action potential from a lead field** with the production ("golden") recipe:
+**A single-fibre action potential from a lead field** with the production recipe (direct
+line-source synthesis):
 
 ```python
 import numpy as np
@@ -79,8 +80,9 @@ src/emgforge/
 ├── fem/             FEniCSx reciprocity solver, tissue tensors, lead-field sampling, geometry
 ├── mri/core/        MRI forearm: segmentation → mesh → fibre-aligned σ; fibre beds
 │                    (Poisson / hex / harmonic streamlines); Henneman motor-unit pools
-├── synthesis/       lead field → SFAP → MUAP: the spatial (golden) engine, the Fourier
-│                    reference engine, preprocessing, FibreBed; GOLDEN_METHOD.md
+├── synthesis/       lead field → SFAP → MUAP: the spatial engine (direct line-source
+│                    synthesis), the Fourier reference engine, preprocessing, FibreBed;
+│                    DIRECT_LINE_SOURCE.md
 ├── activation/      motoneuron pool, twitch/force, drive, compound EMG, dynamic EMG
 ├── simulator.py     the Simulator facade
 └── tissue.py        conductivity constants (single source of truth)
@@ -91,16 +93,17 @@ paper/               the paper (LaTeX, figure scripts, dataset manifests, valida
 tests/               unit tests and byte-exact regression sets
 ```
 
-## The golden method
+## Direct line-source synthesis
 
 The SFAP is the line-source integral `SFAP(t) = ∫ i_m(z,t) φ(z) dz` with
 `i_m = σ_in π a² ∂²V_m/∂z²`, the Rosenfalck action potential launched from the NMJ in both
-directions and cut at the tendons. The production recipe around that integral is: a
+directions and cut at the tendons. The production recipe around that integral (the
+*direct method* throughout the docs and the validation report) is: a
 **3-monopole fit of the lead field** (removes FEM mesh ripple before the second
 derivative), a short edge taper, **2× upsampling**, the **second-derivative current
 source**, a **one-sided tendon window** (flat at the NMJ) and **physical time** (t = 0 at
 the NMJ, end-of-fibre at L/v). Why each step is there, with the experiments behind it, is
-in [`src/emgforge/synthesis/GOLDEN_METHOD.md`](src/emgforge/synthesis/GOLDEN_METHOD.md).
+in [`src/emgforge/synthesis/DIRECT_LINE_SOURCE.md`](src/emgforge/synthesis/DIRECT_LINE_SOURCE.md).
 
 ## Validation
 
@@ -123,7 +126,7 @@ a spurious 1/v) the right amplitude constant; end-of-fibre onset at L/v within 0
 CV, innervation-zone, end-of-fibre, depth, fat, electrode-size and IED laws match the
 literature; the MRI forearm reproduces the NeuroDec lead fields (signed r = 0.999). Open
 items: the Fourier engine is anti-phase and lagged vs first principles; on FEM lead fields
-the golden amplitude is erratic at ±40 % (shape and spectrum are faithful); the FEM
+the direct-method amplitude is erratic at ±40 % (shape and spectrum are faithful); the FEM
 cylinder decays ~30 % slower with depth than the analytical one; the renewal ISI model has
 no refractory floor. Tiers C/S take `EMGFORGE_MUAP_BANK=<forearm_fcu_mu_pool.npz>` to run
 on the released pool (median MUAP 24 µV, 18 ms on a regular 10 mm grid).

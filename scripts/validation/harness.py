@@ -1,5 +1,5 @@
-"""Shared harness for the validation suite: the check registry, the golden recipe,
-the analytical (Farina 2004) oracle wrappers, and small signal helpers.
+"""Shared harness for the validation suite: the check registry, the direct line-source
+synthesis recipe, the analytical (Farina 2004) oracle wrappers, and small signal helpers.
 
 Every tier script imports this, registers its checks with ``check(...)`` and ends
 with ``finish(tier)``. ``run_all.py`` concatenates the per-tier JSON records into
@@ -34,7 +34,8 @@ V, FS, W = 4.0, 4096.0, 256          # cylinder-tier regime (dz = v/fs = 0.977 m
 
 
 def golden_cfg(**over) -> SpatialConfig:
-    """The production spatial recipe (GOLDEN_METHOD.md §0), cylinder regime."""
+    """The production spatial recipe — direct line-source synthesis
+    (DIRECT_LINE_SOURCE.md §0), cylinder regime."""
     base = SpatialConfig(denoise="monopole", denoise_n_poles=3, csd_derivative=2,
                          upsample_factor=2, fiber_window="one_sided",
                          edge_taper_left=5, edge_taper_right=10, center_time=False,
@@ -43,7 +44,7 @@ def golden_cfg(**over) -> SpatialConfig:
 
 
 def sfap(phi, dz, len1=60.0, len2=60.0, posz=0.0, cfg=None):
-    """Golden-recipe SFAP → (t_ms physical, sfap)."""
+    """Direct-method SFAP → (t_ms physical, sfap)."""
     t, s, _ = compute_sfap_spatial(np.asarray(phi, float), float(dz), len1, len2, posz,
                                    cfg or golden_cfg())
     return np.asarray(t, float), np.asarray(s, float)

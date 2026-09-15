@@ -1,6 +1,6 @@
-"""The spatial engine against the golden cylindrical reference set.
+"""The spatial engine against the cylindrical reference set.
 
-The golden SFAPs were produced by the Fourier engine (itself scored r=0.997 against
+The reference SFAPs were produced by the Fourier engine (itself scored r=0.997 against
 the Farina MATLAB reference). These tests therefore assert **agreement between the
 two engines**, not correctness of either. An independent oracle -- Fourier scored
 against ``emgforge.analytical`` -- is tracked separately in the backlog.
@@ -45,7 +45,7 @@ def test_shape_matches_golden(scores, name):
 
 @pytest.mark.parametrize("name", CASE_NAMES)
 def test_polarity_is_inverted_vs_fourier(scores, name):
-    """The spatial engine is ANTI-PHASE with the Fourier golden at polarity=+1.
+    """The spatial engine is ANTI-PHASE with the Fourier reference at polarity=+1.
 
     A characterisation test, not an endorsement. Measured: the best *positive*
     correlation at any lag is only +0.38..+0.65, while the best negative is -0.99

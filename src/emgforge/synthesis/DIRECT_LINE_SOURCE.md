@@ -1,6 +1,7 @@
-# The Golden MUAP Synthesis Method — Justification
+# Direct Line-Source Synthesis — Justification
 
-A reference for *why* the production ("golden") single-fibre / MUAP synthesis recipe is
+A reference for *why* the production single-fibre / MUAP synthesis recipe — **direct
+line-source synthesis**, "the direct method" / "the direct recipe" elsewhere in the repo — is
 what it is, and the experiments and regression gates that back each choice. Distilled from
 the code, tests, and the sanity/investigation suites. File paths are relative to the repo root.
 
@@ -134,10 +135,10 @@ CV-independent (the former `/v` was removed 2026-09-15 — see §8 and validatio
 
 ---
 
-## 6. Validation — the golden gate
+## 6. Validation — the reference-set gate
 
 - **Oracle:** the **Fourier engine**, scored **r ≈ 0.997 against a Farina (2004) MATLAB
-  reference** (`test_golden.py:2-6`; `scripts/synthesis/build_golden.py`). The golden set is
+  reference** (`test_golden.py:2-6`; `scripts/synthesis/build_golden.py`). The reference set is
   12 clean, decaying cylinder φ (Gaussian and difference-of-Gaussian) plus the Fourier SFAP
   each produces. `analytical_phi_along_fibre` is deliberately excluded (its extracted φ is
   inconsistent with the pipeline and does not decay at the FFT window edges).
@@ -191,12 +192,12 @@ engine robust on FEM-sampled φ. That is the whole reason the recipe exists.
   ratio of exactly 1/v before the fix (0.497 at v = 2, 0.249 at v = 4) and 1.00 at both
   velocities after it. Every spatial MUAP is now larger by exactly v (×4.0 cylinder regime,
   ×3.3 PM regime) with a bit-identical peak-normalised waveform; the 21-case reference was
-  regenerated and the golden amplitude gate re-pinned (0.15–0.35 → 0.80–1.05). The
+  regenerated and the spatial-vs-Fourier amplitude gate re-pinned (0.15–0.35 → 0.80–1.05). The
   Nandedkar & Stålberg "amplitude ∝ 1/CV" law holds for an IAP fixed in *time*; whether CV
   should stretch this engine's spatial IAP is a separate, still-open design decision — no
   CV-dependent stretching was added.
 - **Amplitude, spatial vs Fourier:** with the constant fixed the two engines agree to
-  0.84–1.01 (mean 0.95) on the golden set, CV-independent. The residual ≤ 16 % is the
+  0.84–1.01 (mean 0.95) on the reference set, CV-independent. The residual ≤ 16 % is the
   window/φ-handling difference between the methods (`test_golden.py`;
   `tests/regression/SHAPE_VS_AMPLITUDE.md`).
 - **Sign:** which engine carries the correct polarity is an open physics question, pinned not
@@ -209,7 +210,7 @@ engine robust on FEM-sampled φ. That is the whole reason the recipe exists.
   synthesised fields are still broader/weaker than a real motor unit; this is the fibre-length
   problem the experimental series-fibered sampling is meant to close (see the harmonic-fibre
   work).
-- Housekeeping: the committed golden `.npz` still embeds the pre-rename module name
+- Housekeeping: the committed reference `.npz` still embeds the pre-rename module name
   `muap_generator.fourier`; regenerating the set refreshes it (r=0.997 unaffected).
 
 ---

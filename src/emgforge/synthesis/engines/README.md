@@ -35,14 +35,16 @@ source (the `|·|` cusp) and the tendon-end sources (the window edges).
 `SpatialConfig.csd_derivative` (default 2) sets the derivative order;
 `upsample_factor` (default 2) keeps the numerical derivative stable.
 
-The engine is anchored to a golden cylindrical reference set (12 cases, mean
+The engine is anchored to a cylindrical reference set (12 cases, mean
 **r = 0.997** vs the validated Fourier pipeline). Regenerate it with
-`verification/build_golden.py`, then re-check the engine with
-`pytest tests/synthesis` after any change.
+`scripts/synthesis/build_golden.py`, then re-check the engine with
+`pytest tests/synthesis` after any change. The production recipe built on this
+engine — direct line-source synthesis — is documented in
+[`../DIRECT_LINE_SOURCE.md`](../DIRECT_LINE_SOURCE.md).
 
 ## Spatial vs Fourier — which to use
 
-On clean analytical/cylinder φ the two engines agree at **r ≈ 0.997** (12/12 golden
+On clean analytical/cylinder φ the two engines agree at **r ≈ 0.997** (12/12 reference
 cases): they compute the same line-source integral in different domains. On the
 array-wide MRI target the **Fourier engine is the more robust method** (median raw
 Pearson r ≈ 0.55 vs ≈ 0.08 for spatial; aligned r > 0.5 on 98/105 vs 75/105
@@ -58,12 +60,12 @@ at `len1/v`).
 | `spatial.py` | The engine: `build_csd_matrix`, `compute_sfap_spatial` (single fibre), `SpatialConfig`. The Rosenfalck IAP is in `emgforge.synthesis.iap`; the multi-fibre sum in `emgforge.synthesis.field_to_muap`. |
 | `fourier.py` | `build_pare` → E1 → radon (Farina 2004), window-centred. |
 | `__init__.py` | Public exports |
-| `scripts/synthesis/` | Golden-set builder (`build_golden.py`), the MUAP-reference builder (`build_muap_reference.py`), a plotting companion (`plot_golden.py`). The operator-consistency gate vs Fourier is `tests/synthesis/test_golden.py` |
+| `scripts/synthesis/` | Reference-set builder (`build_golden.py`), the MUAP-reference builder (`build_muap_reference.py`), a plotting companion (`plot_golden.py`). The operator-consistency gate vs Fourier is `tests/synthesis/test_golden.py` |
 
 Waveform-comparison metrics (`align_score`, `nrmse_aligned`, `lobe_metrics`,
 `jaggedness`) live in `emgforge.synthesis.metrics`.
 
-The `.npz` fixtures (golden set and per-tier datasets) are **not shipped** — they
+The `.npz` fixtures (the cylindrical reference set and per-tier datasets) are **not shipped** — they
 are regenerable from the builder scripts above.
 
 ## Usage
@@ -93,4 +95,4 @@ into a `MotorUnit` class in early 2025, and was recovered and packaged here as a
 clean engine wired into `muap_generator`. The key fix in this revival: the CSD is
 built from the **numerical 2nd derivative of the full bidirectional Vm field**
 (capturing the junction and tendon sources), not a per-half analytic 2nd derivative
-— the latter misses those sources and scored only r ≈ 0.37 against the golden set.
+— the latter misses those sources and scored only r ≈ 0.37 against the reference set.

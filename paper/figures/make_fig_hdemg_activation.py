@@ -166,7 +166,7 @@ tsel = (t_ms >= -5) & (t_ms <= 60)
 for i in range(M):
     for j in range(M):
         ax = axa[i, j]
-        ax.plot(t_ms[tsel], Wr[i, j, tsel], lw=0.6, color=COL["golden"] if j == col_amp else "0.25")
+        ax.plot(t_ms[tsel], Wr[i, j, tsel], lw=0.6, color=COL["direct"] if j == col_amp else "0.25")
         ax.set_ylim(-ym, ym); ax.set_xlim(-5, 60)
 axa[0, M // 2].set_title(f"MU {mu_rep} ({sizes[mu_rep]} fibres)", fontsize=6, pad=3)
 axa[M - 1, 0].plot([44, 44], [-ym * 0.95, -ym * 0.95 + ym], color="k", lw=1.0)
@@ -184,7 +184,7 @@ colw = Wr[:, col_amp]                                              # (M, T) µV
 amp_w = np.abs(colw[:, wsel]).max()
 scale = 0.42 * ied_z / amp_w                                       # mm per µV: a trace spans < one IED
 for i in range(M):
-    axw.plot(t_ms[wsel], i * ied_z + colw[i, wsel] * scale, lw=0.7, color=COL["golden"], zorder=3)
+    axw.plot(t_ms[wsel], i * ied_z + colw[i, wsel] * scale, lw=0.7, color=COL["direct"], zorder=3)
 i_pk = int(np.argmax(np.abs(colw[0, wsel]))); t_pk0 = float(t_ms[wsel][i_pk])
 zz = np.array([-0.45, M - 1 + 0.45]) * ied_z
 axw.plot(t_pk0 + fw["icpt_ms"] + fw["slope_ms"] * zz / ied_z, zz, ls="--", lw=0.7, color="k", zorder=2)
@@ -198,7 +198,7 @@ axw.set_yticks(np.arange(M) * ied_z); axw.set_yticklabels([f"{i * ied_z:.0f}" fo
 axw.tick_params(labelsize=6, length=2)
 axw.set_xlabel("t (ms), 0 = NMJ firing", fontsize=6.5, labelpad=2)
 axw.set_ylabel("z along the arm (mm)", fontsize=6.5, labelpad=1)
-axw.set_title(f"column {col_amp}", fontsize=6, pad=3, color=COL["golden"])
+axw.set_title(f"column {col_amp}", fontsize=6, pad=3, color=COL["direct"])
 
 # (b) interference HD-EMG at the plateau: RMS footprint + one row of traces ----
 tr = trials[0.35]
@@ -269,7 +269,7 @@ gsc = top[2].subgridspec(2, 1, hspace=0.55)
 axc1 = fig.add_subplot(gsc[0]); axc2 = fig.add_subplot(gsc[1])
 axc1.plot(E_ax, n_act, color="k", lw=1.0)
 for lv in C.LEVELS:
-    axc1.plot(lv, np.sum(mn.rte < lv), "o", ms=3, color=COL["golden"])
+    axc1.plot(lv, np.sum(mn.rte < lv), "o", ms=3, color=COL["direct"])
 axc1.set_xlabel("drive (fraction of max)"); axc1.set_ylabel("# active MUs")
 axc1.set_xlim(0, 1); axc1.set_ylim(0, 105)
 for u in rate_units:

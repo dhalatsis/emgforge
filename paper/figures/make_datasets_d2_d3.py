@@ -75,7 +75,7 @@ grid_cov = (f"all {n_grid} MUs" if n_grid == C.N_MU else
             f"ONLY the {n_grid} smallest of the 100 MUs (muap_grid_mu_index); muap_single covers all 100")
 d2_manifest = dict(
     name="forearm_fcu_mu_pool", file=d2_path.name, size_MB=round(d2_path.stat().st_size / 1e6, 2),
-    description="100-MU Henneman pool of the flexor carpi ulnaris (WR forearm MRI) with golden single-channel and 5×5 HD-grid MUAPs.",
+    description="100-MU Henneman pool of the flexor carpi ulnaris (WR forearm MRI) with single-channel and 5×5 HD-grid MUAPs from direct line-source synthesis.",
     muap_source=D["source"], grid=D["grid_note"], muap_grid_coverage=grid_cov,
     arrays={k: dict(shape=list(np.shape(v)), dtype=str(np.asarray(v).dtype)) for k, v in D2.items()},
     units=dict(muap_single="µV", muap_grid="µV", t_ms="ms (t = 0 at NMJ firing)", elec_xyz="mm (segmentation voxel frame: index × voxel size)",
@@ -93,7 +93,7 @@ d2_manifest = dict(
                         centre_z_mm=D["zc_mm"], fcu_angle_deg=D["fcu_ang"], placement=D["grid_note"]),
         fem=dict(solver="MRIFEMModel (FEniCSx), sigma_mode=centerline, skin_shell_mm=1.5, Gaussian source sigma 5 mm, one reciprocity solve per electrode",
                  fem_build_s=D["fem_build_s"], solve_s_per_electrode=D["solve_s"], phi_sampling_s_per_electrode=D["sample_s"]),
-        synthesis=dict(engine="spatial (golden recipe): field_to_muap per MU", SpatialConfig=C.spcfg_dict(),
+        synthesis=dict(engine="spatial engine (direct line-source synthesis): field_to_muap per MU", SpatialConfig=C.spcfg_dict(),
                        tensor_wall_s=D["tensor_wall_s"], tensor_cpu_s=D["tensor_cpu_s"]),
         activation_defaults="MotoneuronPool(n_mu=100, fs=2048) / TwitchPool defaults (NeuroMotion/Fuglevand parametrisation)",
     ),
@@ -204,7 +204,7 @@ has a `.json` manifest beside it with the full generation record. All floats are
   `muap_single` is electrode 12 (centre).
 * Lead fields: one FEniCSx reciprocity solve per electrode (Gaussian source σ = 5 mm), φ sampled along all
   {len(bed.r_norms)} fibres (FEM build {fmt(D['fem_build_s'], '{:.1f}')} s; {fmt(D['solve_s'])} s solve + {fmt(D['sample_s'], '{:.1f}')} s sampling per electrode).
-* MUAPs: golden spatial recipe (`field_to_muap` with `SpatialConfig(denoise=monopole(3), one_sided window,
+* MUAPs: direct line-source synthesis on the spatial engine (`field_to_muap` with `SpatialConfig(denoise=monopole(3), one_sided window,
   csd_derivative=2, upsample 2, fs 2048, w 256, t_start −10 ms, v 4 m/s)`), IZ at 0.305 ± 0.02 of the fibre;
   physical time, t = 0 at NMJ firing. Tensor build {fmt(D['tensor_wall_s'], '{:.0f}')} s wall ({fmt(D['tensor_cpu_s'], '{:.0f}')} s CPU).
 * Activation-layer per-MU parameters (`MotoneuronPool` / `TwitchPool` defaults) are included for convenience.

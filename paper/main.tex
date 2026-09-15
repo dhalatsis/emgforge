@@ -107,7 +107,7 @@ inverts a forward model to recover spike trains and unit properties, and is only
 as that model; and neural-operator surrogates of the lead field
 \citep{halatsis2024modelling, halatsis2026neural} are trained on the finite-element fields
 described here and inherit the second-derivative sensitivity discussed in
-Sec.~\ref{sec:golden}.
+Sec.~\ref{sec:direct}.
 
 \emgforge{} is an open, inspectable version of that chain, built on one rule: every
 step must be checkable in isolation --- the lead field against an analytical model, the
@@ -119,8 +119,8 @@ what happened when we tested it.
 
 The contributions are:
 \begin{enumerate}
-  \item \textbf{A synthesis method validated to first principles} (Sec.~\ref{sec:golden},
-        \ref{sec:tierA}). The \emph{golden method} --- the spatial line-source integral
+  \item \textbf{A synthesis method validated to first principles} (Sec.~\ref{sec:direct},
+        \ref{sec:tierA}). \emph{Direct line-source synthesis} --- the line-source integral evaluated in space on the sampled lead field,
         with a three-monopole fit of the lead field, a second-derivative current source,
         a one-sided tendon window and physical time --- reproduces a closed-form
         line-source oracle at $r = 1.0000$ with zero lag and a monopole-free source. To our
@@ -170,7 +170,7 @@ conductor is pure NumPy; only the finite-element solve needs FEniCSx
 \node[box] (anat) {anatomy\\ \scriptsize cylinder / MRI mask};
 \node[box, right=of anat] (vc) {volume conductor\\ \scriptsize analytical or FEM};
 \node[box, right=of vc] (lf) {lead field $\varphi(z)$\\ \scriptsize reciprocity, per electrode};
-\node[gold, right=of lf] (sfap) {SFAP synthesis\\ \scriptsize golden method};
+\node[gold, right=of lf] (sfap) {SFAP synthesis\\ \scriptsize direct line-source};
 \node[box, below=of anat] (fib) {fibre bed\\ \scriptsize straight / harmonic};
 \node[box, right=of fib] (mu) {motor-unit pool\\ \scriptsize Henneman sizes};
 \node[box, right=of mu] (muap) {MUAPs\\ \scriptsize single / HD grid};
@@ -182,7 +182,7 @@ conductor is pure NumPy; only the finite-element solve needs FEniCSx
 \draw[arr] (fib) -- (lf);
 \end{tikzpicture}}
 \caption{The \emgforge{} chain. The lead field is the hinge: it is computed once per
-electrode and sampled along every fibre; the golden synthesis recipe turns each
+electrode and sampled along every fibre; direct line-source synthesis turns each
 fibre's $\varphi(z)$ into an SFAP; fibres are summed per motor unit, and the activation
 layer turns motor-unit spike trains into interference EMG and force.}
 \label{fig:pipeline}
@@ -294,8 +294,12 @@ fields distributed with the NeuroDec digital twin \citep{maksymenko2023myoelectr
 the same subject (Sec.~\ref{sec:tierMRI}).
 
 % ================================================================ 4
-\section{The golden SFAP synthesis method}
-\label{sec:golden}
+\section{Direct line-source SFAP synthesis}
+\label{sec:direct}
+We call the production recipe \emph{direct line-source synthesis}: the line-source
+integral is evaluated directly, in space, on the lead field sampled along the fibre,
+rather than through the spatial-frequency route of the Farina generator described
+below. Its steps are few and each has a reason.
 
 \subsection{Line-source model}
 The action potential is the Rosenfalck form $V(s) = A\,s^{3}e^{-s}$ for $s>0$ ($s$ in mm,
@@ -348,7 +352,7 @@ calibrated quantity and absolute microvolt values carry that caveat.
 Discretised, Eq.~\eqref{eq:sfap} is one matrix--vector product,
 $\mathrm{SFAP} = (\mathbf{C}\,\boldsymbol{\varphi})\,\Delta z$, with $\mathbf{C}$ the
 $(n_t \times n_z)$ current-source-density matrix. The steps around it, and the reason
-for each, are (Fig.~\ref{fig:golden}, Table~\ref{tab:recipe}):
+for each, are (Fig.~\ref{fig:recipe}, Table~\ref{tab:recipe}):
 
 \begin{enumerate}
 \item \textbf{Monopole denoise of $\varphi$.} A finite-element $\varphi(z)$ carries
@@ -383,7 +387,7 @@ for each, are (Fig.~\ref{fig:golden}, Table~\ref{tab:recipe}):
 
 \begin{table}[t]
 \centering\small
-\caption{The golden recipe (\texttt{SpatialConfig}). The cylinder tier uses
+\caption{The direct line-source recipe (\texttt{SpatialConfig}). The cylinder tier uses
 $f_s = 4096$~Hz; the MRI tier $2048$~Hz with $v = 3.3$--$4$~m/s.}
 \label{tab:recipe}
 \begin{tabular}{llp{72mm}}
@@ -404,8 +408,8 @@ $\sigma_{\mathrm{in}}$, $a$ & 1, 0.05 mm & amplitude constant $\sigma_{\mathrm{i
 
 \begin{figure}[tbp]
 \centering
-\figorbox[width=\textwidth]{fig_golden_anatomy}
-\caption{Anatomy of the golden method. (a) The Rosenfalck action potential and its
+\figorbox[width=\textwidth]{fig_recipe_anatomy}
+\caption{Anatomy of direct line-source synthesis. (a) The Rosenfalck action potential and its
 first and second spatial derivatives; the second derivative is the triphasic current
 source. (b) The current-source-density matrix $\mathbf{C}(z,t)$ for a fibre
 $[-60, 60]$~mm with the junction at $0$: two tripoles leave the junction, the cusp at
@@ -418,7 +422,7 @@ ripple in $\varphi''$ reaches the raw SFAP and the monopole fit removes it ($r$ 
 analytical-$\varphi$ SFAP $0.909 \to 0.929$); the remaining difference from the analytical
 waveform is the FEM field's own shape at this shallow depth (Sec.~\ref{sec:tierA}), not
 ripple.}
-\label{fig:golden}
+\label{fig:recipe}
 \end{figure}
 
 \subsection{The spatial-frequency engine and our port of the Farina generator}
@@ -505,7 +509,7 @@ start on its far side ($z = 140$--$165$~mm) and are innervated at their nearer e
 second cluster of dots. (c) The reciprocal lead field of one
 grid electrode on a mesh slice, $\varphi - \min\varphi$ on a log scale (as in
 Fig.~\ref{fig:leadfield}d). (d) $\varphi$ along three fibres $4$, $10$ and $17$~mm from the
-electrode, in mV per ampere injected, with the three-monopole fit the golden recipe uses
+electrode, in mV per ampere injected, with the three-monopole fit the direct recipe uses
 (dashed).}
 \label{fig:mri}
 \end{figure}
@@ -531,7 +535,7 @@ evidence.
 ($5$--$395$ fibres, median $66$; territory radii $0.6$--$13.8$~mm), with the centre
 electrode of the grid. (b) Size distribution, and recruitment threshold against
 recruitment order (colour: size). (c)
-Golden MUAPs at the centre electrode of a small, a medium and a large unit ($1.7$, $28$ and
+Direct-method MUAPs at the centre electrode of a small, a medium and a large unit ($1.7$, $28$ and
 $113$~$\mu$V; across the pool $0.7$--$160$~$\mu$V, median $24$, median duration $18$~ms).
 (d) MUAP amplitude against fibre count: $p2p \propto n^{1.04}$ ($r = 0.95$), the scatter
 being depth (colour); with shared fibres this is a consistency check (Sec.~\ref{sec:fibres}).}
@@ -739,7 +743,7 @@ tendons: the propagating lobe walks at $|z|/v$ (a fit gives $4.04$~m/s; the guid
 at $|z|/v + 1.0$~ms because the negative phase trails the wave front by the action
 potential's rise) while the end-of-fibre potential starts at $15.4$--$15.6$~ms on every
 channel ($L/v = 15$~ms; spread $0.24$~ms). (b) The single-differential montage vanishes and reverses at the innervation
-zone. (c) The same array with the one-sided tendon window of the golden recipe: the
+zone. (c) The same array with the one-sided tendon window of the direct recipe: the
 end-of-fibre potential falls from $0.16$ to $0.10$ of the propagating amplitude.}
 \label{fig:phys}
 \end{figure}
@@ -752,7 +756,7 @@ stated; $v = 4$~m/s). (a) Depth law of the peak-to-peak amplitude (log--log) for
 pipeline (monopolar and single-differential), the Farina generator and the FEM pipeline,
 with fitted exponents. (b) RMS retained against subcutaneous fat thickness, analytical
 model against the finite-element points of \citet{kuiken2003effect}; FEM pipeline
-(golden and Butterworth-smoothed) and Farina generator at $2$--$8$~mm, each relative to
+(direct and Butterworth-smoothed) and Farina generator at $2$--$8$~mm, each relative to
 its thinnest case. (c) End-of-fibre to propagating amplitude ratio against depth
 (junction $20$~mm and near tendon $40$~mm from the electrode). (d) Conduction velocity
 recovered from a four-channel single-differential array against the set value.
@@ -817,8 +821,8 @@ manifest each; $8$~MB in total).}
 \toprule
 name & contents & size \\
 \midrule
-\texttt{cylinder\_sfap\_atlas} & analytical and FEM lead fields and golden SFAPs on the validation cylinder for $6$ depths $\times$ $5$ angles $\times$ $3$ junction offsets $\times$ $9$ electrode positions ($1620$ SFAPs), with the Farina-generator MUAP of each case & 1.6~MB \\
-\texttt{forearm\_fcu\_mu\_pool} & the 100-unit FCU pool (fibre paths, fibre indices, sizes, territories, activation parameters), golden MUAPs at the centre electrode and the full $(100, 25, 256)$ HD-grid MUAP tensor, electrode positions, configuration & 2.4~MB \\
+\texttt{cylinder\_sfap\_atlas} & analytical and FEM lead fields and direct-method SFAPs on the validation cylinder for $6$ depths $\times$ $5$ angles $\times$ $3$ junction offsets $\times$ $9$ electrode positions ($1620$ SFAPs), with the Farina-generator MUAP of each case & 1.6~MB \\
+\texttt{forearm\_fcu\_mu\_pool} & the 100-unit FCU pool (fibre paths, fibre indices, sizes, territories, activation parameters), direct-method MUAPs at the centre electrode and the full $(100, 25, 256)$ HD-grid MUAP tensor, electrode positions, configuration & 2.4~MB \\
 \texttt{interference\_emg\_trials} & trapezoid contractions at six drive levels ($0.1$--$1.0$): drive, spike trains, single-channel and $25$-channel EMG, force; one movement trial & 4.1~MB \\
 \bottomrule
 \end{tabular}
@@ -840,14 +844,14 @@ We list these in the order we would fix them.
   orientation and sign conventions of the action potential in the Radon formulation
   (\texttt{V2 = -flip(...)}); until audited it should not be used as an oracle.
 \item \textbf{FEM lead-field fidelity for the recipe.} On finite-element $\varphi$ the
-  golden SFAP amplitude is erratic at $\pm40\%$ across depth: the recipe integrates
+  direct-method SFAP amplitude is erratic at $\pm40\%$ across depth: the recipe integrates
   $\varphi''$ faithfully down to $\approx8$~mm wavelengths, where FEM $\varphi$ carries
   mesh structure that the three-pole fit does not remove (five or seven poles do not
   either). Low-passing $\varphi$ makes amplitudes smooth but halves the SFAP's mean
-  frequency ($46$ vs $112$~Hz golden, $91$~Hz analytical). A finer mesh around the fibre
+  frequency ($46$ vs $112$~Hz direct, $91$~Hz analytical). A finer mesh around the fibre
   band, or a smoothing-free local estimate of $\varphi''$, is the fix. Until then FEM
   amplitude laws should be read through the smoothed route; shape, timing and spectrum
-  can be read from the golden one.
+  can be read from the direct one.
 \item \textbf{Depth law.} The FEM cylinder decays $\approx30\%$ slower with depth than the
   analytical one over $7$--$20$~mm, whatever the preprocessing or the source width. This
   is a volume-conductor difference still to be attributed (mesh resolution near the skin
@@ -859,7 +863,7 @@ We list these in the order we would fix them.
   and last $18$~ms, inside the band of recorded surface MUAPs (tens to hundreds of
   microvolts, $5$--$20$~ms), though the largest units stay below the $1$--$2$~mV that
   the largest superficial units reach in recordings, and the amplitude carries the
-  $\sigma_{\mathrm{in}}\pi a^{2}$ caveat of Sec.~\ref{sec:golden}. What remains is
+  $\sigma_{\mathrm{in}}\pi a^{2}$ caveat of Sec.~\ref{sec:direct}. What remains is
   geometric: straight, full-length, constant-depth fibres give a surface field broader
   than a real unit's, which the series-fibering experiment addresses. Amplitude
   cancellation inherits it ($68\%$ at $20\%$ drive, where \citet{keenan2005influence} give
@@ -904,11 +908,6 @@ the generator can be checked against this chain before it is inverted.
 Code: \repo{} (MIT), branch \path{paper/arxiv-v1}. The validation suite is
 \path{scripts/validation/run_all.py}; the figure and dataset scripts are in
 \path{paper/figures/}; dataset manifests in \path{paper/datasets/}.
-
-\section*{Author contributions}
-D.H. designed and implemented the pipeline, the golden method, the activation layer, the
-validation suite and wrote the paper. N.E.-N. developed the harmonic-streamline fibre
-geometry. Contributions of P.M. and D.F. to be stated by the authors.
 
 \FloatBarrier
 \bibliographystyle{unsrtnat}

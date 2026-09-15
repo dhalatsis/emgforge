@@ -7,7 +7,7 @@ criterion. Code: `scripts/validation/`. Report with live numbers:
 Literature and the numbers behind every criterion: `docs/validation/BIBLIOGRAPHY.md`.
 
 ```
-tier A  cylinder must reproduce     first principles → analytical (Farina 2004) → FEM → golden pipeline
+tier A  cylinder must reproduce     first principles → analytical (Farina 2004) → FEM → direct line-source pipeline
 tier B  MUAP features               the replicated phenomenology, on the analytical oracle AND on our pipeline
 tier C  interference EMG & pool     the statistical signatures of the whole chain
 tier S  chain-level sanity          scripts/sanity/simulator_sanity.py (recruitment, EMG–force, CV, …)
@@ -47,7 +47,7 @@ criterion (so it flips to PASS when fixed), and does not fail the tier.
 |---|---|---|---|
 | A0.1 | spatial engine ≡ first-principles line-source integral (closed-form φ in an infinite anisotropic medium, dual form `∫ Vm·win·φ'' dz` on a 0.02 mm grid, no numerical derivative of the tendon step) | r ≥ 0.999, \|lag\| ≤ 0.1 ms, three NMJ offsets | Rosenfalck 1969; Dimitrov & Dimitrova 1998 |
 | A0.2 | the engine's amplitude constant | ratio 1 ± 5 %, independent of v | core-conductor line source |
-| A0.3 | Fourier engine vs first principles (+ mirrored-IAP diagnostic) | signed r ≥ 0.99, no lag | Farina & Merletti 2001; GOLDEN_METHOD §6/§8 |
+| A0.3 | Fourier engine vs first principles (+ mirrored-IAP diagnostic) | signed r ≥ 0.99, no lag | Farina & Merletti 2001; DIRECT_LINE_SOURCE §6/§8 |
 | A0.4a | sampling invariance (fsamp, dz) | r > 0.995, amplitude within 2 % | discretisation convergence |
 | A0.4b | electrode translation Δz delays the propagating lobe by Δz/v | within one sample | z-invariance |
 | A0.4c | superposition | exact | linearity |
@@ -57,8 +57,8 @@ criterion (so it flips to PASS when fixed), and does not fail the tier.
 | A1.1b | … and φ''(z), the kernel the SFAP integrates, vs analytical electrode radius | r ≥ 0.98 at the best-matched radius | dual form |
 | A1.2 | FEM/analytical SFAP amplitude ratio constant across depth | ≤ 15 % spread (Fourier route; smoothed spatial ≤ 35 %) | same depth law |
 | A1.3 | FEM φ vs analytical for fibres 10–45° off the meridian | r ≥ 0.99 | lateral decay |
-| A2.1 | golden pipeline on FEM φ ≡ on analytical φ | r ≥ 0.95 (deep ≥ 0.99) | isolates the volume conductor |
-| A2.2 | monopole denoise removes ripple without changing the analytical answer | jaggedness ↓, agreement not reduced | GOLDEN_METHOD §2 |
+| A2.1 | direct-method pipeline on FEM φ ≡ on analytical φ | r ≥ 0.95 (deep ≥ 0.99) | isolates the volume conductor |
+| A2.2 | monopole denoise removes ripple without changing the analytical answer | jaggedness ↓, agreement not reduced | DIRECT_LINE_SOURCE §2 |
 | A2.3 | end-of-fibre onset at L/v (EOF isolated by subtracting a longer fibre) | pipeline within 0.5 ms; Farina reported | Gootzen 1991; Rodriguez-Falces & Place 2018 |
 | A2.4 | CV from a longitudinal array, both models | within 5 %, R² > 0.99 | Farina & Merletti 2004 |
 | A2.5 | waveform \|r\| vs the Farina generator (sign-agnostic, ±6 ms) | ≥ 0.9 | — |
@@ -114,14 +114,14 @@ tier B 14/14, tier C 6/8 (1 known; the fail is C2), tier S 8/8 — 44 of 50 pass
 **1. The spatial engine is the physics.** Against a closed-form line-source oracle it
 scores r = 1.0000 with zero lag in every geometry (A0.1), its source is monopole-free to
 1e-16 (A0.5), it is sampling-, translation- and superposition-exact (A0.4), and its
-end-of-fibre onset lands at L/v within 0.4 ms (A2.3). The golden recipe's one-sided
+end-of-fibre onset lands at L/v within 0.4 ms (A2.3). The direct recipe's one-sided
 tendon taper costs r 0.998 vs the sharp-tendon oracle — a deliberate physics choice.
 
 **2. The Fourier/Farina family disagrees with first principles.** The Fourier engine
 scores r = −0.64 … −0.79 with 1–2.5 ms lags against the same oracle (A0.3), the Farina
 generator's EOF onset leads L/v by 2.5 ms (A2.3, B4a) and its amplitude-vs-depth exponent
 differs from the first-principles one on its own φ (B5). This resolves the three
-"pinned disagreements" in `GOLDEN_METHOD.md` §6 in favour of the spatial engine and
+"pinned disagreements" in `DIRECT_LINE_SOURCE.md` §6 in favour of the spatial engine and
 makes the Fourier engine's IAP orientation/sign conventions (`signal_generator.py`:
 `V2 = −flip(…)`, the output `flip`) the thing to audit. The Fourier "r = 0.997 vs MATLAB"
 oracle has no artifact in the repo. Its `np.arange` k-grid also fails to build at some CVs
@@ -135,16 +135,16 @@ come from stretching the IAP in space with v, not from a prefactor. Relevant to 
 amplitude audit and to the "MUAPs 40× too small" C-04 flag (a factor 3–4 of it).
 **Fixed 2026-09-15**: the `/v` was removed from `compute_sfap_spatial` and A0.2 passes
 (ratio 1.00 at v = 2 and v = 4); the 21-case reference was regenerated (every spatial case
-scaled by exactly v, waveforms unchanged) and the golden amplitude gate re-pinned to 0.80–1.05.
+scaled by exactly v, waveforms unchanged) and the spatial-vs-Fourier amplitude gate re-pinned to 0.80–1.05.
 
-**4. The golden recipe's SFAP *amplitude* on FEM φ is not yet trustworthy (±40 %),
+**4. The direct recipe's SFAP *amplitude* on FEM φ is not yet trustworthy (±40 %),
 its shape and spectrum are.** On FEM fields the spatial engine integrates φ'' faithfully
 down to ~8 mm wavelengths, where FEM φ carries mesh structure; the 3-monopole fit does not
 remove it (5/7 poles neither), and the result is an erratic FEM/analytical amplitude ratio
 across depth (1.7× spread, in-band, different for σ = 5 and σ = 1 mm sources; A1.2), and
 r ≈ 0.90–0.97 vs the analytical-φ pipeline for shallow fibres (A2.1; deep fibres 0.998).
 Butterworth φ-smoothing (the Fourier route) makes the amplitude smooth but halves the
-spectral content (FEM SFAP MNF 46 Hz vs 112 Hz golden, 91 Hz analytical; B11). The
+spectral content (FEM SFAP MNF 46 Hz vs 112 Hz direct method, 91 Hz analytical; B11). The
 monopole fit is translation-equivariant to 2e-3 (B8), fine for montages. A cleaner FEM φ (finer
 mesh near the fibre, or a smoothing-free φ'' estimate such as a local polynomial fit)
 is the fix; until then, FEM amplitude laws should be read through the smoothed route.
@@ -175,7 +175,7 @@ fibre-geometry fix.
 ## Next steps, in order
 
 1. ~~**Fix the 1/v amplitude constant** in `engines/spatial.py` (and re-pin the 21
-   regression cases and the golden amplitude gate)~~ — done 2026-09-15 (finding 3); still
+   regression cases and the spatial-vs-Fourier amplitude gate)~~ — done 2026-09-15 (finding 3); still
    to decide whether CV should stretch the IAP.
 2. **Audit the Fourier engine's conventions** against A0.3 (IAP orientation, sign, the
    window-centre shift); either fix it to match first principles or retire it as an oracle.

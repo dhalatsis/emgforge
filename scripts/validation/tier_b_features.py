@@ -2,7 +2,7 @@
 
 Every check is a quantitative fact from the EMG literature (see docs/validation/
 BIBLIOGRAPHY.md), tested on two systems: the Farina-2004 analytical generator (the
-field's reference model) and OUR pipeline (lead field → golden spatial recipe). Where
+field's reference model) and OUR pipeline (lead field → direct line-source synthesis). Where
 the pipeline needs an electrode array, we exploit the cylinder's z-invariance:
 electrode at +z ≡ lead field translated by +z. SD/DD montages are built by
 differencing electrodes, exactly as a real amplifier does.
@@ -254,7 +254,7 @@ def ratio_null(sd_, mono_, f0, fs=FS, nfft=8192):
 # window 7–44 ms.
 POSZ, LEN1, LEN2 = -60.0, 20.0, 185.0
 ZC = 41                                                    # electrode samples right of the array centre
-# between the proximal extinction (5–8.75 ms) and the wave entering the golden one-sided tendon
+# between the proximal extinction (5–8.75 ms) and the wave entering the direct recipe's one-sided tendon
 # taper (last 25 % of the distal semi-fibre, from +79 mm → 34.7 ms) — the taper is a fixed
 # spatial feature of the fibre, so inside it the two electrodes are legitimately not shift-copies
 T0, T1 = 9.0, 33.0
@@ -264,7 +264,7 @@ def S_at(n, cfg):
 # must delay the propagating waveform by exactly n samples
 m_win = (t_ax >= T0) & (t_ax <= T1)
 equiv = {}
-for name, cfg in (("none", golden_cfg(denoise="none")), ("golden", golden_cfg())):
+for name, cfg in (("none", golden_cfg(denoise="none")), ("direct", golden_cfg())):
     a, b = S_at(ZC + 5, cfg), S_at(ZC - 5, cfg)
     equiv[name] = float(np.abs((a[10:] - b[:-10])[m_win[10:]]).max() / p2p(a))
 # (ii) the comb null of |SD|/|mono|
@@ -281,9 +281,9 @@ for n_ied in (10, 20):
     nulls[ied] = (sd_null(golden_cfg(denoise="none")), sd_null(golden_cfg()),
                   ratio_null(window_prop(t_F, s_sd[0], T0, T1), window_prop(t_F, s_mo[0], T0, T1), f0), f0)
 check(T, "B8 the bipolar montage is a pure spatial difference of a translation-invariant wave (⇒ comb filter, nulls at n·CV/IED)",
-      equiv["none"] < 5e-3 and equiv["golden"] < 5e-3,
-      f"translation equivariance residual (single travelling wave, 9–33 ms): no denoise {equiv['none']:.1e}, golden {equiv['golden']:.1e}.  "
-      "Measured null of |SD|/|mono| — pipeline (no denoise) / pipeline (golden) / Farina / expected (Hz): "
+      equiv["none"] < 5e-3 and equiv["direct"] < 5e-3,
+      f"translation equivariance residual (single travelling wave, 9–33 ms): no denoise {equiv['none']:.1e}, direct method {equiv['direct']:.1e}.  "
+      "Measured null of |SD|/|mono| — pipeline (no denoise) / pipeline (direct) / Farina / expected (Hz): "
       + ", ".join(f"IED {k:.1f} mm: {a:.0f}/{b:.0f}/{f:.0f}/{c:.0f}" for k, (a, b, f, c) in nulls.items()),
       "equivariance < 5e-3: SD(t) = S(t) − S(t − IED/v) to that precision, so |H| = |2 sin(π f·IED/v)| with "
       "nulls at n·v/IED follows analytically (409.6 / 204.8 Hz here). The measured null is informational: a "
@@ -327,8 +327,8 @@ mnf_f = [mnf(x, FS) for x in sf]
 kuiken = {3.0: 0.687, 9.0: 0.198, 18.0: 0.100}                  # RMS retained vs 0 mm fat
 ok_k = all(kuiken[f] / 1.5 <= rel[i] <= kuiken[f] * 1.5 for i, f in enumerate(fats) if f in kuiken)
 # FEM pipeline: fat 2/4/6/8 mm meshes, fibre fixed at r=30 (5 mm under the muscle surface). The
-# FEM/analytical comparison uses the Butterworth φ-smoothing variant (tier A1.2: the golden
-# recipe's amplitude on FEM φ is erratic at ±40 %); the golden numbers are reported alongside.
+# FEM/analytical comparison uses the Butterworth φ-smoothing variant (tier A1.2: the direct
+# recipe's amplitude on FEM φ is erratic at ±40 %); the direct-method numbers are reported alongside.
 def fem_fat_p2p(cfg):
     return np.array([p2p(sfap(cyl_fem.window(cache[f"fat{f}_phi"][0, 0], Z_ABS, ZE, W, DZ), DZ, 100, 100, -20.0, cfg)[1]) for f in (2, 4, 6, 8)])
 fem_g, fem_b = fem_fat_p2p(golden_cfg()), fem_fat_p2p(golden_cfg(denoise="butterworth"))
@@ -348,11 +348,11 @@ check(T, "B11 subcutaneous fat attenuates (Kuiken 2003: −31/−80/−90 % at 3
       f"analytical RMS retained at fat {fats} mm: {np.round(rel, 3).tolist()} (Kuiken 0.69/0.20/0.10 at 3/9/18); "
       f"MNF {np.round(mnf_f, 0).tolist()} Hz (rises again at 18 mm: the sharper far-field components dominate);  "
       f"FEM pipeline p2p retained at 2/4/6/8 mm — Butterworth φ: {np.round(fem_rel_b, 3).tolist()}, "
-      f"golden: {np.round(fem_rel_g, 3).tolist()} — vs Farina {np.round(ana_rel, 3).tolist()}; "
-      f"FEM MNF golden {np.round(fem_mnf_g, 0).tolist()} Hz vs Butterworth φ {np.round(fem_mnf_b, 0).tolist()} Hz "
-      f"(the 32 mm φ-smoothing halves the spectral content; golden keeps it near the analytical {mnf_f[0]:.0f} Hz)",
+      f"direct method: {np.round(fem_rel_g, 3).tolist()} — vs Farina {np.round(ana_rel, 3).tolist()}; "
+      f"FEM MNF direct method {np.round(fem_mnf_g, 0).tolist()} Hz vs Butterworth φ {np.round(fem_mnf_b, 0).tolist()} Hz "
+      f"(the 32 mm φ-smoothing halves the spectral content; the direct method keeps it near the analytical {mnf_f[0]:.0f} Hz)",
       "within ×1.5 of Kuiken's FE curve; RMS monotone decreasing and MNF lower at 3 and 9 mm than at 0.5 mm; "
-      "FEM (smoothed φ) vs analytical attenuation within 30 %; golden FEM MNF decreasing 2→8 mm",
+      "FEM (smoothed φ) vs analytical attenuation within 30 %; direct-method FEM MNF decreasing 2→8 mm",
       refs="Kuiken, Lowery & Stoykov 2003; Farina & Rainoldi 1999; Lowery et al. 2002; Nordander 2003")
 
 # =========================================================================== B12
@@ -397,7 +397,7 @@ ax.plot(arc(ths_), tm_ / tm_[0], "o-", label="mono"); ax.plot(arc(ths_), ts_ / t
 ax.set_xlabel("transverse distance on the skin (mm)"); ax.set_title("B6 transverse profile, fibre 15 mm deep"); ax.legend(fontsize=7)
 ax = axes[1, 1]; fats_, rel_, fg_, fb_, ar_ = FIG["b11"]
 ax.plot(fats_, rel_, "o-", label="analytical RMS"); ax.plot([3, 9, 18], [.687, .198, .1], "k^", ms=9, label="Kuiken 2003 (FE)")
-ax.plot([2, 4, 6, 8], fb_, "x--", label="FEM pipeline p2p (Butterworth φ)"); ax.plot([2, 4, 6, 8], fg_, "x:", color="0.5", label="FEM pipeline p2p (golden)")
+ax.plot([2, 4, 6, 8], fb_, "x--", label="FEM pipeline p2p (Butterworth φ)"); ax.plot([2, 4, 6, 8], fg_, "x:", color="0.5", label="FEM pipeline p2p (direct)")
 ax.plot([2, 4, 6, 8], ar_, "+:", label="Farina p2p (same fat)")
 ax.set_xlabel("fat thickness (mm)"); ax.set_ylabel("retained"); ax.set_title("B11 fat attenuation"); ax.legend(fontsize=7); ax.grid(alpha=.3)
 ax = axes[1, 2]

@@ -11,8 +11,8 @@ re-runnable on its own:
   ``get_skin_surface_point`` snaps to the outermost mesh vertex, which collapses nearby
   angles onto one vertex — the older cached grid had two duplicated electrodes);
 * one FEM reciprocity solve per electrode with φ sampled along every bed fibre;
-* the (100, 25, 256) golden MUAP tensor (per-MU ``field_to_muap`` with the golden
-  ``SpatialConfig``; parallel over MUs).
+* the (100, 25, 256) MUAP tensor of the direct line-source synthesis (per-MU
+  ``field_to_muap`` with the direct recipe's ``SpatialConfig``; parallel over MUs).
 
 Nothing under ``src/`` is modified; only library calls are used.
 """
@@ -52,7 +52,7 @@ IED_MM = 10.0          # inter-electrode distance (along and across)
 ZC_FRAC = 0.5          # grid centre at mid-mesh z
 GRID_TAG = f"M{M}_ied{IED_MM:.0f}"
 
-# the golden spatial production recipe (scripts/mri/sample_mu_pool.py::build_config)
+# the direct line-source synthesis recipe: the spatial engine's production config (scripts/mri/sample_mu_pool.py::build_config)
 SPCFG = SpatialConfig(
     denoise="monopole", denoise_n_poles=3,
     fiber_window="one_sided", tukey_alpha=0.25,
@@ -341,7 +341,7 @@ def _mu_task(k):
 
 
 def ensure_muap_tensor(n_workers: int = 10, force: bool = False):
-    """(N_MU, M*M, w) golden MUAP tensor on the regular grid, parallel over MUs. Cached."""
+    """(N_MU, M*M, w) direct-method MUAP tensor on the regular grid, parallel over MUs. Cached."""
     CACHE.mkdir(parents=True, exist_ok=True)
     f = CACHE / f"muap_tensor_f2_{GRID_TAG}.npz"
     if f.exists() and not force:

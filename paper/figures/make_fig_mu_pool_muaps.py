@@ -1,4 +1,4 @@
-"""Fig 7 — the 100-MU Henneman pool of the FCU and its golden MUAPs: territories, size
+"""Fig 7 — the 100-MU Henneman pool of the FCU and its MUAPs (direct line-source synthesis): territories, size
 distribution / recruitment order, small–medium–large MUAPs at the centre grid electrode,
 and MUAP peak-to-peak vs fibre count.
 
@@ -33,7 +33,7 @@ pool = C.henneman_pool(bed)
 D = C.load_muaps()                                     # F2_TENSOR = new | legacy42 | auto
 t_ms = D["t_ms"]
 e0 = D["elec_xyz"][C.M // 2, C.M // 2]                 # centre electrode (row 2, col 2)
-muap = D["muap_single"]                                # (100, 256) single-channel golden MUAPs at e0
+muap = D["muap_single"]                                # (100, 256) single-channel direct-method MUAPs at e0
 dt = float(t_ms[1] - t_ms[0])
 KN["tensor_source"] = D["source"]; KN["grid_note"] = D["grid_note"]
 print(f"MUAP source: {D['source']} — {D['grid_note']}")

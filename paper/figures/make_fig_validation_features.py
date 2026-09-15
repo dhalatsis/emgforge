@@ -64,7 +64,7 @@ ana_b = np.array([p2p(farina(depth=30.0, zi=-20.0, L1=100, L2=100, geo=dict(r_fa
                   for f in (2, 4, 6, 8)])
 NUM["fat"] = dict(fats_mm=fats, analytical_rms_retained=rel, kuiken_2003=kuiken,
                   kuiken_ratio_model_over_kuiken={f"{f:g}": float(rel[list(fats).index(f)] / k) for f, k in kuiken.items()},
-                  fem_fats_mm=[2, 4, 6, 8], fem_p2p_retained_golden=fem_g / fem_g[0],
+                  fem_fats_mm=[2, 4, 6, 8], fem_p2p_retained_direct=fem_g / fem_g[0],
                   fem_p2p_retained_butterworth=fem_b / fem_b[0], farina_p2p_retained_same_fat=ana_b / ana_b[0])
 
 # B4b EOF / propagating vs depth ---------------------------------------------------------
@@ -148,7 +148,7 @@ letter(ax, "a", dx=-0.28)
 ax = axes[0, 1]
 ax.plot(fats, rel, "o-", color=COL["fourier"], ms=MS, mec="white", mew=0.4, label="analytical, RMS")
 ax.plot(list(kuiken), list(kuiken.values()), "^", color=COL["lit"], ms=5, label="Kuiken 2003 (FE)")
-ax.plot([2, 4, 6, 8], fem_g / fem_g[0], "x-", color=COL["fem"], ms=MS + 0.5, mew=0.9, label="FEM golden, p2p")
+ax.plot([2, 4, 6, 8], fem_g / fem_g[0], "x-", color=COL["fem"], ms=MS + 0.5, mew=0.9, label="FEM direct, p2p")
 ax.plot([2, 4, 6, 8], fem_b / fem_b[0], "x--", color=COL["fem"], ms=MS + 0.5, mew=0.9, alpha=0.55, label="FEM Butterworth-φ, p2p")
 ax.plot([2, 4, 6, 8], ana_b / ana_b[0], "+:", color=COL["fourier"], ms=MS + 1, mew=0.9, label="analytical, p2p")
 ax.set_xlabel("subcutaneous fat thickness (mm)"); ax.set_ylabel("retained (rel. to thinnest)")

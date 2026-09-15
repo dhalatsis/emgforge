@@ -23,7 +23,7 @@ COL = {
     "first":     "#111111",   # first-principles / closed-form reference (black)
     "analytical": "#1f5fbf",  # Farina-2004 analytical cylinder (blue)
     "fem":       "#d95f02",   # FEM lead field (orange)
-    "golden":    "#1b9e77",   # golden spatial recipe (green)
+    "direct":    "#1b9e77",   # direct line-source synthesis — the spatial engine's production recipe (green)
     "fourier":   "#c0392b",   # Fourier / Farina generator (red)
     "raw":       "#8c8c8c",   # unprocessed / no denoise (grey)
     "mono":      "#1f5fbf", "sd": "#d95f02", "dd": "#7570b3",

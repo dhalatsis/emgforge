@@ -9,7 +9,7 @@ manifest beside it carries the full generation record (axes, units, recipe, fram
 
 Single-fibre action potentials in the 4-layer validation cylinder (bone 10 / muscle 35 /
 fat 38 / skin 40 mm; Farina-2004 conductivities, Table 1 of the report) from the
-**analytical** and the **FEM** lead field through the golden spatial recipe, plus the
+**analytical** and the **FEM** lead field through the direct line-source recipe, plus the
 Farina-2004 generator MUAP for the same case.
 
 * Axes: radius {33, 30, 27, 25, 20, 15} mm (depth below skin 7–25 mm) × fibre angle
@@ -19,7 +19,7 @@ Farina-2004 generator MUAP for the same case.
 * `phi_analytical`, `phi_fem` (6, 5, 256): lead fields along the fibre, electrode at θ = 0,
   z = 0 (Ø10 mm disc for the analytical model; σ = 5 mm Gaussian source for the FEM,
   re-gridded from the validation cache). Both carry an arbitrary constant.
-* `sfap_analytical`, `sfap_fem` (6, 5, 3, 9, 256): golden recipe on each lead field
+* `sfap_analytical`, `sfap_fem` (6, 5, 3, 9, 256): the direct recipe on each lead field
   translated to the electrode position (`SpatialConfig`: monopole(3), one-sided window
   α = 0.25, csd_derivative 2, upsample 2, edge taper 5/10, t_start −10 ms).
   Amplitude: SFAP = ∫ φ i_m dz with no 1/v prefactor — the corrected spatial engine
@@ -41,7 +41,7 @@ has a `.json` manifest beside it with the full generation record. All floats are
 
 ## D2 — forearm FCU motor-unit pool + 5×5 HD-EMG MUAP tensor (2.4 MB)
 
-100-MU Henneman pool of the flexor carpi ulnaris (WR forearm MRI) with golden single-channel and 5×5 HD-grid MUAPs.
+100-MU Henneman pool of the flexor carpi ulnaris (WR forearm MRI) with direct-method single-channel and 5×5 HD-grid MUAPs.
 
 * Anatomy: WR forearm segmentation (`forearm_WR_segmentation.nii.gz`, label 8 = FCU), FEM mesh `forearm_WR.msh`
   with fibre-aligned muscle anisotropy (`forearm_WR_fibers.json`), skin shell 1.5 mm.
@@ -57,7 +57,7 @@ has a `.json` manifest beside it with the full generation record. All floats are
   `muap_single` is electrode 12 (centre).
 * Lead fields: one FEniCSx reciprocity solve per electrode (Gaussian source σ = 5 mm), φ sampled along all
   637 fibres (FEM build 3.5 s; 0.28 s solve + 6.1 s sampling per electrode).
-* MUAPs: golden spatial recipe (`field_to_muap` with `SpatialConfig(denoise=monopole(3), one_sided window,
+* MUAPs: the direct line-source recipe (`field_to_muap` with `SpatialConfig(denoise=monopole(3), one_sided window,
   csd_derivative=2, upsample 2, fs 2048, w 256, t_start −10 ms, v 4 m/s)`), IZ at 0.305 ± 0.02 of the fibre;
   physical time, t = 0 at NMJ firing. Tensor build 1349 s wall (12121 s CPU).
 * Activation-layer per-MU parameters (`MotoneuronPool` / `TwitchPool` defaults) are included for convenience.

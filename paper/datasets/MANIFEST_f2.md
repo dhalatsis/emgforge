@@ -8,7 +8,7 @@ has a `.json` manifest beside it with the full generation record. All floats are
 
 ## D2 — forearm FCU motor-unit pool + 5×5 HD-EMG MUAP tensor (2.4 MB)
 
-100-MU Henneman pool of the flexor carpi ulnaris (WR forearm MRI) with golden single-channel and 5×5 HD-grid MUAPs.
+100-MU Henneman pool of the flexor carpi ulnaris (WR forearm MRI) with single-channel and 5×5 HD-grid MUAPs from direct line-source synthesis.
 
 * Anatomy: WR forearm segmentation (`forearm_WR_segmentation.nii.gz`, label 8 = FCU), FEM mesh `forearm_WR.msh`
   with fibre-aligned muscle anisotropy (`forearm_WR_fibers.json`), skin shell 1.5 mm.
@@ -24,7 +24,7 @@ has a `.json` manifest beside it with the full generation record. All floats are
   `muap_single` is electrode 12 (centre).
 * Lead fields: one FEniCSx reciprocity solve per electrode (Gaussian source σ = 5 mm), φ sampled along all
   637 fibres (FEM build 3.5 s; 0.28 s solve + 6.1 s sampling per electrode).
-* MUAPs: golden spatial recipe (`field_to_muap` with `SpatialConfig(denoise=monopole(3), one_sided window,
+* MUAPs: direct line-source synthesis on the spatial engine (`field_to_muap` with `SpatialConfig(denoise=monopole(3), one_sided window,
   csd_derivative=2, upsample 2, fs 2048, w 256, t_start −10 ms, v 4 m/s)`), IZ at 0.305 ± 0.02 of the fibre;
   physical time, t = 0 at NMJ firing. Tensor build 1254 s wall (12530 s CPU).
 * Activation-layer per-MU parameters (`MotoneuronPool` / `TwitchPool` defaults) are included for convenience.
