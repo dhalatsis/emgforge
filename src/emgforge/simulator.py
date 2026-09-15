@@ -90,6 +90,14 @@ class Simulator:
         return cls(np.load(npz_path)[key], fs=fs, **kw)
 
     @classmethod
+    def from_pipeline(cls, npz_path, **kw) -> "Simulator":
+        """Multichannel Simulator from a ``scripts/run_pipeline.py`` output
+        (``muap_grid`` in µV, ``grid_shape``, ``fs``) — the cold-built tensor."""
+        d = np.load(npz_path)
+        return cls(np.asarray(d["muap_grid"], dtype=float) * 1e-6, fs=float(d["fs"]),
+                   grid=tuple(int(x) for x in d["grid_shape"]), **kw)
+
+    @classmethod
     def from_mri(cls, muscle: int = 8, m: int = 5, root: str | Path | None = None,
                  fs: float = 2048.0, **kw) -> "Simulator":
         """Load the standard grid tensor for a muscle+grid (built by build_grid_tensor).

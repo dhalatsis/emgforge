@@ -28,6 +28,14 @@ from pathlib import Path
 import numpy as np
 
 from emgforge.synthesis import FibreBed, SpatialConfig, field_to_muap
+# The anatomy/electrode/synthesis helpers that used to live here are now the package's
+# pipeline stages (emgforge.mri.pipeline; scripts/run_pipeline.py runs them end to end).
+# The F2 wrappers below bind them to this file's constants so the figure scripts are unchanged.
+from emgforge.mri import pipeline as _P
+from emgforge.mri.pipeline import (  # noqa: F401  (re-exported for the figure scripts)
+    bed_arc_geometry, exterior_triangles, limb_centre, phi_along_paths, production_config,
+    seg_slice_index, surface_contour,
+)
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -52,14 +60,9 @@ IED_MM = 10.0          # inter-electrode distance (along and across)
 ZC_FRAC = 0.5          # grid centre at mid-mesh z
 GRID_TAG = f"M{M}_ied{IED_MM:.0f}"
 
-# the direct line-source synthesis recipe: the spatial engine's production config (scripts/mri/sample_mu_pool.py::build_config)
-SPCFG = SpatialConfig(
-    denoise="monopole", denoise_n_poles=3,
-    fiber_window="one_sided", tukey_alpha=0.25,
-    csd_derivative=2, upsample_factor=2,
-    fsamp=FS, w=256, edge_taper_left=5, edge_taper_right=10,
-    t_start_ms=-10.0, v=CV,
-)
+# the direct line-source synthesis recipe: the spatial engine's production config
+# (emgforge.mri.pipeline.production_config == scripts/mri/sample_mu_pool.py::build_config)
+SPCFG: SpatialConfig = production_config(fs=FS, v=CV, w=256)
 
 
 def spcfg_dict() -> dict:
@@ -153,24 +156,9 @@ def henneman_pool(bed):
     return sample_henneman_pool(bed, n_mu=N_MU, size_min=5, size_max=min(400, N), seed=SEED)
 
 
-def bed_arc_geometry(bed):
-    """Per-fibre arc-length step and total arc length (the AP runs along the curve)."""
-    seg = np.linalg.norm(np.diff(bed.paths, axis=1), axis=2)
-    return seg.mean(axis=1), seg.sum(axis=1)
-
-
 def mu_synth_bed(bed, mu, arc_dz, L_fib):
     """The synthesis FibreBed of one MU: IZ at IZ_FRAC (+jitter), posz = (Lp−Ld)/2."""
-    idx = mu.fiber_idxs
-    rng = np.random.default_rng(int(mu.idx))
-    izf = np.clip(IZ_FRAC + rng.normal(0.0, IZ_JITTER, mu.size), 0.1, 0.9)
-    Lp, Ld = izf * L_fib[idx], (1.0 - izf) * L_fib[idx]
-    return FibreBed.from_arrays(dz_mm=arc_dz[idx], len1_mm=Lp, len2_mm=Ld,
-                                posz_mm=(Lp - Ld) / 2.0, v=CV)
-
-
-def seg_slice_index(fm, z_mm: float) -> int:
-    return int(np.clip(round(z_mm / fm.voxel_size[2]), 0, fm.seg_data.shape[2] - 1))
+    return _P.mu_synth_bed(bed, mu, arc_dz, L_fib, iz_frac=IZ_FRAC, iz_jitter=IZ_JITTER, v=CV)
 
 
 def fcu_outline(fm, z_mm: float, label: int = FCU):
@@ -211,88 +199,13 @@ def build_fem():
     return fem
 
 
-def exterior_triangles(fem):
-    """(n_facets, 3, 3) coordinates of the exterior (skin) mesh triangles."""
-    # boundary facets bound exactly one cell (same identification as MRIFEMModel._apply_skin_shell)
-    top = fem.mesh.topology
-    top.create_connectivity(2, 3); top.create_connectivity(2, 0)
-    f2c, f2v = top.connectivity(2, 3), top.connectivity(2, 0)
-    nf = top.index_map(2).size_local
-    tri = [f2v.links(fi) for fi in range(nf) if len(f2c.links(fi)) == 1]
-    return fem.mesh.geometry.x[np.array(tri)]
-
-
-def _ray_outermost_hit(tri, o, d):
-    """Möller–Trumbore: distance to the outermost exterior triangle along ray o + t d."""
-    v0, v1, v2 = tri[:, 0], tri[:, 1], tri[:, 2]
-    e1, e2 = v1 - v0, v2 - v0
-    p = np.cross(d[None, :], e2)
-    det = (e1 * p).sum(1)
-    ok = np.abs(det) > 1e-12
-    inv = np.zeros_like(det); inv[ok] = 1.0 / det[ok]
-    s = o[None, :] - v0
-    u = (s * p).sum(1) * inv
-    q = np.cross(s, e1)
-    v = (d[None, :] * q).sum(1) * inv
-    t = (e2 * q).sum(1) * inv
-    hit = ok & (u >= -1e-9) & (v >= -1e-9) & (u + v <= 1 + 1e-9) & (t > 0)
-    return float(t[hit].max()) if hit.any() else np.nan
-
-
-def limb_centre(fm, z_mm: float):
-    """Area centroid (x, y) of all tissue (label > 0) on the axial segmentation slice at z —
-    unbiased by mesh-vertex density (a mesh-vertex mean is skewed toward the dense skin)."""
-    kz = seg_slice_index(fm, z_mm)
-    vox = np.argwhere(fm.seg_data[:, :, kz] > 0)
-    return vox.mean(axis=0) * fm.voxel_size[:2]
-
-
-def surface_contour(tri, centre_xy, z_mm: float, theta_deg: np.ndarray):
-    """Skin-surface points (K, 3) of the mesh at height z along rays at θ (deg) from centre_xy."""
-    o = np.array([centre_xy[0], centre_xy[1], z_mm])
-    pts = np.zeros((len(theta_deg), 3))
-    for k, th in enumerate(np.radians(theta_deg)):
-        d = np.array([np.cos(th), np.sin(th), 0.0])
-        t = _ray_outermost_hit(tri, o, d)
-        pts[k] = o + t * d
-    return pts
-
-
 def grid_electrodes(fem, fm, bed):
     """Regular M×M skin grid over FCU: rows along the arm (z, IED_MM apart) and columns
     around the arm at IED_MM *arc length* along the skin contour, centred on the ray from
     the limb axis (tissue centroid at the grid centre z) through the FCU centroid — which
-    is also the skin point nearest the muscle. One fixed axis for all rows, so the only
-    row-to-row xy drift is the true skin slant. Returns (elec_xyz (M, M, 3), info)."""
-    tri = exterior_triangles(fem)
-    X = fem.mesh.geometry.x
-    z_lo, z_hi = float(X[:, 2].min()), float(X[:, 2].max())
-    zc = z_lo + ZC_FRAC * (z_hi - z_lo)
-    cxy = limb_centre(fm, zc)
-    fcu_ang = float(np.degrees(np.arctan2(bed.centroid_xy[1] - cxy[1], bed.centroid_xy[0] - cxy[0])))
-    th = fcu_ang + np.arange(-45.0, 45.01, 0.25)
-    elec = np.zeros((M, M, 3))
-    for i in range(M):
-        z = zc + (i - (M - 1) / 2) * IED_MM
-        P = surface_contour(tri, cxy, z, th)
-        s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))])
-        s -= np.interp(fcu_ang, th, s)                        # arc length 0 at the FCU direction
-        for j in range(M):
-            target = (j - (M - 1) / 2) * IED_MM
-            elec[i, j] = [np.interp(target, s, P[:, d]) for d in range(3)]
-    ied_z = np.linalg.norm(np.diff(elec, axis=0), axis=2)
-    ied_t = np.linalg.norm(np.diff(elec, axis=1), axis=2)
-    info = dict(fcu_ang_deg=fcu_ang, zc_mm=zc, limb_centre_xy=cxy.tolist(),
-                ied_along_mm=float(np.median(ied_z)), ied_across_mm=float(np.median(ied_t)),
-                ied_along_range=[float(ied_z.min()), float(ied_z.max())],
-                ied_across_range=[float(ied_t.min()), float(ied_t.max())])
-    return elec, info
-
-
-def phi_along_paths(fem, paths):
-    """φ of the current solve sampled along every path (N, Nz)."""
-    paths = np.asarray(paths)
-    return fem.evaluate_solution_at_points(paths.reshape(-1, 3)).reshape(paths.shape[:2])
+    is also the skin point nearest the muscle (``emgforge.mri.pipeline.grid_electrodes``
+    with this file's constants). Returns (elec_xyz (M, M, 3), info)."""
+    return _P.grid_electrodes(fem, fm, bed, m=M, n=M, ied_mm=IED_MM, zc_frac=ZC_FRAC)
 
 
 def ensure_grid_leadfields(force: bool = False):

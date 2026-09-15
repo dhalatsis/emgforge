@@ -71,6 +71,38 @@ E = drive.add_common_drive(drive.trapezoid(0.5, 0.5, 2.0, 0.5, fs=2048.0), sigma
 rec = sim.run(E, seed=0)                              # rec.emg (25, T), rec.force (%MVC), rec.spikes
 ```
 
+## One command from segmentation to EMG
+
+```bash
+python scripts/run_pipeline.py                        # FCU, 5×5 grid at 10 mm, 20 motor units, 2 workers
+python scripts/run_pipeline.py --n-mu 100 --grid 8x4 --ied 8 --muscle 11 --out _results/pipeline/brachioradialis
+```
+
+`scripts/run_pipeline.py` runs the whole chain **cold** from the committed WR forearm
+segmentation (`src/emgforge/mri/data/`; needs the `[mri]` extra) — nothing is read from a
+cache unless `--cache` is given — and times every stage (the stages are the functions of
+`emgforge.mri.pipeline`):
+
+1. **mesh** — resample the labels, marching cubes, smooth + decimate, fTetWild tetrahedra,
+   a tissue tag per cell (47 k cells, ≈ 50 s);
+2. **fibre directions + muscle geometry** — PCA direction and centreline per muscle (the
+   fibre-aligned σ), ray-cast cross-sections (the morphing-disk fibre frame) (≈ 7 s);
+3. **fibre bed + motor-unit pool** — Poisson-disk bed of the chosen muscle (637 FCU fibres),
+   Henneman pool (≈ 1 s);
+4. **volume conductor, electrode grid, lead fields** — σ tensor per cell + skin shell, a
+   regular M×N grid ray-cast onto the skin over the muscle, one reciprocity solve per
+   electrode with φ sampled along every fibre (25 solves, ≈ 25 s);
+5. **MUAPs** — the direct line-source recipe: the 3-monopole fit of every electrode–fibre
+   φ(z) once, then each unit's line-source integral on the grid (the slow part: ≈ 6 min for
+   20 units, ≈ 15 min for 100 with two workers);
+6. **activation** — motoneuron pool → spikes, twitches → force, spikes ⊛ MUAPs → EMG on
+   the grid, one trapezoid per drive level (< 1 s).
+
+It writes `<out>/pipeline_output.npz` (electrodes, bed, pool, lead-field bank, MUAP tensor,
+drive / EMG / force / spikes — `Simulator.from_pipeline(path)` reloads it) and
+`<out>/pipeline_timings.json` (per-stage wall times and sizes; `--table` renders the
+paper's stage table).
+
 ## Repository structure
 
 ```
@@ -124,7 +156,7 @@ criteria. Headlines: the spatial engine reproduces a closed-form line-source ora
 r = 1.0000 with zero lag, a monopole-free source and (after the 2026-09-15 correction of
 a spurious 1/v) the right amplitude constant; end-of-fibre onset at L/v within 0.4 ms;
 CV, innervation-zone, end-of-fibre, depth, fat, electrode-size and IED laws match the
-literature; the MRI forearm reproduces the NeuroDec lead fields (signed r = 0.999). Open
+literature. Open
 items: the Fourier engine is anti-phase and lagged vs first principles; on FEM lead fields
 the direct-method amplitude is erratic at ±40 % (shape and spectrum are faithful); the FEM
 cylinder decays ~30 % slower with depth than the analytical one; the renewal ISI model has
