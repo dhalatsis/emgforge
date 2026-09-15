@@ -769,6 +769,47 @@ fibre $15$~mm deep.}
 \label{fig:features}
 \end{figure}
 
+\subsection{Galleries: one parameter at a time}
+\label{sec:study-waterfalls}
+Figure~\ref{fig:waterfalls} shows the same potential as one parameter moves and nothing
+else does --- on the analytical cylinder with the direct recipe (a--e; amplitudes relative
+to the reference fibre, $10$~mm deep under $3$~mm of fat) and on the MRI forearm (f).
+Depth is the strongest lever: from $5$ to $25$~mm the amplitude falls $142\times$
+($\propto d^{-3.1}$), the negative lobe widens from $2.2$ to $8.5$~ms and the end-of-fibre
+share grows from $3$ to $24\%$, while the wave's arrival at $(\Delta z+\delta)/v$ does not
+move. Moving the electrode around the limb does the same in a milder form: half
+amplitude at $20^\circ$ ($14$~mm of skin), a tenth at $60^\circ$, the timing unchanged.
+Moving the distal tendon leaves the propagating lobe where it is and walks the
+end-of-fibre potential along $L_2/v$, from $6$ to $20$~ms. Conduction velocity moves
+everything at once: the lobe at $(\Delta z+\delta)/v$, the end-of-fibre at $L/v$, the
+duration as $1/v$ ($27$ to $9$~ms from $2$ to $6$~m/s) and the mean frequency as $v$
+($39$ to $115$~Hz), at constant amplitude. Fat, with the fibre held $5$~mm inside the
+muscle, costs $16\times$ in amplitude and halves the mean frequency ($90$ to $43$~Hz)
+from $1$ to $18$~mm. On the forearm, units of $74$--$102$ fibres at $5$ to $12.5$~mm from
+the centre electrode fall from $54$ to $17$~$\mu$V, the lobe lagging further behind the
+common junction-to-electrode delay as depth grows. These galleries are what a
+decomposition algorithm or a decoder sees when one physiological quantity varies; they
+come from one script and can be redrawn for any parameter of the chain.
+
+\begin{figure}[tbp]
+\centering
+\figorbox[width=\textwidth]{fig_waterfalls}
+\caption{Waterfall galleries, one parameter at a time (direct line-source recipe; $t=0$
+at the junction; dotted guides: lobe arrival $(\Delta z+\delta)/v$ with $\delta = 4.5$~mm,
+end-of-fibre at $L/v$). (a--e) Analytical cylinder, fibre $10$~mm deep, junction $20$~mm
+from the electrode, tendons at $\pm60$~mm unless swept; amplitudes relative to that
+reference fibre ($A_0$), peak-to-peak ratio on the right. (a) Depth $5$--$25$~mm, each
+trace to its own amplitude, with the end-of-fibre share. (b) Electrode angle around the
+cylinder $0$--$60^\circ$. (c) Distal tendon $20$--$80$~mm from the junction, common
+scale; the end-of-fibre potential walks along $L_2/v$ (dashed). (d) Conduction velocity
+$2$--$6$~m/s with the coupled grid $\Delta z = v/f_s$, common scale, with the $10\%$
+duration. (e) Fat $1$--$18$~mm with the fibre $5$~mm inside the muscle (depth below the
+skin in brackets), with the mean frequency. (f) MRI forearm: seven units of $74$--$102$
+fibres at increasing distance from the centre electrode (unit centre to electrode; fibres
+in brackets), common scale in $\mu$V.}
+\label{fig:waterfalls}
+\end{figure}
+
 \subsection{Does fibre geometry change the signal?}
 \label{sec:study-fibres}
 We re-drew $24$ units of the released FCU pool ($5$--$395$ fibres, $4$--$16$~mm deep,
