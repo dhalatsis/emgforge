@@ -139,8 +139,10 @@ ax.loglog(depths, amp_fem / amp_fem[0], "x-", color=COL["fem"], ms=MS + 0.5, mew
 ax.loglog(depths, amp_F / amp_F[0], "^:", color=COL["fourier"], ms=MS, mec="white", mew=0.4, label=f"Farina 2004 mono, n = {n_F:.2f}")
 ax.set_xlabel("depth below skin (mm)"); ax.set_ylabel("p2p / p2p(7 mm)")
 ax.set_xticks([7, 10, 15, 20, 25]); ax.set_xticklabels(["7", "10", "15", "20", "25"]); ax.minorticks_off()
-ax.legend(loc="lower left", fontsize=5.8, handlelength=1.8, borderaxespad=0.1, labelspacing=0.25)
-ax.text(0.97, 0.97, "p2p ∝ d$^{-n}$", transform=ax.transAxes, fontsize=6.5, ha="right", va="top")
+# the data run diagonally (top-left → bottom-right): give the legend head-room above the 7–10 mm points
+ax.set_ylim(0.008, 4.5); ax.set_yticks([1e-2, 1e-1, 1])
+ax.legend(loc="upper right", fontsize=5.8, handlelength=1.8, borderaxespad=0.1, labelspacing=0.25)
+ax.text(0.03, 0.03, "p2p ∝ d$^{-n}$", transform=ax.transAxes, fontsize=6.5, ha="left", va="bottom")
 letter(ax, "a", dx=-0.28)
 
 ax = axes[0, 1]

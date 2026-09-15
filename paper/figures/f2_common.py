@@ -106,6 +106,47 @@ def harmonic_bed(fm, grid_mm: float = HARM_GRID_MM, force: bool = False):
     return bed
 
 
+def harmonic_frame(fm):
+    """The FCU's PCA frame of ``HarmonicFibreField`` (no Laplace solve) — gives the
+    longitudinal fraction of any point in the muscle (``frame._long_fraction``)."""
+    from emgforge.mri.core.harmonic_fibers import HarmonicFibreField
+    return HarmonicFibreField(fm.seg_data == FCU, fm.voxel_size, solve=False)
+
+
+def harmonic_bed_at_iz(bed, frame, iz_fraction: float = IZ_FRAC):
+    """The same single-NMJ harmonic bed with every NMJ re-placed at longitudinal fraction
+    ``iz_fraction`` of the muscle — the placement rule of
+    ``HarmonicFibreField.long_fibers(iz_fraction=…)`` (nearest sample of the arc-resampled
+    path in the muscle's PCA frame; a streamline that does not reach the IZ gets its NMJ at
+    the nearer end) applied to the cached streamlines, which do not depend on the IZ.
+    ``build_muscle_beds`` / ``build_harmonic_fibers`` do not expose ``iz_fraction`` (they
+    build at the library default 0.5), so the cached bed is re-innervated here instead of
+    re-solving the Laplace field; ``make_fig_mri_fibres.py`` checks this against a direct
+    ``long_fibers(iz_fraction=…)`` call.
+
+    ``iz_fraction`` is in the library's frame: 0 at the end of the muscle where the PCA axis
+    ``frame.p1`` starts, whose sign is arbitrary (for the FCU it points distally, so 0.305
+    would be the far end). To innervate on a given z-plane use the frame fraction of points
+    on it, e.g. ``frame._long_fraction(nmj_points).mean()``."""
+    import copy
+    out = copy.copy(bed)
+    n = len(bed.paths)
+    half1, half2, posz, izf = (np.zeros(n) for _ in range(4))
+    for i, p in enumerate(bed.paths):
+        p = np.asarray(p)
+        arc = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(p, axis=0), axis=1))])
+        frac = frame._long_fraction(p)
+        j = int(np.argmin(np.abs(frac - iz_fraction)))
+        nmj, total = float(arc[j]), float(arc[-1])
+        half1[i], half2[i] = max(nmj, 1e-6), max(total - nmj, 1e-6)
+        posz[i] = nmj - (len(p) // 2) * bed.dz_mm
+        izf[i] = float(frac[j])
+    out.half1_mm, out.half2_mm, out.posz_mm, out.iz_fractions = half1, half2, posz, izf
+    out.half_mm = float(np.mean(half1 + half2) / 2.0)
+    out.iz_target = float(iz_fraction)
+    return out
+
+
 def henneman_pool(bed):
     from emgforge.mri.core.motor_unit_pool import sample_henneman_pool
     N = len(bed.r_norms)

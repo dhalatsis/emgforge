@@ -15,55 +15,63 @@
 \usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
 \usepackage{url}
 \usepackage{placeins}          % \FloatBarrier: keep each section's figures with its text
+% let text flow under tall figures instead of giving every figure a page of its own
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.8}
+\usepackage{longtable}         % appendix: the full list of validation checks
 
 \graphicspath{{figures/}}
 \emergencystretch=1.5em
 \newcommand{\emgforge}{\texttt{emgforge}}
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\Vm}{V_{\mathrm{m}}}
-\newcommand{\collab}{Noura~[surname]}   % harmonic-streamline fibre geometry — FILL IN (git has first name only)
+\newcommand{\collab}{N.~Ezaz-Nikpay}   % harmonic-streamline fibre geometry
 \newcommand{\repo}{\url{https://github.com/dhalatsis/emgforge}}
 % figure, or a labelled box while the PDF does not exist yet (lets the draft compile)
 \newcommand{\figorbox}[2][]{\IfFileExists{figures/#2.pdf}{\includegraphics[#1]{#2}}{\fbox{\parbox[c][55mm][c]{0.92\textwidth}{\centering\ttfamily missing figure: \detokenize{#2}}}}}
 
-\title{\textbf{emgforge}: an open, validated forward model of surface EMG --- from volume-conductor lead fields to motor-unit action potentials and interference signals}
+\title{\textbf{emgforge}: a first-principles-validated forward model of surface EMG, from volume-conductor lead fields to motor-unit action potentials and interference signals}
 
-\author{Dimitrios Halatsis\thanks{Department of Bioengineering, Imperial College London. Correspondence: \texttt{d.halatsis@imperial.ac.uk}. Code: \repo.}
-  \and \collab{}\thanks{Imperial College London.}
-  \and Pranav~[surname]\thanks{Affiliation to be confirmed.}
-  \and Dario Farina\thanks{Department of Bioengineering, Imperial College London.}}
-\date{September 2026 --- technical report, v1}
+\author{Dimitrios Halatsis\thanks{Department of Bioengineering, Imperial College London, UK. Correspondence: \texttt{d.chalatsis22@imperial.ac.uk}. Code: \repo.}
+  \and Noura Ezaz-Nikpay\thanks{Department of Computing, Imperial College London, UK.}
+  \and Pranav Mamidanna\thanks{I-X Centre for AI in Science and Department of Bioengineering, Imperial College London, UK.}
+  \and Dario Farina\thanks{Department of Bioengineering, Imperial College London, UK.}}
+\date{Preprint --- September 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We describe \emgforge{}, an open-source forward model that turns tissue geometry into
-surface and intramuscular electromyograms: a volume conductor (an analytical multilayer
-cylinder or a finite-element model of a parametric limb or a segmented MRI forearm)
-gives, by reciprocity, the lead field $\varphi(z)$ each muscle fibre sees from an
-electrode; a line-source model of the fibre turns $\varphi$ into a single-fibre action
-potential (SFAP); fibres are grouped into motor units, motor units are driven by a
-phenomenological motoneuron pool with a twitch model, and the result is a motor-unit
-action potential (MUAP) library, high-density EMG on an electrode grid, force, and
-static or non-stationary interference EMG. The centre of the work is one synthesis
-recipe --- the spatial line-source integral with a monopole-fitted lead field, a
-second-derivative current source, a one-sided tendon window and physical time --- which
-we justify step by step and then test. Against a closed-form line-source oracle the
-recipe reproduces the extracellular potential with $r = 1.0000$ and zero lag, its source
-is monopole-free to machine precision, its end-of-fibre potential starts at $L/v$ within
-$0.4$~ms, and the conduction velocity, innervation-zone signature, end-of-fibre
-behaviour, depth decay, fat attenuation, electrode-size and inter-electrode-distance
-laws all agree with the quantitative EMG literature. We also report, plainly, what the
-tests found wrong: the amplitude constant of the recipe is off by exactly $1/v$; the
-Fourier-domain engine we inherited from the literature is anti-phase and lagged with
-respect to first principles; on finite-element lead fields the recipe's amplitude is
-erratic at the $\pm 40\%$ level even though its shape and spectrum are faithful; and the
-forearm MUAPs, though now of physiological duration, are still several times smaller
-than recorded ones. Three datasets are
-released with the code: a cylinder SFAP atlas, a 100-motor-unit forearm pool with its
-$5\times5$ HD-EMG MUAP tensor, and interference-EMG trials. The report is meant to be
-read with the repository and updated as the open items close.
+Forward models of the electromyogram are used to explain motor-unit action potentials
+(MUAPs), to test decomposition algorithms on signals with known ground truth, and to train
+learning-based decoders --- but they are usually validated against each other or against
+a handful of recordings, and the synthesis step that turns a lead field into a single-fibre
+action potential (SFAP) is rarely checked against the physics it claims to implement. We
+present \emgforge{}, an open forward model with three things that are new. First, a
+synthesis method --- the line-source integral with a monopole-fitted lead field, a
+second-derivative current source, a one-sided tendon window and physical time --- that we
+show reproduces a closed-form line-source solution to $r = 1.0000$ and zero lag (with a
+monopole-free source), and that stays usable on finite-element lead fields because the
+monopole fit removes mesh ripple before the second derivative amplifies it. Second, a
+tiered validation suite for forward EMG models: fifty checks with numeric criteria
+drawn from the physiological literature, running from first principles through the
+analytical multilayer cylinder and the finite-element conductor to MUAP phenomenology
+(innervation-zone signature, end-of-fibre potential, depth decay, fat, electrode size,
+inter-electrode distance, comb filtering) and interference-EMG statistics. Third, the
+findings that suite produced: the spatial-frequency-domain engine that the field has used
+as a reference is anti-phase and lagged relative to the line-source integral and its
+propagating main lobe has inverted polarity; the width of a finite-element electrode
+source shapes the lateral footprint of the lead field; and on finite-element fields the
+recipe's amplitude is erratic at $\pm40\%$ while its shape and spectrum are faithful. The
+model also contains an anatomical tier --- a segmented MRI forearm whose lead fields
+reproduce those distributed with the NeuroDec digital twin ($r = 0.999$ over $105$
+electrodes and $100$ fibres), with harmonic-streamline fibres that stay inside the muscle
+by construction --- and a motoneuron-pool and
+twitch layer that produces static and non-stationary interference EMG and force. Three
+datasets are released with the code: a cylinder SFAP atlas, a 100-unit forearm pool with
+its $5\times5$ HD-EMG MUAP tensor, and interference-EMG trials with ground-truth spikes.
 \end{abstract}
 
 % ================================================================ 1
@@ -82,33 +90,65 @@ farina2004multilayer}. Finite-element models lift the geometric restrictions
 \citep{lowery2002multiple, lowery2004volume, botelho2019anatomically} and, with
 reciprocity and reusable source bases, can now be run on MRI-derived anatomy at
 interactive speed \citep{maksymenko2023myoelectric}. Generative surrogates trained on
-such twins \citep{ma2025conditional, ma2024neuromotion} make the output cheap, but they
-inherit whatever the twin got right or wrong, and the twin is usually closed.
+such twins \citep{ma2025conditional, ma2024neuromotion} make the output cheap and have
+been validated on their own terms (a $1.8\%$ reconstruction error against the twin;
+movement EMG against recordings), but a surrogate inherits its twin's synthesis step,
+and the finite-element twins themselves are not distributed --- only the surrogates are.
+Open models exist at the planar level \citep{petersen2019comprehensive} and as
+multi-domain finite-element frameworks \citep{klotz2020modelling}; what has been missing
+is an open, anatomy-capable chain whose synthesis step is checked against the physics it
+implements rather than against another model.
 
-\emgforge{} is our attempt at an open, inspectable version of that chain. Its design
-rule is that every step must be checkable in isolation: the lead field against an
-analytical model, the synthesis integral against a closed-form solution, the MUAP
-features against numbers from the physiological literature, and the whole chain
-against the statistics of real interference EMG. This report is written to accompany
-the public repository while a fuller paper is prepared. It is deliberately plain: it
-says what the model computes, in what order, with which parameters, and what happened
-when we tested it.
+Three of our own recent efforts depend on such a chain and motivated this one.
+MUniverse \citep{mamidanna2025muniverse} benchmarks motor-unit decomposition on
+synthetic, hybrid and experimental HD-EMG and needs simulation stacks whose ground truth
+can be inspected; biophysical-model-informed decomposition \citep{halatsis2025bmiss}
+inverts a forward model to recover spike trains and unit properties, and is only as good
+as that model; and neural-operator surrogates of the lead field
+\citep{halatsis2024modelling, halatsis2026neural} are trained on the finite-element fields
+described here and inherit the second-derivative sensitivity discussed in
+Sec.~\ref{sec:golden}.
+
+\emgforge{} is an open, inspectable version of that chain, built on one rule: every
+step must be checkable in isolation --- the lead field against an analytical model, the
+synthesis integral against a closed-form solution, the MUAP features against numbers
+from the physiological literature, and the whole chain against the statistics of real
+interference EMG. Applying that rule is where the new results of this paper come from.
+We write it plainly: what the model computes, in what order, with which parameters, and
+what happened when we tested it.
 
 The contributions are:
 \begin{enumerate}
-  \item a complete, documented forward chain (Sec.~\ref{sec:overview}) with three
-        interchangeable volume conductors (analytical cylinder, parametric FEM,
-        MRI forearm FEM) behind one lead-field interface;
-  \item a single SFAP synthesis recipe --- the \emph{golden method} --- derived from
-        the line-source model and justified step by step (Sec.~\ref{sec:golden});
-  \item a fibre-geometry layer that includes anatomically contained harmonic-streamline
-        fibres from a segmentation mask (Sec.~\ref{sec:fibres});
-  \item a phenomenological activation layer that gives spike trains, force and
-        static or non-stationary interference EMG (Sec.~\ref{sec:activation});
-  \item a tiered validation suite with literature-anchored numeric criteria and
-        a first-principles oracle, run end to end and reported honestly
-        (Sec.~\ref{sec:validation});
-  \item three released datasets (Sec.~\ref{sec:datasets}).
+  \item \textbf{A synthesis method validated to first principles} (Sec.~\ref{sec:golden},
+        \ref{sec:tierA}). The \emph{golden method} --- the spatial line-source integral
+        with a three-monopole fit of the lead field, a second-derivative current source,
+        a one-sided tendon window and physical time --- reproduces a closed-form
+        line-source oracle at $r = 1.0000$ with zero lag and a monopole-free source. To our
+        knowledge no published SFAP engine has been held to that test; the monopole fit is
+        what makes the second-derivative integral usable on finite-element lead fields.
+  \item \textbf{A tiered validation suite for forward EMG models}
+        (Sec.~\ref{sec:validation}): fifty checks, each holding one measurable property
+        of the chain against a literature principle with a numeric criterion, from first
+        principles to interference statistics, with documented limitations kept as live
+        criteria. The suite is reusable by any simulator that can produce a lead field.
+  \item \textbf{Findings.} The spatial-frequency-domain engine of
+        \citet{farina2001novel, farina2004multilayer}, which prior work (ours included)
+        used as the shape reference, is anti-phase and lagged by $1$--$2.5$~ms relative to
+        the line-source integral and its propagating main lobe has inverted polarity; the
+        width of a finite-element electrode source, not the conductor, sets the lateral
+        footprint of the lead field; the recipe's amplitude on finite-element fields is
+        erratic at $\pm40\%$ while shape and spectrum are faithful; and an
+        electrode-placement artefact in an earlier layout had been misread as a
+        model property.
+  \item \textbf{Anatomy from a mask}: harmonic-streamline fibre geometry
+        (Sec.~\ref{sec:fibres}) that resolves contained, non-crossing fibres from a
+        segmentation alone, on an MRI forearm tier whose lead fields reproduce those of
+        the NeuroDec digital twin ($r = 0.999$, amplitude within $13\%$).
+  \item \textbf{A complete chain and its datasets}: three interchangeable volume
+        conductors behind one lead-field interface (Sec.~\ref{sec:overview}), a
+        motoneuron-pool and twitch layer for static and non-stationary interference EMG
+        and force (Sec.~\ref{sec:activation}), and three released datasets with ground
+        truth (Sec.~\ref{sec:datasets}).
 \end{enumerate}
 
 % ================================================================ 2
@@ -213,7 +253,11 @@ analytical~\citep{farina2004multilayer} & 0.02 & 0.10 & 0.50 & 0.04 & 1.0 & 10 /
 FEM, validation cylinder & 0.02 & 0.10 & 0.50 & 0.04 & 1.0 & 9, 10 / 35 / 38 / 40; $L=240$ \\
 FEM / MRI, production & 0.02$^{\dagger}$ & 0.2455 & 1.228 & 0.0379 & $4.55\times10^{-4}$ & from the segmentation \\
 \bottomrule
-\multicolumn{7}{l}{$^{\dagger}$cortical; cancellous bone 0.075 S/m.}
+\multicolumn{7}{p{150mm}}{$^{\dagger}$cortical; cancellous bone 0.075 S/m. The skin values differ by
+$2000\times$ between the two tables: the analytical school treats skin as a thin conductive
+layer ($1$~S/m), the Gabriel-based tables as dry skin ($4.6\times10^{-4}$~S/m); it is the
+largest disagreement in the literature and a distinct thin skin layer changes the lateral
+decay \citep{blok2002three}.}
 \end{tabular}
 \end{table}
 
@@ -240,54 +284,65 @@ A labelled segmentation (muscles, radius and ulna, fat/skin) is meshed into a
 tetrahedral forearm with a thin skin shell; each muscle's conductivity tensor is rotated
 onto that muscle's own centreline tangent, estimated from per-slice centroids and a
 smoothing spline (\texttt{sigma\_mode="centerline"}). Skin electrodes are placed on the
-outer surface by ray-casting onto the mesh; the HD-EMG layout used in this report is a
+outer surface by ray-casting onto the mesh; the HD-EMG layout used in this paper is a
 regular $5\times5$ grid with $10$~mm inter-electrode distance centred over the flexor carpi
 ulnaris (FCU), rows along the arm and columns around it (measured spacing $10.2$~mm along,
 $10.0$~mm across). The forearm mesh used here (subject WR, $42{,}315$ cells) builds in
 $5$~s and solves in $0.6$~s per electrode; sampling $\varphi$ along the $637$ fibres of
-the FCU bed takes $6$~s per electrode. A fresh solve of this model reproduces the lead fields
-distributed with the NeuroDec digital twin \citep{maksymenko2023myoelectric} for the same
-subject with $|r| = 1.000$ over $105$ electrodes $\times$ $100$ fibres
-(Sec.~\ref{sec:tierMRI}).
+the FCU bed takes $6$~s per electrode. A fresh solve of this model reproduces the lead
+fields distributed with the NeuroDec digital twin \citep{maksymenko2023myoelectric} for
+the same subject (Sec.~\ref{sec:tierMRI}).
 
 % ================================================================ 4
 \section{The golden SFAP synthesis method}
 \label{sec:golden}
 
 \subsection{Line-source model}
-A fibre of radius $a$ and intracellular conductivity $\sigma_{\mathrm{in}}$ carrying a
-transmembrane potential $\Vm(z,t)$ injects, per unit length, the membrane current of
-core-conductor theory \citep{rosenfalck1969intra, plonsey2007bioelectricity}
+The action potential is the Rosenfalck form $V(s) = A\,s^{3}e^{-s}$ for $s>0$ ($s$ in mm,
+$A = 96$~mV) \citep{rosenfalck1969intra}, launched from the neuromuscular junction at
+$z_{0}$ in both directions and cut at the tendons by a window $w(z)$ over
+$[z_{0}-L_{1},\, z_{0}+L_{2}]$:
 \begin{equation}
-  i_{\mathrm m}(z,t) = \sigma_{\mathrm{in}}\,\pi a^{2}\,\frac{\partial^{2}\Vm}{\partial z^{2}} ,
+  \Vm(z,t) = V\!\big(v t - |z - z_{0}|\big), \qquad
+  \Vm^{w}(z,t) = \Vm(z,t)\,w(z) ,
+  \label{eq:wave}
+\end{equation}
+so that $t=0$ is the instant the junction fires and the wave front reaches the proximal
+tendon at $L_{1}/v$ and the distal one at $L_{2}/v$. A fibre of radius $a$ and
+intracellular conductivity $\sigma_{\mathrm{in}}$ injects, per unit length, the membrane
+current of core-conductor theory \citep{rosenfalck1969intra, plonsey2007bioelectricity},
+\begin{equation}
+  i_{\mathrm m}(z,t) = \sigma_{\mathrm{in}}\,\pi a^{2}\,\frac{\partial^{2}\Vm^{w}}{\partial z^{2}} ,
   \label{eq:im}
 \end{equation}
-and the potential at the electrode is the lead-field-weighted sum of that current:
+and the potential at the electrode is the lead-field-weighted sum of that current,
 \begin{equation}
   \mathrm{SFAP}(t) = \int i_{\mathrm m}(z,t)\,\varphi(z)\,\dd z
   \;=\; \sigma_{\mathrm{in}}\,\pi a^{2}\int \Vm(z,t)\,w(z)\,\varphi''(z)\,\dd z ,
   \label{eq:sfap}
 \end{equation}
 where the second form follows by integrating by parts twice (the boundary terms vanish
-because the windowed potential has compact support) and shows that the SFAP is the
-inner product of the action potential with the \emph{second derivative} of the lead
-field. The action potential is the Rosenfalck form $\Vm(s) = A\,s^{3}e^{-s}$ for $s>0$
-($s$ in mm, $A = 96$~mV) launched from the neuromuscular junction at $z_{0}$ in both
-directions,
-\begin{equation}
-  \Vm(z,t) = \Vm\!\big(v t - |z - z_{0}|\big)\, w(z), \qquad
-  w(z) = \text{window over } [z_{0}-L_{1},\, z_{0}+L_{2}] ,
-  \label{eq:wave}
-\end{equation}
-so that $t=0$ is the instant the junction fires, the wave front reaches the proximal
-tendon at $L_{1}/v$ and the distal one at $L_{2}/v$. Taking $\partial^{2}/\partial z^{2}$
-of the whole windowed field, rather than of each travelling half analytically, is what
-produces the three source terms that the literature separates by hand
-\citep{dimitrov1998precise, kleinpenning1990equivalent}: the two propagating
-tripoles, the \emph{generation} term at the cusp $|z-z_0|$, and the \emph{end-of-fibre}
-terms where the window cuts the wave. These are exactly the terms that make the source
-monopole-free, $\int i_{\mathrm m}\,\dd z = 0$ for all $t$ \citep{petersen2019comprehensive};
-we verify this to $8\times10^{-17}$ (Sec.~\ref{sec:tierA}).
+because $\Vm^{w}$ has compact support) and shows that the SFAP is the inner product of
+the windowed action potential with the \emph{second derivative} of the lead field.
+Taking $\partial^{2}/\partial z^{2}$ of the whole windowed field, rather than of each
+travelling half analytically, is what produces the three source terms that the
+literature separates by hand \citep{dimitrov1998precise, kleinpenning1990equivalent}: the
+two propagating tripoles, the \emph{generation} term at the cusp $|z-z_0|$, and the
+\emph{end-of-fibre} terms where the window cuts the wave. These are exactly the terms
+that make the source monopole-free, $\int i_{\mathrm m}\,\dd z = 0$ for all $t$
+\citep{petersen2019comprehensive}; we verify this to $8\times10^{-17}$
+(Sec.~\ref{sec:tierA}).
+
+\paragraph{Units and constants.} $\varphi$ from the finite-element tier is the potential,
+in volts, for a unit current ($1$~A) injected at the electrode against a uniform volume
+sink (the zero-mean source of Sec.~\ref{sec:vc}; the potential is therefore defined up to
+a constant, which $\varphi''$ removes). The analytical $\varphi$ is recovered from the
+Farina transfer function up to an arbitrary constant, so the analytical tier is used for
+shape and relative laws and absolute amplitudes are quoted only from the finite-element
+tier. The engine uses $\sigma_{\mathrm{in}} = 1$~S/m and $a = 50$~$\mu$m (a $100$~$\mu$m
+fibre, at the large end of the $40$--$80$~$\mu$m physiological range; amplitude scales with
+$a^{2}$), so the constant $\sigma_{\mathrm{in}}\pi a^{2}$ is a scale factor rather than a
+calibrated quantity and absolute microvolt values carry that caveat.
 
 \subsection{The recipe}
 Discretised, Eq.~\eqref{eq:sfap} is one matrix--vector product,
@@ -342,7 +397,7 @@ parameter & value & why \\
 \texttt{fiber\_window} & one-sided, $\alpha=0.25$ & flat at the junction, tapered at the tendons \\
 \texttt{center\_time / t\_start\_ms} & false / $-10$ & physical time, junction at $t=0$ \\
 $v$, $f_s$, $w$ & 4 m/s, 4096 Hz, 256 & coupled grid $\Delta z = v/f_s$ \\
-$\sigma_{\mathrm{in}}$, $a$ & 1, 0.05 mm & amplitude constant (see Sec.~\ref{sec:limits}) \\
+$\sigma_{\mathrm{in}}$, $a$ & 1, 0.05 mm & amplitude constant $\sigma_{\mathrm{in}}\pi a^2$; no $1/v$ (the IAP is fixed in space) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -356,23 +411,33 @@ source. (b) The current-source-density matrix $\mathbf{C}(z,t)$ for a fibre
 $[-60, 60]$~mm with the junction at $0$: two tripoles leave the junction, the cusp at
 the junction and the window edges at the tendons appear as sources; boxcar (left) and
 one-sided (right) tendon windows. (c) The three fibre-end windows. (d) A finite-element
-lead field raw, monopole-denoised and analytical, with their second derivatives.
-(e) The SFAPs each produces: the ripple in $\varphi''$ reaches the raw SFAP and the
-monopole fit removes it.}
+lead field raw, monopole-denoised and analytical, with their second derivatives
+(normalised to the analytical peak; the colour scale in (b) is clipped at the propagating
+maximum --- the tendon term is $2.7\times$ larger). (e) The SFAPs each produces: the
+ripple in $\varphi''$ reaches the raw SFAP and the monopole fit removes it ($r$ against the
+analytical-$\varphi$ SFAP $0.909 \to 0.929$); the remaining difference from the analytical
+waveform is the FEM field's own shape at this shallow depth (Sec.~\ref{sec:tierA}), not
+ripple.}
 \label{fig:golden}
 \end{figure}
 
-\subsection{What the recipe is not: the Fourier engine}
-\emgforge{} also carries the spatial-frequency-domain engine of
+\subsection{The spatial-frequency engine and our port of the Farina generator}
+\emgforge{} also carries a spatial-frequency-domain engine after
 \citet{farina2001novel, farina2004multilayer}, in which $\varphi$ is transformed along $z$,
 multiplied by the fibre-end function, the action-potential spectrum and $\mathrm{j}k_z$,
-and brought back to time by a Radon section. It was our first production engine and the
-reference the spatial engine was originally tuned against. The validation in
-Sec.~\ref{sec:tierA} shows that, given the same $\varphi$, it does not reproduce the
-line-source integral: it is anti-phase and lagged by $1$--$2.5$~ms, its end-of-fibre
-onset leads $L/v$ by $2.5$~ms, and its propagating main lobe has the opposite sign to the
-textbook convention. We therefore treat the spatial recipe as the reference and keep the
-Fourier engine only for comparison.
+and brought back to time by a Radon section, together with a line-by-line port of the
+Farina generator itself (Sec.~\ref{sec:vc}). The engine was our first production engine
+and the reference the spatial engine was originally tuned against. The validation in
+Sec.~\ref{sec:tierA} shows that, given the same $\varphi$, the engine does not reproduce
+the line-source integral --- it is anti-phase and lagged by $0.9$--$2.6$~ms --- while its
+amplitude agrees with the spatial engine's to within $5\%$; and that in the ported
+generator the end-of-fibre onset leads $L/v$ by $2.5$~ms and the propagating main lobe has
+the opposite sign to the textbook convention. We attribute these to the orientation and
+sign conventions of the action potential in our port; the original model was verified
+against limiting cases and reproduced by finite elements to $3$--$5\%$
+\citep{maksymenko2023myoelectric}, and a convention difference in a port is not an error
+of the model. Until that audit is done we treat the spatial recipe as the reference and
+keep the other two for comparison.
 
 \subsection{From SFAPs to a MUAP}
 A \emph{fibre bed} object carries, per fibre, the sampling step, the two semi-lengths,
@@ -415,25 +480,33 @@ motor-unit widths but is not yet validated, and is gated behind a flag. On the F
 densely enough to match the straight bed ($0.5$~mm seed grid; the library default of
 $2$~mm gives only $52$ streamlines), the harmonic bed has $827$ fibres that stay inside
 the mask for $99.96\%$ of their length against $96.6\%$ for the $637$ straight fibres;
-their junctions lie within $1.2$~mm (s.d.) of the shared innervation zone. With the
+their junctions lie within $1.2$~mm (s.d.) of the shared innervation zone. The
+streamlines are not all full length: the median spans $0.85$ of the muscle but a quarter
+span less than $0.53$ (the straight bed spans $0.89$ throughout), a bimodal distribution
+that the guard keeps because short edge fibres may be real; deciding that needs
+anatomical data. With the
 junction at that zone the two beds give near-identical MUAPs ($\approx0.26$~$\mu$V for a
 matched unit), so the harmonic advantage at this stage is anatomical rather than
-electrical (Fig.~\ref{fig:mri}). Note that the production harmonic model places the
-junction at mid-length by default while the straight bed uses the atlas fraction
-($0.305$); the two are made consistent by passing the same fraction, and the released
-datasets use the straight bed.
+electrical (Fig.~\ref{fig:mri}). One convention to watch: the harmonic model measures its
+junction fraction along the muscle's principal axis, which for the FCU points the other
+way from the straight bed's fibre coordinate, so the same number places the junction at
+opposite ends; Fig.~\ref{fig:mri} therefore innervates both beds on the same plane. The
+released datasets use the straight bed.
 
 \begin{figure}[tbp]
 \centering
 \figorbox[width=\textwidth]{fig_mri_fibres}
 \caption{The MRI forearm (subject WR). (a) A segmentation slice with the FCU highlighted
 and the $5\times5$ electrode grid projected. (b) The FCU fibre bed at $4$~fibres/mm$^2$:
-$637$ straight Poisson fibres and $827$ harmonic streamlines (one in six drawn), with the
-junctions marked --- at the atlas fraction $0.305$ of the length for the straight bed and,
-by default, at mid-length for the harmonic one (the atlas value can be passed). (c) The
-reciprocal lead field of one grid electrode on a mesh slice (log scale). (d) $\varphi$
-along three fibres $4$, $10$ and $17$~mm from the electrode, with the three-monopole fit
-the golden recipe uses (dashed).}
+$637$ straight Poisson fibres and $827$ harmonic streamlines (one in six drawn), both
+innervated on the same plane (dotted; the atlas fraction $0.305$ of the straight fibres'
+length): $84\%$ of the streamlines cross it and are innervated within $1$~mm of it; the rest
+start on its far side ($z = 140$--$165$~mm) and are innervated at their nearer end, the
+second cluster of dots. (c) The reciprocal lead field of one
+grid electrode on a mesh slice, $\varphi - \min\varphi$ on a log scale (as in
+Fig.~\ref{fig:leadfield}d). (d) $\varphi$ along three fibres $4$, $10$ and $17$~mm from the
+electrode, in mV per ampere injected, with the three-monopole fit the golden recipe uses
+(dashed).}
 \label{fig:mri}
 \end{figure}
 
@@ -442,20 +515,26 @@ Motor units are drawn from the bed following the size principle
 \citep{fuglevand1993models}: $N$ sizes log-uniform between $5$ and $400$ fibres (many
 small units, few large), each unit anchored on a random bed fibre and its territory
 radius grown until it contains the target number of fibres, territories allowed to
-overlap; units are sorted by size so that index $i$ is recruitment order. A unit's MUAP
-is the sum of its fibres' SFAPs; Fig.~\ref{fig:pool} shows the pool and its MUAPs, and the
-amplitude--size relation.
+overlap; units are sorted by size so that index $i$ is recruitment order. Because the bed
+is a fixed sample of the muscle ($637$ fibres for $11{,}207$ fibre slots in the 100-unit
+pool), fibres are shared between units --- $18$ units per fibre on average --- which is a
+coarse but consistent sampling: a fibre's SFAP is computed once and reused. A unit's MUAP
+is the sum of its fibres' SFAPs; Fig.~\ref{fig:pool} shows the pool and its MUAPs. The
+amplitude--size relation in Fig.~\ref{fig:pool}d is therefore a consistency check (with
+shared fibres at similar depths, amplitude must scale with fibre count) rather than
+evidence.
 
 \begin{figure}[tbp]
 \centering
 \figorbox[width=\textwidth]{fig_mu_pool_muaps}
 \caption{The 100-unit FCU pool. (a) Territories on the cross-section, colour by size
 ($5$--$395$ fibres, median $66$; territory radii $0.6$--$13.8$~mm), with the centre
-electrode of the grid. (b) Size distribution and recruitment order against size. (c)
-Golden MUAPs at the centre electrode of a small, a medium and a large unit ($0.4$, $7$ and
-$28$~$\mu$V; across the pool $0.17$--$40$~$\mu$V, median $5.9$, median duration $18$~ms).
+electrode of the grid. (b) Size distribution, and recruitment threshold against
+recruitment order (colour: size). (c)
+Golden MUAPs at the centre electrode of a small, a medium and a large unit ($1.7$, $28$ and
+$113$~$\mu$V; across the pool $0.7$--$160$~$\mu$V, median $24$, median duration $18$~ms).
 (d) MUAP amplitude against fibre count: $p2p \propto n^{1.04}$ ($r = 0.95$), the scatter
-being depth (colour).}
+being depth (colour); with shared fibres this is a consistency check (Sec.~\ref{sec:fibres}).}
 \label{fig:pool}
 \end{figure}
 
@@ -486,9 +565,12 @@ ma2024neuromotion}. Given a scalar excitation $E(t)\in[0,1]$:
     electrode of the grid) and the trains sum; single- and double-differential montages
     are differences of electrodes.
   \item \emph{Non-stationary EMG}: a normalised joint angle $\theta(t)$ sets the drive
-    ($0.08 + 0.42\,\theta$), scales each spike's MUAP ($1 + 0.7(\theta-0.5)$; shortening
-    brings fibres to the electrode) and time-warps it ($1 + 0.18(\theta-0.5)$). This is a
-    modulation layer, not a musculoskeletal model.
+    ($0.08 + 0.42\,\theta$), scales each spike's MUAP ($1 + g_a(\theta-0.5)$; shortening
+    brings fibres to the electrode) and time-warps it ($1 + g_w(\theta-0.5)$), with
+    library defaults $g_a = 0.7$, $g_w = 0.18$ (the trial in Fig.~\ref{fig:hdemg}e uses
+    $0.8$ and $0.22$). This is a modulation layer, not a musculoskeletal model; models of
+    the geometry change itself exist \citep{mesin2006finite, mesin2011insights} and are
+    the next step.
 \end{itemize}
 Figure~\ref{fig:hdemg} shows a unit on the grid, an interference plateau, the pool's
 recruitment and rate coding, a trapezoid contraction with its force, and a movement
@@ -498,18 +580,19 @@ trial.
 \centering
 \figorbox[width=\textwidth]{fig_hdemg_activation}
 \caption{From motor units to signals (regular $5\times5$ grid, $10$~mm spacing). (a) The
-largest unit's MUAP on the grid: rows run along the arm, so the wave walks down a column
-(conduction velocity read off the grid: $4.3$~m/s for this unit, $4.1$--$4.9$ over the
-pool); columns run around it, so the footprint decays sideways. (b) Interference HD-EMG
-at a $35\%$-drive plateau ($81$ of $100$ units active), and a single-differential column.
-(c) Recruitment and rate coding of the pool. (d) A trapezoid contraction at half drive:
-drive, spikes, EMG (plateau RMS $18$~$\mu$V), force ($46\%$~MVC); across drives
-$0.1$--$1.0$ the plateau RMS is $3.4$--$33$~$\mu$V and the force $7$--$100\%$~MVC. (e) A
-movement trial: angle and non-stationary EMG (RMS flexed/extended $8.7$).}
+largest unit's MUAP on the grid --- rows run along the arm, columns around it --- and,
+right, the column with the largest amplitude as a waterfall offset by electrode position:
+the wave walks down the column at $4.28$~m/s (dashed guide; $4.1$--$4.8$ over the pool,
+set $4.0$). (b) Interference HD-EMG at a $35\%$-drive plateau ($81$ of $100$ units
+active): the RMS map of the grid ($9$--$48$~$\mu$V), one row of monopolar traces and the
+single-differential traces of that row at a shared scale. (c) Recruitment and rate coding of the pool. (d) A trapezoid contraction at
+half drive: drive (the lead-in carries the common-drive fluctuation), spikes, EMG (plateau
+RMS $73$~$\mu$V), force ($46\%$~MVC); across drives $0.1$--$1.0$ the plateau RMS is
+$14$--$133$~$\mu$V and the force $7$--$100\%$~MVC. (e) A movement trial: angle and
+non-stationary EMG (RMS flexed/extended $8.7$).}
 \label{fig:hdemg}
 \end{figure}
 
-\FloatBarrier
 % ================================================================ 7
 \section{Validation}
 \label{sec:validation}
@@ -520,24 +603,29 @@ tiers: (A) the cylinder must reproduce --- first principles, then the analytical
 then the finite-element model, then the pipeline on each; (B) the MUAP phenomenology
 the literature agrees on; (C) the statistics of interference EMG and the pool; (S) the
 chain-level sanity checks that ship with the simulator. Table~\ref{tab:score} is the
-scoreboard; the full report with every measured number is in the repository
-(\texttt{docs/validation/}). A ``known'' flag marks a documented limitation that keeps its
-criterion, so it turns green when fixed, without failing the run.
+scoreboard, Appendix~\ref{app:checks} lists every check with its criterion and measured
+value, and the full report is in the repository (\texttt{docs/validation/}). A ``known''
+flag marks a documented limitation that keeps its criterion, so it turns green when
+fixed, without failing the run; ``pass / total'' counts every check. The prose below
+gives the three results that matter --- the engine equals the integral, the
+spatial-frequency family does not, and the finite-element amplitude and depth law are
+open --- and the phenomenology as a list of measured facts.
 
 \begin{table}[t]
 \centering\small
 \caption{Validation scoreboard (branch \texttt{paper/arxiv-v1}; tiers C and S run on the
-released forearm pool, dataset D2). The two genuine failures are discussed in
-Sec.~\ref{sec:limits}.}
+released forearm pool, dataset D2). ``pass / total'' counts every check; ``known'' are
+documented limitations that fail without failing the tier; the two genuine failures are
+discussed in Sec.~\ref{sec:limits}. Appendix~\ref{app:checks} lists all $50$ checks.}
 \label{tab:score}
 \begin{tabular}{lp{58mm}ccp{42mm}}
 \toprule
-tier & scope & pass / gated & known & fails \\
+tier & scope & pass / total & known & fail \\
 \midrule
-A & cylinder: first principles, analytical, FEM, pipeline & 14 / 15 & 4 & A1.1b: FEM $\varphi''$ at mid-depth, $r=0.93$ \\
+A & cylinder: first principles, analytical, FEM, pipeline & 16 / 20 & 3 & A1.1b: FEM $\varphi''$ at mid-depth, $r=0.93$ \\
 B & MUAP features vs literature & 14 / 14 & 0 & --- \\
-C & interference EMG and pool & 4 / 5 & 1 & C2: no refractory floor \\
-S & chain-level sanity & 7 / 7 & 1 & --- \\
+C & interference EMG and pool & 6 / 8 & 1 & C2: no refractory floor \\
+S & chain-level sanity & 8 / 8 & 0 & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -552,25 +640,33 @@ analytic. Evaluating Eq.~\eqref{eq:sfap} in the dual form on a $0.02$~mm grid gi
 oracle with no numerical derivative of the tendon step and no volume-conductor model in
 the loop. The spatial engine, given the same $\varphi$ on its $0.977$~mm grid, matches
 it with $r = 1.0000$, $0.9999$, $0.9999$ and lags $0.00$, $-0.05$, $-0.05$~ms for junctions
-$0$, $-20$, $-30$~mm from the electrode (Fig.~\ref{fig:first}a). The source is
+$0$, $-20$, $-30$~mm from the electrode (Fig.~\ref{fig:first}a). This is a test of the discretisation of the integral with the same action potential --- the physics of the integral is settled --- and it is what makes the later comparisons attributable. The source is
 monopole-free to $7.7\times10^{-17}$; the SFAP is invariant to the sampling rate and
-step ($r>0.999$, amplitude within $0.2\%$); moving the electrode by $20$~mm delays the
+step ($r>0.998$, amplitude within $0.3\%$); moving the electrode by $20$~mm delays the
 propagating lobe by $4.88$~ms ($\Delta z/v = 5.00$, one sample); superposition is exact;
 and changing $v$ from $4$ to $3$~m/s stretches the SFAP by $1.328$ ($4/3$) and scales its
-mean frequency by $0.757$ ($3/4$) \citep{lindstrom1977interpretation}. The one thing the
-engine gets wrong is its constant: the ratio to the oracle is $0.497$ at $v=2$ and
-$0.249$ at $v=4$ --- exactly $1/v$ (Fig.~\ref{fig:first}c; Sec.~\ref{sec:limits}).
-The Fourier engine on the same $\varphi$ scores $r = -0.79$, $-0.68$, $-0.64$ at lags of
-$1.4$, $2.6$, $0.9$~ms (Fig.~\ref{fig:first}b).
+mean frequency by $0.757$ ($3/4$) \citep{lindstrom1977interpretation}. The oracle also caught
+a defect: the first version of the engine divided by $v$ once too often (a constant
+inherited from the spatial-frequency formulation, where the $1/v$ belongs), so its ratio
+to the oracle was exactly $1/v$ --- $0.497$ at $v = 2$, $0.249$ at $v = 4$. With the
+division removed the ratio is $0.994$ at every $v$ from $2$ to $5$~m/s
+(Fig.~\ref{fig:first}c); the residual $0.6\%$ is the discretisation of the $0.977$~mm grid.
+The correction also dissolved a long-standing puzzle in the repository: the spatial and
+Fourier engines had been pinned as disagreeing in amplitude by a ``non-constant''
+$3$--$5\times$; that was the $1/v$ factor across the velocities of the reference set, and
+the two engines' amplitudes now agree to $0.95 \pm 0.05$, independent of $v$. The Fourier
+engine on the same $\varphi$ scores $r = -0.79$, $-0.68$, $-0.64$ at lags of $1.4$, $2.6$,
+$0.9$~ms (Fig.~\ref{fig:first}b).
 
 \begin{figure}[tbp]
 \centering
 \figorbox[width=\textwidth]{fig_first_principles}
 \caption{First principles. (a) The closed-form line-source SFAP and the spatial engine,
 three junction positions. (b) The Fourier engine against the same oracle. (c) The
-engine-to-oracle amplitude ratio follows $1/v$ (ratio $\times v = 0.994$ at every $v$).
-(d) The net source current at every instant is zero to machine precision once the
-junction and end terms are included; the propagating tripoles alone leave $39\%$.}
+engine-to-oracle amplitude ratio: $0.994$--$0.995$ at every $v$ after the correction
+described in the text; the dashed $1/v$ is what the uncorrected engine gave. (d) The net source
+current at every instant is zero to machine precision once the junction and end terms
+are included; the propagating tripoles alone leave $39\%$.}
 \label{fig:first}
 \end{figure}
 
@@ -588,11 +684,13 @@ at all depths, which is how earlier reports of ``$r \approx 0.99$'' were obtaine
 
 \paragraph{Timing and symmetries.} Isolating the end-of-fibre component by subtracting
 the same fibre with the tendon moved $60$~mm further, its onset lands at $10.26$ and
-$15.39$~ms for $L/v = 10$ and $15$ in the pipeline; in the Farina generator it leads by up
-to $2.5$~ms. Conduction velocity from a four-electrode array is $3.94$~m/s (pipeline) and
-$3.83$~m/s (Farina) for $v=4$. Rotating the electrode by $30^\circ$ equals rotating the
+$15.39$~ms for $L/v = 10$ and $15$ in the pipeline (within $0.4$~ms; $0.6$~ms across a
+nine-electrode array, where the threshold crossing depends on the local waveform); in the
+Farina generator it leads by up to $2.5$~ms. Conduction velocity from a four-electrode
+array is $3.98$~m/s (pipeline) and $3.83$~m/s (Farina) for $v=4$. Rotating the electrode by $30^\circ$ equals rotating the
 fibre ($r=1.000$, peak within $1\%$); shifting it $20$~mm along the axis equals shifting the
-sampling window ($r=0.996$--$0.999$, the residual being the $240$~mm mesh's end effect);
+sampling window ($r=0.996$--$0.999$, the residual being the $240$~mm mesh's end effect
+\citep{lowery2002multiple});
 and the lead field between two interior points is reciprocal to $1.35\%$.
 
 \subsection{Tier B: MUAP features against the literature}
@@ -625,7 +723,7 @@ pipeline, with arrays and montages built by translating the lead field
   radius; a $5$~mm disc is $-2.8$~dB at $100$~cycles/m \citep{merletti2019tutorial};
   single-differential amplitude doubles from IED $2.5$ to $5$~mm and saturates beyond
   $10$~mm; with a single travelling wave, the two electrodes of a bipolar pair see
-  shift-copies to $1.4\times10^{-3}$, so the montage is the textbook comb filter with
+  shift-copies to $2.2\times10^{-3}$ ($1.4\times10^{-3}$ without the monopole fit), so the montage is the textbook comb filter with
   nulls at $n\,v/\mathrm{IED}$ \citep{lindstrom1977interpretation, lynn1978influence}.
 \item \emph{Anisotropy} elongates the lead field along the fibres by exactly $\sqrt{5}$ in
   the infinite medium and by $1.5$ in the layered cylinder.
@@ -637,9 +735,10 @@ pipeline, with arrays and montages built by translating the lead field
 \figorbox[width=\textwidth]{fig_physical_time}
 \caption{Physical time on a finite-element lead field (fibre 10~mm deep, tendons at
 $\pm60$~mm, $v = 4$~m/s). (a) Monopolar SFAPs along a nine-electrode array with hard
-tendons: the propagating lobe walks at $|z|/v$ (a fit gives $4.04$~m/s) while the
-end-of-fibre potential starts at $15.4$--$15.6$~ms on every channel ($L/v = 15$~ms; spread
-$0.24$~ms). (b) The single-differential montage vanishes and reverses at the innervation
+tendons: the propagating lobe walks at $|z|/v$ (a fit gives $4.04$~m/s; the guide is drawn
+at $|z|/v + 1.0$~ms because the negative phase trails the wave front by the action
+potential's rise) while the end-of-fibre potential starts at $15.4$--$15.6$~ms on every
+channel ($L/v = 15$~ms; spread $0.24$~ms). (b) The single-differential montage vanishes and reverses at the innervation
 zone. (c) The same array with the one-sided tendon window of the golden recipe: the
 end-of-fibre potential falls from $0.16$ to $0.10$ of the propagating amplitude.}
 \label{fig:phys}
@@ -648,10 +747,18 @@ end-of-fibre potential falls from $0.16$ to $0.10$ of the propagating amplitude.
 \begin{figure}[tbp]
 \centering
 \figorbox[width=\textwidth]{fig_validation_features}
-\caption{MUAP features against the literature. Depth law (log--log), fat attenuation
-against \citet{kuiken2003effect}, end-of-fibre ratio against depth, conduction velocity
-recovered against set, the single-differential array across the innervation zone, and the
-transverse spread of monopolar and single-differential signals.}
+\caption{MUAP features against the literature (fibre $10$~mm below the skin unless
+stated; $v = 4$~m/s). (a) Depth law of the peak-to-peak amplitude (log--log) for the
+pipeline (monopolar and single-differential), the Farina generator and the FEM pipeline,
+with fitted exponents. (b) RMS retained against subcutaneous fat thickness, analytical
+model against the finite-element points of \citet{kuiken2003effect}; FEM pipeline
+(golden and Butterworth-smoothed) and Farina generator at $2$--$8$~mm, each relative to
+its thinnest case. (c) End-of-fibre to propagating amplitude ratio against depth
+(junction $20$~mm and near tendon $40$~mm from the electrode). (d) Conduction velocity
+recovered from a four-channel single-differential array against the set value.
+(e) The monopolar and single-differential array across the innervation zone (IED
+$10$~mm). (f) Transverse spread of monopolar and single-differential amplitude for a
+fibre $15$~mm deep.}
 \label{fig:features}
 \end{figure}
 
@@ -668,22 +775,32 @@ frequency at moderate drive is $77$~Hz (mean $81$~Hz); larger units give larger 
 ($\rho = 0.98$). The chain-level checks pass: orderly recruitment, onion skin, EMG rising
 with drive, force monotone and calibrated to $100\%$~MVC at full drive, conduction
 velocity $4.33$~m/s read off the HD grid ($4.1$--$4.9$ over all $100$ units, $10$~mm
-inter-electrode distance), a localised MUAP footprint (peak/mean RMS $2.2$), and an
-$8.7\times$ amplitude modulation across a movement. Amplitude cancellation is flagged
-($68\%$ already at $20\%$ drive against $\approx33\%$ in \citet{keenan2005influence});
-see Sec.~\ref{sec:limits}.
+inter-electrode distance) for a set $4.0$~m/s --- the $8$--$24\%$ overestimate is the
+apparent velocity $v/\cos\theta$ of fibres running $5$--$25^\circ$ to the grid columns
+(the same estimator recovers $3.98$ on the cylinder, and inclination bias of this size is
+documented \citep{mesin2007estimation}); the check's criterion is the physiological band
+--- a localised MUAP footprint (peak/mean RMS $2.2$), an $8.7\times$ amplitude
+modulation across a movement, and a MUAP scale inside the physiological band (median
+peak-to-peak $23.6$~$\mu$V, range $0.7$--$160$~$\mu$V, median duration $18$~ms, against
+tens to hundreds of microvolts and $5$--$20$~ms \citep{merletti2019tutorial}). Amplitude
+cancellation is flagged ($68\%$ already at $20\%$ drive against $\approx33\%$ in
+\citet{keenan2005influence}); see Sec.~\ref{sec:limits}.
 
 \subsection{MRI tier}
 \label{sec:tierMRI}
-A fresh solve of the WR forearm model reproduces the lead fields distributed with the
-NeuroDec digital twin \citep{maksymenko2023myoelectric} for the same subject at
-$|r| = 1.000$ for all $105$ electrodes and $100$ fibres --- the volume conductor is the
-same physics on the same anatomy. On the same anatomy the harmonic fibres are contained
-in the muscle mask for $99.9\%$ of their length ($96.7\%$ for straight fibres), and the
-mesh-resolution study of the earlier pipeline gave $r = 0.9998$ between $10^{5}$ and
-$2\times10^{6}$-cell meshes.
+The NeuroDec digital twin \citep{maksymenko2023myoelectric} distributed, for subject WR,
+the reciprocal lead field of each of its $105$ skin electrodes sampled along $100$ fibre
+paths. Re-solving the same mesh with our solver and sampling the same paths
+(\texttt{scripts/validation/mri\_neurodec\_check.py}; artefact
+\texttt{docs/validation/neurodec\_wr.json}) gives a signed correlation of $0.9994$ on
+average ($0.9989$--$0.9999$ over the $105$ electrodes) and an amplitude ratio of $1.13$
+(median; $1.03$--$1.23$), i.e.\ the same field up to a $13\%$ scale that we attribute to
+the source normalisation and skin shell of the two solvers --- the volume conductor is the
+same physics on the same anatomy. On that anatomy the harmonic fibres are contained in
+the muscle mask for $99.96\%$ of their length ($96.6\%$ for straight fibres). A mesh
+refinement study of the $42{,}315$-cell forearm mesh against a finer one has not been
+done and is listed in Sec.~\ref{sec:limits}.
 
-\FloatBarrier
 % ================================================================ 8
 \section{Released datasets}
 \label{sec:datasets}
@@ -693,7 +810,7 @@ reference material: every array can be regenerated from the repository.
 
 \begin{table}[t]
 \centering\small
-\caption{Datasets released with the report (float32, NumPy \texttt{.npz} with a JSON
+\caption{Datasets released with the paper (float32, NumPy \texttt{.npz} with a JSON
 manifest each; $8$~MB in total).}
 \label{tab:data}
 \begin{tabular}{lp{86mm}r}
@@ -712,13 +829,12 @@ name & contents & size \\
 \label{sec:limits}
 We list these in the order we would fix them.
 \begin{enumerate}
-\item \textbf{Amplitude constant.} The engine computes $(\mathbf{C}\boldsymbol\varphi)\Delta z / v$,
-  dividing by $v$ once too often: $\mathbf{C}$ is already the second spatial derivative,
-  so for a spatially fixed action potential the potential does not depend on $v$. The
-  ratio to first principles is exactly $1/v$. A physiological dependence on conduction
-  velocity \citep{nandedkar1983simulation} should come from stretching the action
-  potential in space with $v$, not from a prefactor. Absolute amplitudes in this report
-  should be read with that factor in mind.
+\item \textbf{Conduction velocity and amplitude.} With the constant corrected, the
+  engine's amplitude is independent of $v$ because its action potential is fixed in
+  space. Physiologically the action potential is fixed in \emph{time} and a faster fibre
+  carries a longer wave, which is why single-fibre amplitude falls with conduction
+  velocity \citep{nandedkar1983simulation}; reproducing that requires stretching the
+  action potential in space with $v$, a modelling choice we have not yet made.
 \item \textbf{Fourier engine.} Given a lead field, it is anti-phase and lagged relative
   to the line-source integral, and its end-of-fibre onset is early. We suspect the
   orientation and sign conventions of the action potential in the Radon formulation
@@ -738,20 +854,25 @@ We list these in the order we would fix them.
   against the analytical model's spectral truncation). The source width does explain a
   different discrepancy --- the transverse footprint (Fig.~\ref{fig:leadfield}c) --- so
   the cylinder tier should move to a $1$~mm source, or a true surface patch.
-\item \textbf{MUAP scale and fibre geometry.} With the grid centred on the muscle, the
-  forearm pool's MUAPs span $0.17$--$40$~$\mu$V (median $5.9$) and last $18$~ms; real
-  surface MUAPs are tens to hundreds of microvolts (the largest $1$--$2$~mV) and
-  $5$--$20$~ms. The duration is now in range; the amplitude is several times low, of
-  which the $1/v$ constant (item 1) accounts for a factor $\approx4$ and the rest is the
-  straight, full-length, constant-depth fibre geometry that the series-fibering
-  experiment addresses. Amplitude cancellation inherits it ($68\%$ at $20\%$ drive, where
-  \citet{keenan2005influence} give $33\%$): $100$ units firing $18$~ms MUAPs overlap more
-  than a real pool's. We note for the record that an earlier grid layout in the
-  repository (electrodes snapped to mesh vertices, its centre $17$~mm off the muscle) gave
-  $0.6$~$\mu$V and $33$~ms --- an electrode-placement artefact that was first read as a
-  model property; the sanity suite's ``C-04'' flag is now the amplitude only.
+\item \textbf{MUAP scale and fibre geometry.} With the constant corrected and the grid
+  centred on the muscle, the forearm pool's MUAPs span $0.7$--$160$~$\mu$V (median $24$)
+  and last $18$~ms, inside the band of recorded surface MUAPs (tens to hundreds of
+  microvolts, $5$--$20$~ms), though the largest units stay below the $1$--$2$~mV that
+  the largest superficial units reach in recordings, and the amplitude carries the
+  $\sigma_{\mathrm{in}}\pi a^{2}$ caveat of Sec.~\ref{sec:golden}. What remains is
+  geometric: straight, full-length, constant-depth fibres give a surface field broader
+  than a real unit's, which the series-fibering experiment addresses. Amplitude
+  cancellation inherits it ($68\%$ at $20\%$ drive, where \citet{keenan2005influence} give
+  $33\%$): $100$ units firing $18$~ms MUAPs from shared fibres overlap more than a real
+  pool's. We note for the record that an earlier grid layout in the repository
+  (electrodes snapped to mesh vertices, its centre $17$~mm off the muscle) combined with
+  the uncorrected constant gave $0.6$~$\mu$V and $33$~ms, and was first read as a model
+  property.
 \item \textbf{Pool.} The Gaussian renewal process has no refractory floor
   ($1.6\%$ of intervals below $20$~ms at $40$~pps).
+\item \textbf{Forearm mesh resolution.} The $42{,}315$-cell forearm mesh has not been
+  checked against a refined one; given that mesh structure in $\varphi$ is what limits the
+  recipe's amplitude on finite-element fields (item 3), that study is due.
 \item \textbf{No experimental confrontation yet.} The next validation step is
   spike-triggered surface MUAPs from decomposed HD-EMG on the same subject against the
   MRI pipeline, with the normalised error and correlation targets of
@@ -759,7 +880,7 @@ We list these in the order we would fix them.
 \end{enumerate}
 
 % ================================================================ 10
-\section{Conclusion}
+\section{Conclusion and outlook}
 \emgforge{} is a forward model whose every step can be tested, and has been. The
 synthesis recipe at its centre is the line-source integral done carefully --- a
 monopole-fitted lead field, a second-derivative source, a one-sided tendon window and
@@ -768,6 +889,17 @@ model's mistakes, and we have listed them rather than smoothed them over. The co
 validation suite and the datasets are public so that both the results and the open
 items can be checked.
 
+Three uses are immediate. The interference-EMG trials of Sec.~\ref{sec:datasets} carry
+ground-truth spike trains, unit properties and a full provenance record, which is what a
+decomposition benchmark such as MUniverse \citep{mamidanna2025muniverse} consumes; an
+exporter to its BIDS-based layout is the natural next step. The lead fields of the
+parametric limb are the training data for neural-operator surrogates
+\citep{halatsis2026neural}, and the validation tiers here give those surrogates a
+signal-level target (the SFAP, not only the field) to be held against. And a forward
+model that is exact against first principles is the reference that model-informed
+decomposition \citep{halatsis2025bmiss} needs when it inverts a learned MUAP generator:
+the generator can be checked against this chain before it is inverted.
+
 \section*{Code and data availability}
 Code: \repo{} (MIT), branch \path{paper/arxiv-v1}. The validation suite is
 \path{scripts/validation/run_all.py}; the figure and dataset scripts are in
@@ -775,11 +907,21 @@ Code: \repo{} (MIT), branch \path{paper/arxiv-v1}. The validation suite is
 
 \section*{Author contributions}
 D.H. designed and implemented the pipeline, the golden method, the activation layer, the
-validation suite and wrote the report. \collab{} developed the harmonic-streamline fibre
-geometry. Contributions of P.~[surname] and D.F. to be stated by the authors.
+validation suite and wrote the paper. N.E.-N. developed the harmonic-streamline fibre
+geometry. Contributions of P.M. and D.F. to be stated by the authors.
 
 \FloatBarrier
 \bibliographystyle{unsrtnat}
 \bibliography{refs}
+
+\clearpage
+\appendix
+\section{The validation checks}
+\label{app:checks}
+Table~\ref{tab:checks} lists every check of the suite with its criterion and the measured
+result, generated from the suite's JSON records (\texttt{paper/make\_checks\_table.py}).
+\small
+\IfFileExists{checks_table.tex}{\input{checks_table}}{\emph{(table not generated yet)}}
+\normalsize
 
 \end{document}

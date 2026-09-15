@@ -114,7 +114,11 @@ manifest = dict(
     recipe=dict(engine="emgforge.synthesis.engines.spatial.compute_sfap_spatial", config=recipe,
                 steps=["monopole denoise of φ (3 free poles + offset)", "edge taper 5/10 samples", "2× cubic upsampling",
                        "CSD = σ_in π a² ∂²V_m/∂z² by numerical differentiation of the full bidirectional field",
-                       "one-sided tendon window (α = 0.25)", "SFAP = (CSD @ φ) dz / v, physical time"]),
+                       "one-sided tendon window (α = 0.25)",
+                       "SFAP = (CSD @ φ) dz, physical time (no 1/v; corrected 2026-09-15)"],
+                amplitude_note="sfap_analytical / sfap_fem are on the corrected spatial engine (spurious /v removed "
+                               "2026-09-15; engine/oracle amplitude ratio 0.994 at every v): ×v = ×4 larger than the "
+                               "v1 atlas; farina_muap is unchanged"),
     frame_check=frame_check, runtime_s=round(runtime, 1), generator="paper/figures/make_dataset_d1.py",
 )
 (OUT / "cylinder_sfap_atlas.json").write_text(json.dumps(manifest, indent=1))

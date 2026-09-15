@@ -101,10 +101,11 @@ ax.plot(xi, ddvm / np.abs(ddvm).max(), color=COL["fourier"], lw=0.9, label="$V_m
 ax.axhline(0, color="0.85", lw=0.5, zorder=0)
 for x_, s_, y_ in zip(NUM["iap"]["d2vm_lobes_mm"], ("+", "−", "+"), (1.12, -0.72, 0.26)):
     ax.text(x_, y_, s_, fontsize=8, ha="center", va="center", color=COL["fourier"])
-ax.set_xlim(0, 12); ax.set_ylim(-1.15, 1.2)
+ax.set_xlim(0, 12); ax.set_ylim(-1.25, 1.2)
 ax.set_xlabel("ξ = v t − |z − z$_{NMJ}$| (mm)"); ax.set_ylabel("normalised")
-ax.legend(loc="upper right", handlelength=1.5, borderaxespad=0.1)
-ax.text(0.98, 0.42, "$V_m$ = 96 ξ³e$^{-ξ}$ mV", transform=ax.transAxes, fontsize=6.5, ha="right", va="top")
+# legend lower right (all three curves have decayed there) so the +/− lobe markers stay clear of it
+ax.legend(loc="lower right", handlelength=1.5, borderaxespad=0.1, fontsize=6.5, labelspacing=0.3)
+ax.text(0.98, 0.97, "$V_m$ = 96 ξ³e$^{-ξ}$ mV", transform=ax.transAxes, fontsize=6.5, ha="right", va="top")
 letter(ax, "a", dx=-0.25)
 
 # (b) CSD images
@@ -148,7 +149,9 @@ ax.axvline(0, color="0.85", lw=0.5, zorder=0)
 ax.text(0, 1.06, "NMJ", fontsize=6, ha="center", va="bottom", color="0.3")
 ax.set_xlim(-70, 70); ax.set_ylim(-0.05, 1.2); ax.set_xticks([-60, -30, 0, 30, 60])
 ax.set_xlabel("z − z$_{NMJ}$ (mm)"); ax.set_ylabel("fibre-end window")
-ax.legend(loc="lower center", ncol=1, handlelength=1.6, borderaxespad=0.1, fontsize=6.2, bbox_to_anchor=(0.5, 0.02))
+# the tukey window dips to 0 at the NMJ, so no in-axes spot is free of data: legend floats above the axes
+ax.legend(loc="lower right", bbox_to_anchor=(1.0, 1.0), ncol=1, handlelength=1.6, borderaxespad=0.0, fontsize=6.2,
+          labelspacing=0.25)
 letter(ax, "c", dx=-0.25)
 
 # (d) φ and φ''
@@ -161,7 +164,10 @@ for name in ("FEM φ, raw", "analytical φ", "FEM φ, monopole-denoised (n = 3)"
     axd2.plot(z_e, phi_dd[name] / np.abs(phi_dd["analytical φ"][core]).max(), color=colr[name], lw=lw)
 axd1.set_xlim(-60, 60); axd1.set_ylim(-0.1, 1.12)
 axd1.set_ylabel("φ (norm.)"); axd1.tick_params(labelbottom=False)
-axd1.legend(loc="upper right", handlelength=1.4, borderaxespad=0.1, fontsize=6, labelspacing=0.2)
+# φ fills the whole panel (0.15 at the edges, 1 at the peak): legend floats above the axes, one column
+# (a two-column version reaches into the gutter and collides with the panel letter of (e))
+axd1.legend(loc="lower left", bbox_to_anchor=(0.0, 1.0), ncol=1, handlelength=1.4, borderaxespad=0.0, fontsize=6,
+            labelspacing=0.25, handletextpad=0.5)
 axd2.axhline(0, color="0.85", lw=0.5, zorder=0)
 axd2.set_ylim(-4.2, 3.2)
 axd2.set_ylabel("φ'' (norm.)"); axd2.set_xlabel("z (mm)"); axd2.set_xticks([-60, -30, 0, 30, 60])
@@ -174,10 +180,11 @@ ax.plot(t, normed(s_raw), color=COL["raw"], lw=1.4, label=f"FEM φ, no denoise (
 ax.plot(t, normed(s_ana), color=COL["analytical"], lw=0.9, label="analytical φ (reference)")
 ax.plot(t, normed(s_den), color=COL["fem"], lw=0.9, ls="--", label=f"FEM φ, golden (r = {NUM['sfap_r30_nmj-20']['r_den_vs_ana']:.3f})")
 ax.axhline(0, color="0.85", lw=0.5, zorder=0)
-ax.set_xlim(-2, 30); ax.set_ylim(-1.15, 1.35)
+ax.set_xlim(-2, 30); ax.set_ylim(-1.6, 1.35); ax.set_yticks([-1, -0.5, 0, 0.5, 1])
 ax.set_xlabel("t (ms), t = 0 at the NMJ"); ax.set_ylabel("SFAP (norm.)")
 ax.legend(loc="upper right", handlelength=1.4, borderaxespad=0.1, fontsize=6, labelspacing=0.2)
-ax.text(0.02, 0.03, f"r = 30 mm, NMJ at −20 mm, fibre [−60, 60]\njaggedness {NUM['sfap_r30_nmj-20']['jaggedness_raw']:.3f} → "
+# text box in the head-room below the −1 trough so it never touches the traces
+ax.text(0.02, 0.02, f"r = 30 mm, NMJ at −20 mm, fibre [−60, 60]\njaggedness {NUM['sfap_r30_nmj-20']['jaggedness_raw']:.3f} → "
         f"{NUM['sfap_r30_nmj-20']['jaggedness_den']:.3f}", transform=ax.transAxes, fontsize=6, ha="left", va="bottom", color="0.3")
 letter(ax, "e", dx=-0.25)
 

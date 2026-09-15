@@ -138,26 +138,30 @@ for k, (r, c) in enumerate(curves.items()):
 ax.axhline(0, color="0.8", lw=0.5, zorder=0)
 ax.set_xlim(-80, 96); ax.set_ylim(-0.06, 1.1)
 ax.set_xlabel("z along the fibre (mm)"); ax.set_ylabel("φ / max φ (baseline removed)")
-ax.legend(loc="upper left", handlelength=1.8, borderaxespad=0.2)
+ax.legend(loc="upper left", bbox_to_anchor=(0.0, 1.0), handlelength=1.8, borderaxespad=0.0, fontsize=6.5, labelspacing=0.3)
+# FWHM table pinned to the top-right corner, right of the legend (the peak at z = 0 sits between them)
 txt = "FWHM (mm)  ana / FEM\n" + "\n".join(f"{40 - r:>2.0f} mm deep: {c['fwhm_ana']:>3.0f} / {c['fwhm_fem']:>3.0f}"
                                            for r, c in curves.items())
-ax.text(0.985, 0.97, txt, transform=ax.transAxes, fontsize=6, ha="right", va="top", family="DejaVu Sans Mono")
-ax.text(0.985, 0.62, "electrode at z = 0, θ = 0", transform=ax.transAxes, fontsize=6, ha="right", va="top", color="0.35")
+ax.text(0.99, 0.99, txt, transform=ax.transAxes, fontsize=6, ha="right", va="top", family="DejaVu Sans Mono")
+ax.text(0.99, 0.62, "electrode at z = 0, θ = 0", transform=ax.transAxes, fontsize=6, ha="right", va="top", color="0.35")
 letter(ax, "b", dx=-0.14)
 
 # (c) transverse ---------------------------------------------------------------------
 ax = fig.add_subplot(gs[1, 0])
-ax.fill_between(s_fem, prof_fem, prof_fem_alt, color=COL["fem"], alpha=0.18, lw=0)
-ax.plot(s_fem, prof_fem, color=COL["fem"], lw=1.0, label="FEM, σ = 5 mm electrode source")
+ax.fill_between(s_fem, prof_fem, prof_fem_alt, color=COL["fem"], alpha=0.18, lw=0, label="FEM baseline uncertainty")
+ax.plot(s_fem, prof_fem, color=COL["fem"], lw=1.0, label="FEM, σ = 5 mm source")
 s_c = np.deg2rad(THETAS[sel]) * 30.0
 ax.plot(np.r_[-s_c[:0:-1], s_c], np.r_[pk["sigma1"][:0:-1], pk["sigma1"]], "s", ms=2.6, mfc="none",
-        color=COL["fem"], mew=0.8, label="FEM, σ = 1 mm electrode source")
+        color=COL["fem"], mew=0.8, label="FEM, σ = 1 mm source")
 ax.plot(s_ana2, prof_ana2, "o", ms=2.8, mfc="none", color=COL["analytical"], mew=0.8, label="analytical, Ø10 mm disc")
 ax.axhline(0.5, color="0.8", lw=0.5, zorder=0)
-ax.set_xlim(-48, 48); ax.set_ylim(0, 1.06)
+# head-room above the peak holds the two-column legend; the FWHM note sits below it at the left,
+# above the flanks of the profiles — nothing overlaps the data
+ax.set_xlim(-48, 48); ax.set_ylim(0, 1.3); ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
 ax.set_xlabel("transverse arc length s = rθ at r = 30 mm (mm)"); ax.set_ylabel("peak φ / peak φ(θ = 0)")
-ax.legend(loc="lower center", handlelength=1.6, borderaxespad=0.3, fontsize=6.5)
-ax.text(0.02, 0.97, f"FWHM: FEM {NUM['transverse_r30']['fwhm_arc_fem_mm']:.0f} mm,\nanalytical "
+ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.0), ncol=2, handlelength=1.6, borderaxespad=0.1, fontsize=6.2,
+          labelspacing=0.3, columnspacing=1.2, handletextpad=0.5)
+ax.text(0.02, 0.8, f"FWHM: FEM {NUM['transverse_r30']['fwhm_arc_fem_mm']:.0f} mm,\nanalytical "
         f"{NUM['transverse_r30']['fwhm_arc_ana_mm']:.0f} mm", transform=ax.transAxes, fontsize=6, ha="left", va="top", color="0.35")
 sec = ax.secondary_xaxis("top", functions=(lambda s: np.rad2deg(s / 30.0), lambda d: np.deg2rad(d) * 30.0))
 sec.set_xlabel("θ (deg)", fontsize=7, labelpad=1); sec.tick_params(labelsize=6)
