@@ -32,9 +32,12 @@ def run(script: Path) -> int:
 
 
 def report() -> str:
+    import os
+    bank = os.environ.get("EMGFORGE_MUAP_BANK", "legacy grid (_results/mu_pool)")
     lines = ["# emgforge validation report", "",
              f"Generated {time.strftime('%Y-%m-%d %H:%M')} by `scripts/validation/run_all.py`. "
-             "Plan and rationale: `docs/validation/PLAN.md`; literature: `docs/validation/BIBLIOGRAPHY.md`.", ""]
+             "Plan and rationale: `docs/validation/PLAN.md`; literature: `docs/validation/BIBLIOGRAPHY.md`. "
+             f"Tiers C/S MUAP bank: `{bank}`.", ""]
     totals = []
     for tier, _, title, fig in TIERS:
         recs = [r for r in json.loads((OUT / f"{tier}.json").read_text()) if r["tier"] == tier]

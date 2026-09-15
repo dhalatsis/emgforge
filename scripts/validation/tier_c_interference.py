@@ -24,11 +24,12 @@ from emgforge.activation.pool import ISI_CV
 
 T = "C"
 FS_C = 2048.0
-pn = np.load(ROOT / "_results/mu_pool/spatial/mu_pool.npz")
-muaps = pn["muap_wave"]                                  # (100, 256) @ 2048 Hz, monopolar
-gt = np.load(ROOT / "_results/mu_pool/electrode_grid/muap_tensor_L8_M5.npz")
-Wg, sizes = gt["W"], gt["sizes"]                         # (42, 25, 256), fibres per MU
+from muap_bank import load_bank                          # EMGFORGE_MUAP_BANK selects the bank
+B = load_bank(ROOT)
+muaps = B.muaps                                          # (100, 256) @ 2048 Hz, monopolar, volts
+Wg, sizes = B.W, B.sizes                                 # (n_mu, 25, 256), fibres per MU
 pool = MotoneuronPool(n_mu=len(muaps), fs=FS_C)
+print(f"MUAP bank: {B.name}\n")
 print("=" * 74); print("Tier C — interference EMG & motor-unit pool vs the literature"); print("=" * 74, "\n")
 
 

@@ -83,7 +83,7 @@ check(T, "B1 monopolar SFAP over the fibre (between IZ and tendon) is triphasic 
       "+ − + with the largest lobe negative (depolarised zone under the electrode). The Farina port's propagating "
       "main lobe is POSITIVE: its output polarity is inverted relative to the textbook — the same anti-phase "
       "relation tier A0.3 finds against first principles (its EOF spike, being negative, hid this when tendons were near)",
-      refs="Merletti & Muceli 2019 Fig. 2; Dimitrova & Dimitrov 2013; Rosenfalck 1969")
+      refs="Merletti & Muceli 2019 Fig. 2; Arabadzhiev 2013; Rosenfalck 1969")
 
 # =========================================================================== B2
 cvs = {}
@@ -155,7 +155,7 @@ check(T, "B4b EOF / propagating amplitude ratio increases monotonically with dep
       bool(np.all(np.diff(ratio_d) > 0)),
       f"ratio at depth-below-skin 7/10/13/15/20 mm = {np.round(ratio_d, 3).tolist()}",
       "monotone increase (the propagating part decays faster than the far-field EOF)",
-      refs="Dimitrova & Dimitrov 2013; Merletti & Muceli 2019 Fig. 5 (comparable at ~22 mm); Campanini 2022")
+      refs="Arabadzhiev 2013; Merletti & Muceli 2019 Fig. 5 (comparable at ~22 mm); Campanini 2022")
 
 # (c) montage ordering mono > SD > DD
 ratio_m = {}

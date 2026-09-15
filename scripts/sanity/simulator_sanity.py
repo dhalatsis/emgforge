@@ -45,15 +45,15 @@ def check(name, passed, measured, expect, note="", known=False):
 
 
 # ----------------------------------------------------------------------------- load
-pn = np.load(ROOT / "_results/mu_pool/spatial/mu_pool.npz")
-muaps1 = pn["muap_wave"]                                     # (100, 256) @ 2048 Hz
-p2p, dur = pn["p2p"], pn["duration_ms"]
-gt = np.load(ROOT / "_results/mu_pool/electrode_grid/muap_tensor_L8_M5.npz")
-Wg, M = gt["W"], int(gt["M"])                               # (42, 25, 256)
-elec = np.load(ROOT / "_results/mu_pool/electrode_grid/_phigrid_M5_dt15_z0.30-0.70_N637.npz",
-               allow_pickle=True)["elec_xyz"]
-ied_z = float(np.median(np.linalg.norm(np.diff(elec, axis=0), axis=2)))   # mm, along fibre
+import sys as _sys; _sys.path.insert(0, str(ROOT / "scripts/validation"))
+from muap_bank import load_bank                              # EMGFORGE_MUAP_BANK selects the bank
+B = load_bank(ROOT)
+muaps1 = B.muaps                                             # (100, 256) @ 2048 Hz, volts
+p2p, dur = B.p2p, B.duration_ms
+Wg, M = B.W, B.M                                             # (n_mu, M*M, 256)
+ied_z = B.ied_z                                              # mm, along fibre
 pool = MotoneuronPool(n_mu=len(muaps1), fs=FS)
+print(f"MUAP bank: {B.name}")
 
 print("=" * 74)
 print("emgforge — simulator sanity checks   (physics/physiology of the full chain)")
@@ -157,7 +157,7 @@ def column_cv(mu):
 cv_list = [(mu, *c) for mu in range(Wg.shape[0])
            if (c := column_cv(mu)) is not None and c[2] > 0.9]   # (mu, score, cv, r2)
 cvs = np.array([c[2] for c in cv_list])
-sz = gt["sizes"][[c[0] for c in cv_list]]
+sz = B.sizes[[c[0] for c in cv_list]]
 cv_med = float(np.median(cvs))
 corr_sz = float(np.corrcoef(sz, cvs)[0, 1])                 # ~0 → single model CV, no diameter scaling
 mu_rep = max(cv_list, key=lambda c: c[1])[0]               # strongest signal, for the figure/selectivity

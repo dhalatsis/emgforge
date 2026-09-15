@@ -1,0 +1,570 @@
+{
+  "fig6_mri_fibres": {
+    "fibre_model_build_s": 12.319540023803711,
+    "harmonic_bed_build_s": {
+      "default_2mm": 11.896156787872314,
+      "dense": 87.34148812294006
+    },
+    "harmonic_seed_grid_mm": {
+      "default": 2.0,
+      "dense": 0.5
+    },
+    "fem_build_s": 5.959937810897827,
+    "fem_solve_s": 0.7088668346405029,
+    "grid": {
+      "fcu_ang_deg": 75.62447619501819,
+      "zc_mm": 167.253307915,
+      "limb_centre_xy": [
+        72.61824131025604,
+        73.67506883850665
+      ],
+      "ied_along_mm": 10.149999285616673,
+      "ied_across_mm": 9.963590533321547,
+      "ied_along_range": [
+        10.026767258481769,
+        10.568793873903331
+      ],
+      "ied_across_range": [
+        9.670742422248928,
+        9.998090438896373
+      ]
+    },
+    "electrode_xyz": [
+      80.85846041950141,
+      105.8256154306172,
+      167.253307915
+    ],
+    "harmonic_default_2mm": {
+      "n_fibres": 52,
+      "containment": 0.9995384792892581,
+      "span_median": 0.846164677465105,
+      "length_mean_mm": 165.79325306373872
+    },
+    "n_fibres_poisson": 637,
+    "n_fibres_harmonic": 827,
+    "containment_poisson": 0.9657927786499215,
+    "containment_harmonic": 0.9996205958105022,
+    "harmonic_fraction_fibres_fully_inside": 0.9443772672309553,
+    "poisson_fibre_length_mm": {
+      "mean": 203.6068155876409,
+      "min": 202.74658449682016,
+      "max": 206.0039372578567,
+      "half_mm": 99.50000000000001
+    },
+    "harmonic_fibre_length_mm": {
+      "mean": 164.85812401991794,
+      "median": 193.37474444979458,
+      "min": 70.8186114928155,
+      "max": 194.91294621482234
+    },
+    "harmonic_span_fraction": {
+      "median": 0.8462377094052469,
+      "q25": 0.5319446501891523,
+      "q75": 0.8483774919068052,
+      "min": 0.311652696941838,
+      "max": 0.8511895097447274,
+      "frac_above_0p8": 0.6227327690447401
+    },
+    "poisson_span_fraction": {
+      "median": 0.8868389087621824,
+      "min": 0.8826105983664538,
+      "max": 0.8907430455116843
+    },
+    "fcu_z_extent_mm": 222.0,
+    "harmonic_nmj": {
+      "iz_fraction_mean": 0.49965191510002427,
+      "iz_fraction_std": 0.0022792184481200684,
+      "z_mean": 165.4565126005833,
+      "z_std": 1.1815301584281455,
+      "z_range": [
+        162.5854243636149,
+        168.41150222055813
+      ],
+      "z_spread_fraction_of_muscle": 0.02624359395019479
+    },
+    "poisson_nmj": {
+      "iz_fraction": 0.305,
+      "z_mean": 126.1,
+      "z_std": 0.0
+    },
+    "poisson_bed": {
+      "density_per_mm2": 4.0,
+      "area_mm2": 205.76894867584804,
+      "z_range": [
+        65.1,
+        264.1
+      ],
+      "dz_mm": 1.0
+    },
+    "slice_eval_s": 5.584510087966919,
+    "phi_fibres": [
+      {
+        "fibre": 18,
+        "depth_mm": 3.7791458599339602,
+        "phi_peak_mV": 27.729786349889803,
+        "xy_mid": [
+          80.21223267771883,
+          102.32116046814048
+        ]
+      },
+      {
+        "fibre": 340,
+        "depth_mm": 10.300460362304488,
+        "phi_peak_mV": 14.762679764237792,
+        "xy_mid": [
+          87.76864703016383,
+          98.49676356252586
+        ]
+      },
+      {
+        "fibre": 632,
+        "depth_mm": 16.675580483917315,
+        "phi_peak_mV": 8.83003644469163,
+        "xy_mid": [
+          94.92899249122341,
+          97.06257054759871
+        ]
+      }
+    ],
+    "side_view_axis": "x",
+    "harmonic_lateral_excursion_mm": {
+      "x": 17.411946772611163,
+      "y": 13.768531939918192
+    },
+    "poisson_lateral_excursion_mm": {
+      "x": 22.682893179414833,
+      "y": 17.778188868553613
+    },
+    "total_s": 32.99446678161621
+  },
+  "fig7_mu_pool_muaps": {
+    "tensor_source": "new",
+    "grid_note": "regular 5\u00d75 grid, 10 mm IED along (z) and across (arc length), ray-cast onto the mesh skin surface over FCU (f2_common.grid_electrodes)",
+    "n_mu": 100,
+    "n_bed_fibres": 637,
+    "electrode_xyz": [
+      80.85846041950141,
+      105.8256154306172,
+      167.253307915
+    ],
+    "sizes": {
+      "min": 5,
+      "median": 66.0,
+      "max": 395,
+      "total": 11207,
+      "mean": 112.07
+    },
+    "territory_radius_mm": {
+      "min": 0.621001008582044,
+      "median": 2.9124120518390733,
+      "max": 13.75820610737551
+    },
+    "fibre_sharing": {
+      "frac_bed_fibres_in_any_mu": 1.0,
+      "mean_mus_per_fibre": 17.593406593406595,
+      "max_mus_per_fibre": 32
+    },
+    "muap_p2p_uV": {
+      "min": 0.16872036208313315,
+      "median": 5.900858474036407,
+      "max": 39.89591560682439,
+      "range_fold": 236.46177091041673
+    },
+    "muap_duration_ms": {
+      "min": 13.671875,
+      "median": 18.06640625,
+      "max": 22.4609375
+    },
+    "depth_mm": {
+      "min": 3.563539655774464,
+      "median": 9.85604740720499,
+      "max": 15.96565171537031
+    },
+    "p2p_vs_size": {
+      "slope": 1.0397174389230406,
+      "intercept": -7.136425580730074,
+      "r": 0.9518794369399702,
+      "slope_depth_controlled": 1.0573973277058972,
+      "depth_coef_per_mm": -0.05966894241855425
+    },
+    "picks": {
+      "small": {
+        "mu": 6,
+        "size": 6,
+        "p2p_uV": 0.41406563873926544,
+        "duration_ms": 19.04296875,
+        "depth_mm": 10.560163570125763,
+        "rte": 0.0041542692046181535
+      },
+      "medium": {
+        "mu": 58,
+        "size": 86,
+        "p2p_uV": 7.077208579426881,
+        "duration_ms": 18.06640625,
+        "depth_mm": 11.21891722415431,
+        "rte": 0.13710954365433828
+      },
+      "large": {
+        "mu": 95,
+        "size": 355,
+        "p2p_uV": 28.227287818063306,
+        "duration_ms": 18.5546875,
+        "depth_mm": 13.446552391089709,
+        "rte": 0.6385807506769918
+      }
+    },
+    "rte": {
+      "first": 0.0,
+      "last": 0.7499999999999999
+    },
+    "p2p_of_first_last_uV": [
+      0.3507984584436268,
+      39.89591560682439
+    ],
+    "total_s": 10.224136352539062
+  },
+  "fig8_hdemg_activation": {
+    "tensor_source": "new",
+    "grid_note": "regular 5\u00d75 grid, 10 mm IED along (z) and across (arc length), ray-cast onto the mesh skin surface over FCU (f2_common.grid_electrodes)",
+    "n_grid_mus": 100,
+    "ied_mm": {
+      "along": 10.149999285616673,
+      "across": 9.963590533321547,
+      "along_range": [
+        10.026767258481769,
+        10.568793873903331
+      ],
+      "across_range": [
+        9.670742422248928,
+        9.998090438896373
+      ]
+    },
+    "cv": {
+      "median_m_per_s": 4.328614323733245,
+      "min": 4.075921281753518,
+      "max": 4.949332984986416,
+      "n_mus_r2_above_0p9": 100,
+      "n_mus_total": 100,
+      "corr_size_cv": -0.38526789118397625,
+      "set_cv": 4.0,
+      "mu_rep": 99,
+      "mu_rep_size": 395,
+      "mu_rep_cv": 4.282381148034156,
+      "mu_rep_column": 2,
+      "mu_rep_selectivity_peak_over_mean_rms": 2.160376471638094,
+      "mu_rep_p2p_uV_range": [
+        2.1293615456534436,
+        39.89591560682439
+      ]
+    },
+    "recruitment": {
+      "n_active_at_levels": {
+        "0.1": 51,
+        "0.2": 67,
+        "0.35": 81,
+        "0.5": 89,
+        "0.7": 98,
+        "1.0": 100
+      },
+      "rte_first": 0.0,
+      "rte_last": 0.7499999999999999,
+      "peak_rate_first_hz": 40.0,
+      "peak_rate_last_hz": 30.0,
+      "min_rate_first_hz": 10.0,
+      "min_rate_last_hz": 5.0
+    },
+    "trial_gen_s": 1.2424583435058594,
+    "rms_vs_drive_uV": {
+      "0.1": 3.3841439449981405,
+      "0.2": 6.796236156982087,
+      "0.35": 11.689807341192049,
+      "0.5": 18.364637591731228,
+      "0.7": 25.25544943526053,
+      "1.0": 33.19060000237653
+    },
+    "force_vs_drive_pct_mvc": {
+      "0.1": {
+        "mean": 7.365470337897542,
+        "p95": 8.125907990661092
+      },
+      "0.2": {
+        "mean": 15.578764673866432,
+        "p95": 16.52880890756053
+      },
+      "0.35": {
+        "mean": 29.834662143791498,
+        "p95": 31.676593969760138
+      },
+      "0.5": {
+        "mean": 45.7801877028542,
+        "p95": 47.53525992727571
+      },
+      "0.7": {
+        "mean": 68.59115054833984,
+        "p95": 70.89877272988869
+      },
+      "1.0": {
+        "mean": 99.62097419738356,
+        "p95": 101.61145194222041
+      }
+    },
+    "n_active_vs_drive": {
+      "0.1": 53,
+      "0.2": 68,
+      "0.35": 81,
+      "0.5": 90,
+      "0.7": 98,
+      "1.0": 100
+    },
+    "trapezoid": {
+      "rise_s": 0.5,
+      "hold_s": 2.0,
+      "fall_s": 0.5,
+      "lead_s": 0.2,
+      "common_drive": {
+        "sigma": 0.015,
+        "cutoff_hz": 2.0
+      },
+      "fs": 2048.0,
+      "n_samples": 6554
+    },
+    "dynamic_gen_s": 0.2879297733306885,
+    "dynamic": {
+      "duration_s": 6.0,
+      "cycles": 2,
+      "drive_sigma": 0.012,
+      "drive_seed": 1,
+      "amp_gain": 0.8,
+      "warp_gain": 0.22,
+      "rms_flexed_uV": 22.71407571036077,
+      "rms_extended_uV": 2.6237281648844055,
+      "rms_flexed_over_extended": 8.657175699206435,
+      "n_active": 90,
+      "drive_range": [
+        0.08085683366112438,
+        0.5090998260835843
+      ]
+    },
+    "hdemg_snippet": {
+      "level": 0.35,
+      "t0_s": 1.39990234375,
+      "t1_s": 2.0,
+      "mono_max_uV": 45.897276931521326,
+      "sd_max_uV": 43.62280327933124,
+      "sd_column": 2,
+      "grid_rms_uV_min": 2.2460475773750086,
+      "grid_rms_uV_max": 12.67818311845836
+    },
+    "total_s": 4.6669323444366455
+  },
+  "datasets_d2_d3": {
+    "tensor_source": "new",
+    "grid_note": "regular 5\u00d75 grid, 10 mm IED along (z) and across (arc length), ray-cast onto the mesh skin surface over FCU (f2_common.grid_electrodes)",
+    "n_grid_mus": 100,
+    "D2": {
+      "file": "/home/dc23/projects/emgforge/_results/paper/datasets/forearm_fcu_mu_pool.npz",
+      "size_MB": 2.4,
+      "muap_grid_coverage": "all 100 MUs",
+      "shapes": {
+        "mu_sizes": [
+          100
+        ],
+        "mu_fibre_idx": [
+          100,
+          395
+        ],
+        "mu_centre_xy": [
+          100,
+          2
+        ],
+        "mu_territory_radius_mm": [
+          100
+        ],
+        "mu_recruitment_order": [
+          100
+        ],
+        "mu_recruitment_threshold_excitation": [
+          100
+        ],
+        "mu_peak_rate_hz": [
+          100
+        ],
+        "mu_min_rate_hz": [
+          100
+        ],
+        "mu_twitch_peak": [
+          100
+        ],
+        "mu_twitch_contraction_time_ms": [
+          100
+        ],
+        "muap_single": [
+          100,
+          256
+        ],
+        "muap_grid": [
+          100,
+          25,
+          256
+        ],
+        "muap_grid_mu_index": [
+          100
+        ],
+        "t_ms": [
+          256
+        ],
+        "elec_xyz": [
+          25,
+          3
+        ],
+        "elec_grid_xyz": [
+          5,
+          5,
+          3
+        ],
+        "fs": [],
+        "bed_xy_mid": [
+          637,
+          2
+        ],
+        "bed_paths": [
+          637,
+          200,
+          3
+        ],
+        "bed_arc_dz_mm": [
+          637
+        ],
+        "bed_length_mm": [
+          637
+        ],
+        "fcu_centroid_xy": [
+          2
+        ]
+      }
+    },
+    "D3": {
+      "file": "/home/dc23/projects/emgforge/_results/paper/datasets/interference_emg_trials.npz",
+      "size_MB": 4.14,
+      "emg_grid_coverage": "all 100 MUs",
+      "shapes": {
+        "levels": [
+          6
+        ],
+        "drive": [
+          6,
+          6554
+        ],
+        "emg_single": [
+          6,
+          6554
+        ],
+        "emg_grid": [
+          6,
+          25,
+          6554
+        ],
+        "emg_grid_mu_index": [
+          100
+        ],
+        "force": [
+          6,
+          6554
+        ],
+        "spikes": [
+          6,
+          100,
+          117
+        ],
+        "spike_counts": [
+          6,
+          100
+        ],
+        "t_s": [
+          6554
+        ],
+        "dyn_angle": [
+          12288
+        ],
+        "dyn_drive": [
+          12288
+        ],
+        "dyn_emg": [
+          12288
+        ],
+        "dyn_amp": [
+          12288
+        ],
+        "dyn_warp": [
+          12288
+        ],
+        "dyn_spikes": [
+          100,
+          150
+        ],
+        "dyn_spike_counts": [
+          100
+        ],
+        "dyn_t_s": [
+          12288
+        ],
+        "fs": []
+      },
+      "n_active_per_level": {
+        "0.1": 53,
+        "0.2": 68,
+        "0.35": 81,
+        "0.5": 90,
+        "0.7": 98,
+        "1.0": 100
+      },
+      "n_active_on_grid_per_level": {
+        "0.1": 53,
+        "0.2": 68,
+        "0.35": 81,
+        "0.5": 90,
+        "0.7": 98,
+        "1.0": 100
+      },
+      "plateau_rms_single_uV": {
+        "0.1": 3.3841439449981405,
+        "0.2": 6.796236156982087,
+        "0.35": 11.689807341192049,
+        "0.5": 18.364637591731228,
+        "0.7": 25.25544943526053,
+        "1.0": 33.19060000237653
+      },
+      "plateau_rms_grid_mean_uV": {
+        "0.1": 2.272754813084702,
+        "0.2": 4.463404433720735,
+        "0.35": 8.093823076518074,
+        "0.5": 12.828873173560083,
+        "0.7": 18.094723819635064,
+        "1.0": 23.520082040996385
+      },
+      "plateau_force_pct_mvc": {
+        "0.1": 7.365470337897542,
+        "0.2": 15.578764673866432,
+        "0.35": 29.834662143791498,
+        "0.5": 45.7801877028542,
+        "0.7": 68.59115054833984,
+        "1.0": 99.62097419738356
+      },
+      "max_spikes_per_mu": 117,
+      "dynamic_rms_flexed_over_extended": 8.657175699206435,
+      "dynamic_n_active": 90
+    },
+    "runtimes": {
+      "fem_build_s": 3.4907519817352295,
+      "solve_s_per_electrode": 0.27848817825317385,
+      "phi_sampling_s_per_electrode": 6.135043077468872,
+      "tensor_wall_s": 1349.42121219635,
+      "tensor_cpu_s": 12120.548736095428,
+      "tensor_s_per_mu_min_max": [
+        3.9766626358032227,
+        425.43891167640686
+      ],
+      "datasets_total_s": 9.304970264434814
+    }
+  }
+}

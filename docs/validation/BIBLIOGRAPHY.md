@@ -48,7 +48,7 @@ only be read in abstract, that is said. Check IDs (A0.1, B4b, …) refer to
   Bounded anisotropic cylinder + finite fibre; verified against surface MUAPs ("very good
   resemblance"); finite limb dimensions *enhance* the end-of-fibre effect. → **B4**.
 - **Roeleveld, Stegeman et al. 1997a/b**, *Acta Physiol Scand* 160:175 and 161:465;
-  **Roeleveld & Stegeman 2001**, *J Electromyogr Kinesiol* (PMID 11369265); **Blok, Stegeman
+  **Roeleveld, Blok, Stegeman & van Oosterom 1997**, *J Electromyogr Kinesiol* 7:221 (PMID 11369265); **Blok, Stegeman
   & van Oosterom 2002**, *Ann Biomed Eng* 30:566. 52 biceps MUs, 36-channel sEMG + scanning
   EMG: MUP amplitude vs depth is an inverse power law (bipolar steeper than monopolar);
   MU depth ≈ 0.2 × the surface width over which the MUP exceeds 50 % of its maximum; *all*
@@ -76,7 +76,7 @@ only be read in abstract, that is said. Check IDs (A0.1, B4b, …) refer to
   analytic solutions available for checking numerics (Clark & Plonsey 1968 infinite
   isotropic; Farina & Merletti 2001 planar; Gootzen 1991 / Blok 2002 / Farina 2004
   cylindrical). End-of-fibre components "have approximately constant amplitude on
-  different channels". **Mesin 2006** (PMID 17070925): pennation biases surface CV
+  different channels". **Mesin, Damiano & Farina 2007** (J Neurosci Methods 160:327; PMID 17070925): pennation biases surface CV
   estimates (15° → 4.7–4.9 m/s for a true 4.0). **Mesin 2013** *Comput Biol Med* 43:942/953
   reviews. → **A0, B4a, B2**.
 - **Carriou et al. 2016**, *Comput Biol Med* 74:54: fast HD-sEMG cylinder model;
@@ -138,7 +138,7 @@ only be read in abstract, that is said. Check IDs (A0.1, B4b, …) refer to
 | Gabriel-1996-based, 100 Hz | ≈1.33 | 0.267 | 0.021 | **4.6×10⁻⁴** | separate cortical/cancellous |
 
 Anisotropy ratio: 5 (Gielen 1984, macroscopic) to 16 (Rush 1963). The skin value is the
-largest disagreement in the field; Roeleveld & Stegeman 2001 and Blok 2002 show a distinct
+largest disagreement in the field; Roeleveld et al. 1997 (JEK) and Blok 2002 show a distinct
 thin skin layer changes the lateral decay enough to matter against data.
 
 ---
@@ -149,7 +149,7 @@ thin skin layer changes the lateral decay enough to matter against data.
 |---|---|---|---|
 | Fibre conduction velocity | ≈4 m/s, range 3–5; populations 4.55 ± 0.33 (Zwarts 1988), 2.6–5.3 (Andreassen & Arendt-Nielsen 1987); CV(m/s) = 0.043·D(µm) + 0.83 (Blijham 2006); 3.4 %/°C (Troni 1991) | Merletti & Muceli 2019 | A2.4, B2, S5 |
 | CV from arrays | cross-correlation of SD/DD channels on one side of the IZ; SD 0.1–0.2 m/s; IED > 10 mm unsuitable | Farina & Merletti 2004 | A2.4, B2 |
-| Monopolar SFAP between IZ and tendon | triphasic + − +, dominant negative phase | Merletti & Muceli 2019 Fig. 2; Dimitrova & Dimitrov 2013 | B1 |
+| Monopolar SFAP between IZ and tendon | triphasic + − +, dominant negative phase | Merletti & Muceli 2019 Fig. 2; Arabadzhiev 2013 | B1 |
 | Surface MUAP duration | ≈15 ms for an SD MUAP of a 60 mm fibre at 4 m/s; ~20 ms typical | Merletti & Muceli 2019; Farina 2014 | B7, S8 |
 | Intramuscular MUAP / SFAP | needle MUAP 8–15 ms, ~0.5 mV; SFAP > 200 µV, rise < 300 µs from fibres within 0.3 mm | Dumitru 1999; SFEMG guidelines 2019 | — |
 | End-of-fibre component | same latency on all channels; onset at L/CV; present in monopolar, reduced by SD, further by DD; EOF/propagating grows with depth, comparable at ~22 mm | Merletti & Muceli 2019 §2.2.2; Gootzen 1991; Roeleveld 1998; Rodriguez-Falces & Place 2018 | A2.3, B4a–c |
@@ -170,7 +170,7 @@ thin skin layer changes the lateral decay enough to matter against data.
 | Amplitude PDF | between Laplacian and Gaussian; super-Gaussian at ≤ 10 % MVC; ≈ Gaussian above 40–50 %; ARV/RMS 0.71–0.80 | Clancy & Hogan 1999; Nazarpour 2013 | C4 |
 | Firing rates / ISI | 5–40 pps; onion skin; ISI CoV 0.1–0.3; refractory ~20 ms | De Luca & Hostage 2010; Dideriksen 2012 | C1, C2, S1–2 |
 | Recruitment / twitch | thresholds right-skewed; twitch range ≈100× | Fuglevand 1993 | C3 |
-| Pennation | 15° inclination → CV overestimated 15–25 %; DD least biased | Mesin 2006 | (future) |
+| Pennation | 15° inclination → CV overestimated 15–25 %; DD least biased | Mesin et al. 2007 | (future) |
 | Reciprocity / superposition / translation | Helmholtz reciprocity (Malmivuo & Plonsey eq. 11.30); linearity; z-invariance of layered conductors | Plonsey 1963; Farina & Merletti 2001 | A0.4b–c, A3 |
 
 ---
@@ -185,7 +185,7 @@ thin skin layer changes the lateral decay enough to matter against data.
 6. Propagating vs non-propagating behaviour — Gootzen 1991, Dimitrov 1998, Mesin 2005 → **A2.3, B4**.
 7. Layer material vs distance sign checks — Lowery 2002, Kuiken 2003 → **B11**.
 8. Electrode / spatial-filter transfer functions — Farina & Merletti 2001, Lynn 1978 → **B8–B10**.
-9. CV recovery — Merletti 1999 II, Farina 2002, Mesin 2006 → **A2.4, B2, S5**.
+9. CV recovery — Merletti 1999 II, Farina 2002, Mesin et al. 2007 → **A2.4, B2, S5**.
 10. Single-fibre scaling laws — Nandedkar & Stålberg 1983 → **A0.2, A0.4d**.
 11. Source-level plausibility — Rosenfalck, Wallinga 1985 → **A0.1** (IAP fixed by the engines).
 12. Surface MUAP shape vs recordings with known geometry — Griep 1982, Merletti 1999 II, Lowery 2004, Botelho 2019 → **not yet**: needs the WR HD-sEMG units (see PLAN.md, next steps).
@@ -219,7 +219,7 @@ et al. 2016 (PMID 27183535) · Ma et al. 2022 (PMID 34529557); Ma et al. 2024 Bi
 15:e1007267 · Teklemariam et al. 2016 (PMC4757537) · Klotz et al. 2020 (PMID 31529291); OpenDiHu
 2024 (S187775032400084X) · Keenan et al. 2005 (PMID 15377649); Keenan & Valero-Cuevas 2007 (doi
 10.1152/jn.00577.2007) · Hamilton-Wright & Stashuk 2005 (PMID 15709654) · Dimitrov & Dimitrova
-1998 (PMID 9773690; 10098616); Dimitrova & Dimitrov 2013 (doi 10.1007/s11517-013-1037-6) ·
+1998 (PMID 9773690; 10098616); Arabadzhiev 2013 (doi 10.1007/s11517-013-1037-6) ·
 Dimitrov et al. 2008 (PMID 16963280) · Petersen & Rostalski 2019 *Front Physiol* 10:176; Petersen
 2016 (Lübeck IME) · Arjunan et al. 2020 (PMID 31774372) · Rosenfalck 1969; Andreassen &
 Rosenfalck 1981 (PMID 7044677) · Nandedkar & Stålberg 1983 (doi 10.1007/BF02441531) · Griep et

@@ -74,7 +74,7 @@ criterion (so it flips to PASS when fixed), and does not fail the tier.
 | B2 | CV from an SD array tracks the set CV at 3/4/5 m/s | within 5 % | Farina & Merletti 2004; Zwarts 1988 |
 | B3 | IZ signature: monopolar mirror symmetry; SD null (< 5 %) and phase reversal on the IZ | as stated | Masuda 1983/85 |
 | B4a | EOF is non-propagating: same onset on all electrodes | spread < 0.5 ms | Mesin 2005 |
-| B4b | EOF/propagating ratio increases with depth | monotone | Dimitrova & Dimitrov 2013 |
+| B4b | EOF/propagating ratio increases with depth | monotone | Arabadzhiev 2013 |
 | B4c | mono > SD > DD for the EOF ratio | strict | Roeleveld 1998; Farina 2002 |
 | B5 | amplitude vs depth is a power law, SD steeper than mono (pipeline, Farina, FEM) | R² > 0.95 | Roeleveld 1997a; Fuglevand 1992 |
 | B6 | transverse spread: mono ≥ SD, widths grow with depth; Roeleveld's depth ≈ 0.2 × 50 %-width reported | as stated | Roeleveld 1997b/2013 |
