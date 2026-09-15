@@ -1,0 +1,1671 @@
+{
+  "default_n_mu_20": {
+    "tag": "L8_5x5_ied10_mu20",
+    "command": "python scripts/run_pipeline.py --workers 2 --key-json paper/figures/key_numbers_pipeline.json --key-section default_n_mu_20 --note cold run, all defaults (20 units); two other FEM jobs were running on the same machine",
+    "note": "cold run, all defaults (20 units); two other FEM jobs were running on the same machine",
+    "muscle": {
+      "label": 8,
+      "name": "FlexorCarpiUlnaris"
+    },
+    "args": {
+      "seg": "/home/dc23/projects/emgforge/src/emgforge/mri/data/forearm_WR_segmentation.nii.gz",
+      "muscle": 8,
+      "grid": "5x5",
+      "ied": 10.0,
+      "n_mu": 20,
+      "fs": 2048.0,
+      "workers": 2,
+      "out": null,
+      "seed": 0,
+      "cache": false,
+      "no_verify": false,
+      "no_leadfields": false,
+      "note": "cold run, all defaults (20 units); two other FEM jobs were running on the same machine",
+      "target_z": 1.5,
+      "edge_length": 0.03,
+      "surface_faces": 50000,
+      "smooth_iters": 10,
+      "skin_shell": 1.5,
+      "sigma_mode": "centerline",
+      "source_sigma": 5.0,
+      "zc_frac": 0.5,
+      "density": 4.0,
+      "iz_frac": 0.305,
+      "iz_jitter": 0.02,
+      "cv": 4.0,
+      "w": 256,
+      "levels": "0.1,0.2,0.35,0.5,0.7,1.0",
+      "rise": 0.5,
+      "hold": 2.0,
+      "fall": 0.5,
+      "lead": 0.2,
+      "common_drive": 0.015,
+      "drive_cutoff": 2.0,
+      "key_json": "paper/figures/key_numbers_pipeline.json",
+      "key_section": "default_n_mu_20",
+      "table": null
+    },
+    "environment": {
+      "host": "DESKTOP-QK68QVA",
+      "cpu": "Intel(R) Core(TM) i7-7800X CPU @ 3.50GHz",
+      "n_cpu": 12,
+      "mem_gb": 65.7,
+      "python": "3.12.2",
+      "workers": 2,
+      "versions": {
+        "numpy": "1.26.4",
+        "scipy": "1.13.1",
+        "dolfinx": "0.7.3",
+        "petsc4py": "3.20.5",
+        "pytetwild": "0.4.2",
+        "nibabel": "5.3.3",
+        "trimesh": "4.11.2",
+        "skimage": "0.26.0"
+      },
+      "git_commit": "a0570c8"
+    },
+    "sizes": {
+      "n_voxels": 6144000,
+      "seg_shape": [
+        320,
+        320,
+        60
+      ],
+      "n_cells": 44972,
+      "n_vertices": 10688,
+      "n_electrodes": 25,
+      "grid": [
+        5,
+        5
+      ],
+      "n_fibres": 637,
+      "n_points_per_fibre": 200,
+      "n_mu": 20,
+      "fibres_in_pool": 1967,
+      "n_samples": 6554,
+      "n_levels": 6,
+      "w": 256,
+      "fs": 2048.0
+    },
+    "stages": [
+      {
+        "key": "mesh",
+        "name": "Mesh",
+        "what": "resample the labels, marching cubes on the tissue mask, smooth and decimate the surface, fTetWild tetrahedra, tissue tag per cell from the label under its centroid",
+        "io": "320\u00d7320\u00d760 voxels \u2192 44,972 tetrahedra, 10,688 nodes",
+        "wall_s": 38.978,
+        "cached": false,
+        "sizes": {
+          "seg_shape": [
+            320,
+            320,
+            60
+          ],
+          "voxel_mm": [
+            0.4375,
+            0.4375,
+            6.0
+          ],
+          "metadata": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu20/mesh_metadata.json",
+          "seg_shape_resampled": [
+            320,
+            320,
+            240
+          ],
+          "voxel_size_mm": [
+            0.4375,
+            0.4375,
+            1.5
+          ],
+          "n_labels": 21,
+          "n_surface_faces_raw": 400884,
+          "n_surface_vertices": 25001,
+          "n_surface_faces": 49998,
+          "n_vertices": 10688,
+          "n_tets": 44972,
+          "tissue_tets": {
+            "background": 830,
+            "fat_skin": 24499,
+            "connective": 0,
+            "muscle": 18073,
+            "bone": 1570
+          },
+          "build_params": {
+            "target_z": 1.5,
+            "edge_length": 0.03,
+            "surface_faces": 50000,
+            "smooth_iters": 10
+          }
+        },
+        "notes": {}
+      },
+      {
+        "key": "fibre_config",
+        "name": "Fibre directions",
+        "what": "PCA fibre direction and smoothed per-slice centreline of every muscle label \u2192 the fibre-aligned (5:1) conductivity tensor of each muscle",
+        "io": "21 labels \u2192 17 muscles, 17 centrelines",
+        "wall_s": 2.091,
+        "cached": false,
+        "sizes": {
+          "config": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu20/fibres.json",
+          "n_labels": 21,
+          "n_muscles": 17,
+          "n_centerlines": 17,
+          "n_bone": 2,
+          "n_fat": 2,
+          "seg_shape": [
+            320,
+            320,
+            60
+          ],
+          "voxel_size_mm": [
+            0.4375,
+            0.4375,
+            6.0
+          ]
+        },
+        "notes": {}
+      },
+      {
+        "key": "geometry",
+        "name": "Muscle geometry",
+        "what": "ray-cast boundary radius of each muscle cross-section per slice \u2192 the morphing-disk frame that carries a fibre through the muscle",
+        "io": "17 centrelines \u2192 17 cross-section models",
+        "wall_s": 3.651,
+        "cached": false,
+        "sizes": {
+          "n_cross_sections": 17,
+          "muscle": "FlexorCarpiUlnaris",
+          "label": 8,
+          "z_span_mm": 222.0,
+          "fibre_angle_from_z_deg": 8.477088355676184,
+          "n_theta": null
+        },
+        "notes": {}
+      },
+      {
+        "key": "bed",
+        "name": "Fibre bed",
+        "what": "Poisson-disk sampling of the muscle cross-section at the set density; one curved morphing-disk path per fibre from tendon to tendon",
+        "io": "FlexorCarpiUlnaris, 206 mm\u00b2 \u2192 637 fibres \u00d7 200 points (204 mm long)",
+        "wall_s": 1.143,
+        "cached": false,
+        "sizes": {
+          "n_fibres": 637,
+          "n_points_per_fibre": 200,
+          "density_per_mm2": 4.0,
+          "area_mm2": 205.76894867584804,
+          "fibre_length_mm_mean": 203.6068155876409,
+          "fibre_length_mm_range": [
+            202.74658449682016,
+            206.0039372578567
+          ],
+          "arc_dz_mm_mean": 1.0231498270735724,
+          "centroid_xy": [
+            79.23533436610442,
+            99.49272681287906
+          ]
+        },
+        "notes": {}
+      },
+      {
+        "key": "pool",
+        "name": "Motor-unit pool",
+        "what": "exponential Henneman size distribution; each unit's territory grown around a random anchor fibre until it holds its fibres; index = size rank = recruitment order",
+        "io": "637 fibres \u2192 20 units of 5\u2013301 fibres",
+        "wall_s": 0.002,
+        "cached": false,
+        "sizes": {
+          "n_mu": 20,
+          "sizes_min_median_max": [
+            5,
+            62.5,
+            301
+          ],
+          "fibres_total": 1967,
+          "n_fibres_used": 634,
+          "territory_radius_mm_range": [
+            0.6214318383859286,
+            12.317674279995476
+          ]
+        },
+        "notes": {}
+      },
+      {
+        "key": "fem_build",
+        "name": "Volume conductor",
+        "what": "conductivity tensor per cell from its tissue tag (muscle tensors rotated onto the centreline tangent), a skin shell inside the fat, FEniCSx spaces and search trees",
+        "io": "44,972 cells \u2192 44,972 \u03c3 tensors, 10,688 dofs",
+        "wall_s": 3.752,
+        "cached": false,
+        "sizes": {
+          "n_cells": 44972,
+          "n_vertices": 10688,
+          "n_dofs": 10688,
+          "n_skin_cells": 4628,
+          "skin_shell_mm": 1.5,
+          "sigma_mode": "centerline"
+        },
+        "notes": {}
+      },
+      {
+        "key": "electrodes",
+        "name": "Electrode grid",
+        "what": "M\u00d7N grid ray-cast onto the skin surface over the muscle: rows IED apart along the arm, columns IED apart along the skin arc, centred on the limb-axis \u2192 muscle ray",
+        "io": "11,016 skin triangles \u2192 25 electrodes (5\u00d75, 10.1\u00d710.0 mm)",
+        "wall_s": 2.652,
+        "cached": false,
+        "sizes": {
+          "M": 5,
+          "N": 5,
+          "n_electrodes": 25,
+          "ied_mm": 10.0,
+          "fcu_ang_deg": 75.62447619501819,
+          "muscle_ang_deg": 75.62447619501819,
+          "zc_mm": 167.24377749,
+          "limb_centre_xy": [
+            72.61824131025604,
+            73.67506883850665
+          ],
+          "ied_along_mm": 10.139857912075248,
+          "ied_across_mm": 9.962012705502215,
+          "ied_along_range": [
+            10.029128966722519,
+            10.600896069649371
+          ],
+          "ied_across_range": [
+            9.616505367299583,
+            9.998900086864078
+          ],
+          "n_skin_triangles": 11016
+        },
+        "notes": {}
+      },
+      {
+        "key": "leadfields",
+        "name": "Lead fields",
+        "what": "one reciprocity solve per electrode (zero-mean Gaussian source at the skin point, GMRES/ILU); \u03c6 sampled along every fibre of the bed",
+        "io": "25 solves \u2192 \u03c6 bank 25\u00d7637\u00d7200",
+        "wall_s": 12.292,
+        "cached": false,
+        "sizes": {
+          "n_solves": 25,
+          "phi_shape": [
+            25,
+            637,
+            200
+          ],
+          "locate_s": 5.623136281967163,
+          "solve_s_per_electrode": 0.1900223159790039,
+          "sample_s_per_electrode": 0.041249141693115235,
+          "source_sigma_mm": 5.0,
+          "phi_peak_mV_median": 10.229102629507828
+        },
+        "notes": {}
+      },
+      {
+        "key": "condition",
+        "name": "Lead-field conditioning",
+        "what": "the recipe's denoising: a free-position 3-monopole fit of each \u03c6(z) that removes mesh ripple before the second derivative \u2014 once per electrode\u2013fibre pair",
+        "io": "25\u00d7637 \u03c6(z) \u2192 15,925 monopole fits",
+        "wall_s": 221.136,
+        "cached": false,
+        "sizes": {
+          "n_fits": 15925,
+          "n_poles": 3,
+          "cpu_s": 426.7026717662811,
+          "ms_per_fit": 26.794516280457213
+        },
+        "notes": {}
+      },
+      {
+        "key": "muaps",
+        "name": "MUAPs",
+        "what": "per unit and electrode: line-source integral of the current-source density of a Rosenfalck action potential (both directions from the NMJ, one-sided tendon window) against \u03c6 over the unit's fibres; physical time, t = 0 at the NMJ",
+        "io": "\u03c6 + 20 units \u2192 MUAP tensor 20\u00d725\u00d7256 (49,175 SFAPs)",
+        "wall_s": 127.715,
+        "cached": false,
+        "sizes": {
+          "tensor_shape": [
+            20,
+            25,
+            256
+          ],
+          "n_sfaps": 49175,
+          "cpu_s": 246.00521612167358,
+          "ms_per_sfap": 5.00264801467562,
+          "s_per_mu_min_max": [
+            0.5619668960571289,
+            36.61384963989258
+          ],
+          "t_ms_range": [
+            -10.0,
+            114.51171875
+          ],
+          "config": {
+            "butterworth_cutoff": 0.03,
+            "butterworth_order": 2,
+            "edge_taper_left": 5,
+            "edge_taper_right": 10,
+            "upsample_factor": 2,
+            "denoise": "monopole",
+            "denoise_n_poles": 3,
+            "fiber_window": "one_sided",
+            "tukey_alpha": 0.25,
+            "v": 4.0,
+            "sigma_in": 1.0,
+            "fiber_radius_mm": 0.05,
+            "polarity": 1,
+            "csd_derivative": 2,
+            "fsamp": 2048.0,
+            "w": 256,
+            "center_time": false,
+            "t_start_ms": -10.0
+          },
+          "iz_frac": 0.305,
+          "iz_jitter": 0.02,
+          "cv_m_s": 4.0
+        },
+        "notes": {
+          "recipe_check": {
+            "mu": 0,
+            "size": 5,
+            "max_abs_diff_V": 0.0,
+            "p2p_max_V": 2.6400609572594607e-06,
+            "identical": true
+          }
+        }
+      },
+      {
+        "key": "activation",
+        "name": "Activation",
+        "what": "motoneuron pool (recruitment thresholds, onion-skin rate coding, renewal ISIs) \u2192 spikes; twitch model \u2192 force; spikes convolved with the MUAPs \u2192 EMG on the grid, one trapezoid per drive level",
+        "io": "6 trapezoids \u00d7 3.2 s \u2192 EMG 25\u00d76554 per level, force, 6,450 spikes",
+        "wall_s": 0.361,
+        "cached": false,
+        "sizes": {
+          "n_levels": 6,
+          "levels": [
+            0.1,
+            0.2,
+            0.35,
+            0.5,
+            0.7,
+            1.0
+          ],
+          "n_samples": 6554,
+          "duration_s": 3.2001953125,
+          "fs": 2048.0,
+          "trapezoid": {
+            "lead_s": 0.2,
+            "rise_s": 0.5,
+            "hold_s": 2.0,
+            "fall_s": 0.5
+          },
+          "common_drive": {
+            "sigma": 0.015,
+            "cutoff_hz": 2.0
+          },
+          "n_active_per_level": [
+            10,
+            13,
+            16,
+            18,
+            19,
+            20
+          ],
+          "n_spikes_per_level": [
+            344,
+            559,
+            883,
+            1210,
+            1590,
+            1864
+          ]
+        },
+        "notes": {}
+      }
+    ],
+    "totals": {
+      "stages_wall_s": 413.8,
+      "command_wall_s": 414.6,
+      "cpu_s_conditioning": 426.7026717662811,
+      "cpu_s_muaps": 246.00521612167358
+    },
+    "sanity": {
+      "muap_p2p_uV": {
+        "per_mu_max_over_grid": {
+          "min": 2.6400609572594607,
+          "median": 28.997899111004894,
+          "max": 153.31019625070974
+        },
+        "all_pairs_median": 5.71325635634199,
+        "centre_electrode_median": 23.37425019483424,
+        "centre_electrode_index": 12
+      },
+      "muap_duration_ms_median": 19.53125,
+      "iz_plane_z_mm": 126.1,
+      "grid_z_range_mm": [
+        147.24377749,
+        187.24377749
+      ],
+      "cv_readoff": {
+        "column": 2,
+        "ied_along_mm": 10.139857912075248,
+        "v_set_m_s": 4.0,
+        "expected_row_lag_ms": 2.534964478018812,
+        "sample_ms": 0.48828125,
+        "cos_alpha": 0.9614900914295743,
+        "fibre_angle_under_grid_deg": 15.952455422917433,
+        "montages": {
+          "monopolar": {
+            "n_mu_used": 18,
+            "mu_used": [
+              1,
+              2,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ],
+            "v_median_m_s": 4.376546793674287,
+            "v_median_corrected_m_s": 4.2080063767957,
+            "v_iqr_m_s": [
+              4.32428339590225,
+              4.473834758326154
+            ],
+            "v_min_max_m_s": [
+              4.210629418599572,
+              5.165494393731658
+            ],
+            "v_from_summed_muap_m_s": 4.206690095851703
+          },
+          "single_differential": {
+            "n_mu_used": 19,
+            "mu_used": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ],
+            "v_median_m_s": 4.083108778938502,
+            "v_median_corrected_m_s": 3.925868633178478,
+            "v_iqr_m_s": [
+              4.057150588954022,
+              4.177654784455789
+            ],
+            "v_min_max_m_s": [
+              3.8627018725206144,
+              4.233822037294916
+            ],
+            "v_from_summed_muap_m_s": 4.024841929864129
+          },
+          "double_differential": {
+            "n_mu_used": 19,
+            "mu_used": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ],
+            "v_median_m_s": 4.00310522780984,
+            "v_median_corrected_m_s": 3.84894601148909,
+            "v_iqr_m_s": [
+              3.975607088153575,
+              4.097008662445728
+            ],
+            "v_min_max_m_s": [
+              3.823803379107526,
+              4.216932277952751
+            ],
+            "v_from_summed_muap_m_s": 3.9521506317831
+          }
+        },
+        "v_median_m_s": 4.083108778938502,
+        "v_median_corrected_m_s": 3.925868633178478,
+        "v_iqr_m_s": [
+          4.057150588954022,
+          4.177654784455789
+        ],
+        "n_mu_used": 19,
+        "headline_montage": "single_differential"
+      },
+      "emg_vs_drive": {
+        "levels": [
+          0.1,
+          0.2,
+          0.35,
+          0.5,
+          0.7,
+          1.0
+        ],
+        "plateau_window_s": [
+          1.0,
+          2.39990234375
+        ],
+        "rms_grid_mean_uV": [
+          3.3041364792960115,
+          6.1138518911882205,
+          12.842849707054727,
+          19.00933312125496,
+          24.55129159203712,
+          36.147245609803235
+        ],
+        "rms_centre_uV": [
+          5.31227997738617,
+          10.100719757942105,
+          16.041989393162076,
+          23.07342380627801,
+          28.850450167943503,
+          43.55559170692931
+        ],
+        "force_pct_mvc": [
+          7.21731396470702,
+          14.880395082853063,
+          29.217476140808447,
+          44.938775052628685,
+          66.35454348297057,
+          100.09477632505532
+        ],
+        "n_active": [
+          10,
+          13,
+          16,
+          18,
+          19,
+          20
+        ],
+        "rms_monotonic": true,
+        "force_monotonic": true
+      }
+    },
+    "outputs": {
+      "npz": "_results/pipeline/L8_5x5_ied10_mu20/pipeline_output.npz",
+      "mesh": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu20/mesh.msh",
+      "fibre_config": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu20/fibres.json",
+      "leadfields": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu20/leadfields.npz",
+      "npz_arrays": {
+        "grid_shape": [
+          2
+        ],
+        "ied_mm": [],
+        "fs": [],
+        "muscle_label": [],
+        "elec_xyz": [
+          5,
+          5,
+          3
+        ],
+        "elec_xyz_flat": [
+          25,
+          3
+        ],
+        "bed_paths": [
+          637,
+          200,
+          3
+        ],
+        "bed_xy_mid": [
+          637,
+          2
+        ],
+        "bed_arc_dz_mm": [
+          637
+        ],
+        "bed_length_mm": [
+          637
+        ],
+        "mu_sizes": [
+          20
+        ],
+        "mu_fibre_idx": [
+          20,
+          301
+        ],
+        "mu_centre_xy": [
+          20,
+          2
+        ],
+        "mu_territory_radius_mm": [
+          20
+        ],
+        "mu_recruitment_threshold_excitation": [
+          20
+        ],
+        "muap_grid": [
+          20,
+          25,
+          256
+        ],
+        "t_ms": [
+          256
+        ],
+        "levels": [
+          6
+        ],
+        "t_s": [
+          6554
+        ],
+        "drive": [
+          6,
+          6554
+        ],
+        "emg_grid": [
+          6,
+          25,
+          6554
+        ],
+        "force": [
+          6,
+          6554
+        ],
+        "spikes": [
+          6,
+          20,
+          115
+        ],
+        "spike_counts": [
+          6,
+          20
+        ],
+        "phi_grid": [
+          25,
+          637,
+          200
+        ]
+      },
+      "units": {
+        "elec_xyz": "mm (segmentation voxel frame)",
+        "bed_paths": "mm",
+        "muap_grid": "\u00b5V, (n_mu, E, w), e = row*N + col",
+        "t_ms": "ms, t = 0 at the NMJ discharge",
+        "phi_grid": "V per unit source, (E, n_fibres, n_points)",
+        "drive": "fraction of maximal drive",
+        "emg_grid": "\u00b5V, (levels, E, T)",
+        "force": "%MVC",
+        "spikes": "sample index, -1 = padding"
+      },
+      "size_MB": 16.76
+    }
+  },
+  "n_mu_100": {
+    "tag": "L8_5x5_ied10_mu100",
+    "command": "python scripts/run_pipeline.py --n-mu 100 --workers 2 --key-json paper/figures/key_numbers_pipeline.json --key-section n_mu_100 --table paper/pipeline_table.tex --note cold run, 100 units; two other FEM jobs were running on the same machine",
+    "note": "cold run, 100 units; two other FEM jobs were running on the same machine",
+    "muscle": {
+      "label": 8,
+      "name": "FlexorCarpiUlnaris"
+    },
+    "args": {
+      "seg": "/home/dc23/projects/emgforge/src/emgforge/mri/data/forearm_WR_segmentation.nii.gz",
+      "muscle": 8,
+      "grid": "5x5",
+      "ied": 10.0,
+      "n_mu": 100,
+      "fs": 2048.0,
+      "workers": 2,
+      "out": null,
+      "seed": 0,
+      "cache": false,
+      "no_verify": false,
+      "no_leadfields": false,
+      "note": "cold run, 100 units; two other FEM jobs were running on the same machine",
+      "target_z": 1.5,
+      "edge_length": 0.03,
+      "surface_faces": 50000,
+      "smooth_iters": 10,
+      "skin_shell": 1.5,
+      "sigma_mode": "centerline",
+      "source_sigma": 5.0,
+      "zc_frac": 0.5,
+      "density": 4.0,
+      "iz_frac": 0.305,
+      "iz_jitter": 0.02,
+      "cv": 4.0,
+      "w": 256,
+      "levels": "0.1,0.2,0.35,0.5,0.7,1.0",
+      "rise": 0.5,
+      "hold": 2.0,
+      "fall": 0.5,
+      "lead": 0.2,
+      "common_drive": 0.015,
+      "drive_cutoff": 2.0,
+      "key_json": "paper/figures/key_numbers_pipeline.json",
+      "key_section": "n_mu_100",
+      "table": "paper/pipeline_table.tex"
+    },
+    "environment": {
+      "host": "DESKTOP-QK68QVA",
+      "cpu": "Intel(R) Core(TM) i7-7800X CPU @ 3.50GHz",
+      "n_cpu": 12,
+      "mem_gb": 65.7,
+      "python": "3.12.2",
+      "workers": 2,
+      "versions": {
+        "numpy": "1.26.4",
+        "scipy": "1.13.1",
+        "dolfinx": "0.7.3",
+        "petsc4py": "3.20.5",
+        "pytetwild": "0.4.2",
+        "nibabel": "5.3.3",
+        "trimesh": "4.11.2",
+        "skimage": "0.26.0"
+      },
+      "git_commit": "a0570c8"
+    },
+    "sizes": {
+      "n_voxels": 6144000,
+      "seg_shape": [
+        320,
+        320,
+        60
+      ],
+      "n_cells": 46749,
+      "n_vertices": 11022,
+      "n_electrodes": 25,
+      "grid": [
+        5,
+        5
+      ],
+      "n_fibres": 637,
+      "n_points_per_fibre": 200,
+      "n_mu": 100,
+      "fibres_in_pool": 11207,
+      "n_samples": 6554,
+      "n_levels": 6,
+      "w": 256,
+      "fs": 2048.0
+    },
+    "stages": [
+      {
+        "key": "mesh",
+        "name": "Mesh",
+        "what": "resample the labels, marching cubes on the tissue mask, smooth and decimate the surface, fTetWild tetrahedra, tissue tag per cell from the label under its centroid",
+        "io": "320\u00d7320\u00d760 voxels \u2192 46,749 tetrahedra, 11,022 nodes",
+        "wall_s": 42.35,
+        "cached": false,
+        "sizes": {
+          "seg_shape": [
+            320,
+            320,
+            60
+          ],
+          "voxel_mm": [
+            0.4375,
+            0.4375,
+            6.0
+          ],
+          "metadata": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu100/mesh_metadata.json",
+          "seg_shape_resampled": [
+            320,
+            320,
+            240
+          ],
+          "voxel_size_mm": [
+            0.4375,
+            0.4375,
+            1.5
+          ],
+          "n_labels": 21,
+          "n_surface_faces_raw": 400884,
+          "n_surface_vertices": 25001,
+          "n_surface_faces": 49998,
+          "n_vertices": 11022,
+          "n_tets": 46749,
+          "tissue_tets": {
+            "background": 917,
+            "fat_skin": 26034,
+            "connective": 0,
+            "muscle": 18267,
+            "bone": 1531
+          },
+          "build_params": {
+            "target_z": 1.5,
+            "edge_length": 0.03,
+            "surface_faces": 50000,
+            "smooth_iters": 10
+          }
+        },
+        "notes": {}
+      },
+      {
+        "key": "fibre_config",
+        "name": "Fibre directions",
+        "what": "PCA fibre direction and smoothed per-slice centreline of every muscle label \u2192 the fibre-aligned (5:1) conductivity tensor of each muscle",
+        "io": "21 labels \u2192 17 muscles, 17 centrelines",
+        "wall_s": 2.205,
+        "cached": false,
+        "sizes": {
+          "config": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu100/fibres.json",
+          "n_labels": 21,
+          "n_muscles": 17,
+          "n_centerlines": 17,
+          "n_bone": 2,
+          "n_fat": 2,
+          "seg_shape": [
+            320,
+            320,
+            60
+          ],
+          "voxel_size_mm": [
+            0.4375,
+            0.4375,
+            6.0
+          ]
+        },
+        "notes": {}
+      },
+      {
+        "key": "geometry",
+        "name": "Muscle geometry",
+        "what": "ray-cast boundary radius of each muscle cross-section per slice \u2192 the morphing-disk frame that carries a fibre through the muscle",
+        "io": "17 centrelines \u2192 17 cross-section models",
+        "wall_s": 5.99,
+        "cached": false,
+        "sizes": {
+          "n_cross_sections": 17,
+          "muscle": "FlexorCarpiUlnaris",
+          "label": 8,
+          "z_span_mm": 222.0,
+          "fibre_angle_from_z_deg": 8.477088355676184,
+          "n_theta": null
+        },
+        "notes": {}
+      },
+      {
+        "key": "bed",
+        "name": "Fibre bed",
+        "what": "Poisson-disk sampling of the muscle cross-section at the set density; one curved morphing-disk path per fibre from tendon to tendon",
+        "io": "FlexorCarpiUlnaris, 206 mm\u00b2 \u2192 637 fibres \u00d7 200 points (204 mm long)",
+        "wall_s": 1.258,
+        "cached": false,
+        "sizes": {
+          "n_fibres": 637,
+          "n_points_per_fibre": 200,
+          "density_per_mm2": 4.0,
+          "area_mm2": 205.76894867584804,
+          "fibre_length_mm_mean": 203.6068155876409,
+          "fibre_length_mm_range": [
+            202.74658449682016,
+            206.0039372578567
+          ],
+          "arc_dz_mm_mean": 1.0231498270735724,
+          "centroid_xy": [
+            79.23533436610442,
+            99.49272681287906
+          ]
+        },
+        "notes": {}
+      },
+      {
+        "key": "pool",
+        "name": "Motor-unit pool",
+        "what": "exponential Henneman size distribution; each unit's territory grown around a random anchor fibre until it holds its fibres; index = size rank = recruitment order",
+        "io": "637 fibres \u2192 100 units of 5\u2013395 fibres",
+        "wall_s": 0.005,
+        "cached": false,
+        "sizes": {
+          "n_mu": 100,
+          "sizes_min_median_max": [
+            5,
+            66.0,
+            395
+          ],
+          "fibres_total": 11207,
+          "n_fibres_used": 637,
+          "territory_radius_mm_range": [
+            0.621001008582044,
+            13.75820610737551
+          ]
+        },
+        "notes": {}
+      },
+      {
+        "key": "fem_build",
+        "name": "Volume conductor",
+        "what": "conductivity tensor per cell from its tissue tag (muscle tensors rotated onto the centreline tangent), a skin shell inside the fat, FEniCSx spaces and search trees",
+        "io": "46,749 cells \u2192 46,749 \u03c3 tensors, 11,022 dofs",
+        "wall_s": 5.319,
+        "cached": false,
+        "sizes": {
+          "n_cells": 46749,
+          "n_vertices": 11022,
+          "n_dofs": 11022,
+          "n_skin_cells": 5264,
+          "skin_shell_mm": 1.5,
+          "sigma_mode": "centerline"
+        },
+        "notes": {}
+      },
+      {
+        "key": "electrodes",
+        "name": "Electrode grid",
+        "what": "M\u00d7N grid ray-cast onto the skin surface over the muscle: rows IED apart along the arm, columns IED apart along the skin arc, centred on the limb-axis \u2192 muscle ray",
+        "io": "11,188 skin triangles \u2192 25 electrodes (5\u00d75, 10.1\u00d710.0 mm)",
+        "wall_s": 3.401,
+        "cached": false,
+        "sizes": {
+          "M": 5,
+          "N": 5,
+          "n_electrodes": 25,
+          "ied_mm": 10.0,
+          "fcu_ang_deg": 75.62447619501819,
+          "muscle_ang_deg": 75.62447619501819,
+          "zc_mm": 167.28626453500002,
+          "limb_centre_xy": [
+            72.61824131025604,
+            73.67506883850665
+          ],
+          "ied_along_mm": 10.136809979839828,
+          "ied_across_mm": 9.963718411398514,
+          "ied_along_range": [
+            10.03152677801798,
+            10.591933721619574
+          ],
+          "ied_across_range": [
+            9.644699013702361,
+            9.998808373044975
+          ],
+          "n_skin_triangles": 11188
+        },
+        "notes": {}
+      },
+      {
+        "key": "leadfields",
+        "name": "Lead fields",
+        "what": "one reciprocity solve per electrode (zero-mean Gaussian source at the skin point, GMRES/ILU); \u03c6 sampled along every fibre of the bed",
+        "io": "25 solves \u2192 \u03c6 bank 25\u00d7637\u00d7200",
+        "wall_s": 17.756,
+        "cached": false,
+        "sizes": {
+          "n_solves": 25,
+          "phi_shape": [
+            25,
+            637,
+            200
+          ],
+          "locate_s": 6.4678308963775635,
+          "solve_s_per_electrode": 0.37270743370056153,
+          "sample_s_per_electrode": 0.04310370445251465,
+          "source_sigma_mm": 5.0,
+          "phi_peak_mV_median": 10.487453331767751
+        },
+        "notes": {}
+      },
+      {
+        "key": "condition",
+        "name": "Lead-field conditioning",
+        "what": "the recipe's denoising: a free-position 3-monopole fit of each \u03c6(z) that removes mesh ripple before the second derivative \u2014 once per electrode\u2013fibre pair",
+        "io": "25\u00d7637 \u03c6(z) \u2192 15,925 monopole fits",
+        "wall_s": 253.485,
+        "cached": false,
+        "sizes": {
+          "n_fits": 15925,
+          "n_poles": 3,
+          "cpu_s": 488.3694820404053,
+          "ms_per_fit": 30.66684345622639
+        },
+        "notes": {}
+      },
+      {
+        "key": "muaps",
+        "name": "MUAPs",
+        "what": "per unit and electrode: line-source integral of the current-source density of a Rosenfalck action potential (both directions from the NMJ, one-sided tendon window) against \u03c6 over the unit's fibres; physical time, t = 0 at the NMJ",
+        "io": "\u03c6 + 100 units \u2192 MUAP tensor 100\u00d725\u00d7256 (280,175 SFAPs)",
+        "wall_s": 658.571,
+        "cached": false,
+        "sizes": {
+          "tensor_shape": [
+            100,
+            25,
+            256
+          ],
+          "n_sfaps": 280175,
+          "cpu_s": 1308.0554344654083,
+          "ms_per_sfap": 4.668708608781683,
+          "s_per_mu_min_max": [
+            0.5248868465423584,
+            45.73912525177002
+          ],
+          "t_ms_range": [
+            -10.0,
+            114.51171875
+          ],
+          "config": {
+            "butterworth_cutoff": 0.03,
+            "butterworth_order": 2,
+            "edge_taper_left": 5,
+            "edge_taper_right": 10,
+            "upsample_factor": 2,
+            "denoise": "monopole",
+            "denoise_n_poles": 3,
+            "fiber_window": "one_sided",
+            "tukey_alpha": 0.25,
+            "v": 4.0,
+            "sigma_in": 1.0,
+            "fiber_radius_mm": 0.05,
+            "polarity": 1,
+            "csd_derivative": 2,
+            "fsamp": 2048.0,
+            "w": 256,
+            "center_time": false,
+            "t_start_ms": -10.0
+          },
+          "iz_frac": 0.305,
+          "iz_jitter": 0.02,
+          "cv_m_s": 4.0
+        },
+        "notes": {
+          "recipe_check": {
+            "mu": 0,
+            "size": 5,
+            "max_abs_diff_V": 0.0,
+            "p2p_max_V": 6.633319413703419e-06,
+            "identical": true
+          }
+        }
+      },
+      {
+        "key": "activation",
+        "name": "Activation",
+        "what": "motoneuron pool (recruitment thresholds, onion-skin rate coding, renewal ISIs) \u2192 spikes; twitch model \u2192 force; spikes convolved with the MUAPs \u2192 EMG on the grid, one trapezoid per drive level",
+        "io": "6 trapezoids \u00d7 3.2 s \u2192 EMG 25\u00d76554 per level, force, 32,858 spikes",
+        "wall_s": 1.796,
+        "cached": false,
+        "sizes": {
+          "n_levels": 6,
+          "levels": [
+            0.1,
+            0.2,
+            0.35,
+            0.5,
+            0.7,
+            1.0
+          ],
+          "n_samples": 6554,
+          "duration_s": 3.2001953125,
+          "fs": 2048.0,
+          "trapezoid": {
+            "lead_s": 0.2,
+            "rise_s": 0.5,
+            "hold_s": 2.0,
+            "fall_s": 0.5
+          },
+          "common_drive": {
+            "sigma": 0.015,
+            "cutoff_hz": 2.0
+          },
+          "n_active_per_level": [
+            53,
+            68,
+            81,
+            90,
+            98,
+            100
+          ],
+          "n_spikes_per_level": [
+            1745,
+            2883,
+            4499,
+            6171,
+            8133,
+            9427
+          ]
+        },
+        "notes": {}
+      }
+    ],
+    "totals": {
+      "stages_wall_s": 992.1,
+      "command_wall_s": 993.1,
+      "cpu_s_conditioning": 488.3694820404053,
+      "cpu_s_muaps": 1308.0554344654083
+    },
+    "sanity": {
+      "muap_p2p_uV": {
+        "per_mu_max_over_grid": {
+          "min": 2.133119561826018,
+          "median": 36.29275961209326,
+          "max": 170.52548338778269
+        },
+        "all_pairs_median": 7.001920350615317,
+        "centre_electrode_median": 24.287047889362025,
+        "centre_electrode_index": 12
+      },
+      "muap_duration_ms_median": 19.04296875,
+      "iz_plane_z_mm": 126.1,
+      "grid_z_range_mm": [
+        147.28626453500002,
+        187.28626453500002
+      ],
+      "cv_readoff": {
+        "column": 2,
+        "ied_along_mm": 10.136809979839828,
+        "v_set_m_s": 4.0,
+        "expected_row_lag_ms": 2.534202494959957,
+        "sample_ms": 0.48828125,
+        "cos_alpha": 0.9614900914295743,
+        "fibre_angle_under_grid_deg": 15.952455422917433,
+        "montages": {
+          "monopolar": {
+            "n_mu_used": 84,
+            "mu_used": [
+              11,
+              13,
+              14,
+              17,
+              19,
+              20,
+              21,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87,
+              88,
+              89,
+              90,
+              91,
+              92,
+              93,
+              94,
+              95,
+              96,
+              97,
+              98,
+              99
+            ],
+            "v_median_m_s": 4.399020541116878,
+            "v_median_corrected_m_s": 4.229614662279042,
+            "v_iqr_m_s": [
+              4.3315536384276205,
+              4.494315281278027
+            ],
+            "v_min_max_m_s": [
+              4.139054766169612,
+              4.871955977621472
+            ],
+            "v_from_summed_muap_m_s": 4.268156378243828
+          },
+          "single_differential": {
+            "n_mu_used": 89,
+            "mu_used": [
+              0,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              17,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87,
+              88,
+              89,
+              90,
+              91,
+              92,
+              93,
+              94,
+              95,
+              96,
+              97,
+              98,
+              99
+            ],
+            "v_median_m_s": 4.220117879805134,
+            "v_median_corrected_m_s": 4.057601526097419,
+            "v_iqr_m_s": [
+              4.130516448970778,
+              4.304893898999791
+            ],
+            "v_min_max_m_s": [
+              3.629896546647538,
+              4.800120535395451
+            ],
+            "v_from_summed_muap_m_s": 4.156205011855978
+          },
+          "double_differential": {
+            "n_mu_used": 90,
+            "mu_used": [
+              0,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66,
+              67,
+              68,
+              69,
+              70,
+              71,
+              72,
+              73,
+              74,
+              75,
+              76,
+              77,
+              78,
+              79,
+              80,
+              81,
+              82,
+              83,
+              84,
+              85,
+              86,
+              87,
+              88,
+              89,
+              90,
+              91,
+              92,
+              93,
+              94,
+              95,
+              96,
+              97,
+              98,
+              99
+            ],
+            "v_median_m_s": 4.097572849553292,
+            "v_median_corrected_m_s": 3.9397756937563364,
+            "v_iqr_m_s": [
+              4.014738275105446,
+              4.151744281003835
+            ],
+            "v_min_max_m_s": [
+              3.619655363478173,
+              4.326000664104222
+            ],
+            "v_from_summed_muap_m_s": 4.061131446089973
+          }
+        },
+        "v_median_m_s": 4.220117879805134,
+        "v_median_corrected_m_s": 4.057601526097419,
+        "v_iqr_m_s": [
+          4.130516448970778,
+          4.304893898999791
+        ],
+        "n_mu_used": 89,
+        "headline_montage": "single_differential"
+      },
+      "emg_vs_drive": {
+        "levels": [
+          0.1,
+          0.2,
+          0.35,
+          0.5,
+          0.7,
+          1.0
+        ],
+        "plateau_window_s": [
+          1.0,
+          2.39990234375
+        ],
+        "rms_grid_mean_uV": [
+          9.244783507733512,
+          18.171024530070163,
+          33.04581859232116,
+          52.418110950634464,
+          73.93961798119602,
+          96.1994562229905
+        ],
+        "rms_centre_uV": [
+          14.064621085789849,
+          28.542791984855604,
+          49.207164008795,
+          77.32184886501028,
+          107.05521247366124,
+          140.21477860711286
+        ],
+        "force_pct_mvc": [
+          7.365470337897542,
+          15.578764673866432,
+          29.834662143791498,
+          45.7801877028542,
+          68.59115054833984,
+          99.62097419738356
+        ],
+        "n_active": [
+          53,
+          68,
+          81,
+          90,
+          98,
+          100
+        ],
+        "rms_monotonic": true,
+        "force_monotonic": true
+      }
+    },
+    "outputs": {
+      "npz": "_results/pipeline/L8_5x5_ied10_mu100/pipeline_output.npz",
+      "mesh": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu100/mesh.msh",
+      "fibre_config": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu100/fibres.json",
+      "leadfields": "/home/dc23/projects/emgforge/_results/pipeline/L8_5x5_ied10_mu100/leadfields.npz",
+      "npz_arrays": {
+        "grid_shape": [
+          2
+        ],
+        "ied_mm": [],
+        "fs": [],
+        "muscle_label": [],
+        "elec_xyz": [
+          5,
+          5,
+          3
+        ],
+        "elec_xyz_flat": [
+          25,
+          3
+        ],
+        "bed_paths": [
+          637,
+          200,
+          3
+        ],
+        "bed_xy_mid": [
+          637,
+          2
+        ],
+        "bed_arc_dz_mm": [
+          637
+        ],
+        "bed_length_mm": [
+          637
+        ],
+        "mu_sizes": [
+          100
+        ],
+        "mu_fibre_idx": [
+          100,
+          395
+        ],
+        "mu_centre_xy": [
+          100,
+          2
+        ],
+        "mu_territory_radius_mm": [
+          100
+        ],
+        "mu_recruitment_threshold_excitation": [
+          100
+        ],
+        "muap_grid": [
+          100,
+          25,
+          256
+        ],
+        "t_ms": [
+          256
+        ],
+        "levels": [
+          6
+        ],
+        "t_s": [
+          6554
+        ],
+        "drive": [
+          6,
+          6554
+        ],
+        "emg_grid": [
+          6,
+          25,
+          6554
+        ],
+        "force": [
+          6,
+          6554
+        ],
+        "spikes": [
+          6,
+          100,
+          117
+        ],
+        "spike_counts": [
+          6,
+          100
+        ],
+        "phi_grid": [
+          25,
+          637,
+          200
+        ]
+      },
+      "units": {
+        "elec_xyz": "mm (segmentation voxel frame)",
+        "bed_paths": "mm",
+        "muap_grid": "\u00b5V, (n_mu, E, w), e = row*N + col",
+        "t_ms": "ms, t = 0 at the NMJ discharge",
+        "phi_grid": "V per unit source, (E, n_fibres, n_points)",
+        "drive": "fraction of maximal drive",
+        "emg_grid": "\u00b5V, (levels, E, T)",
+        "force": "%MVC",
+        "spikes": "sample index, -1 = padding"
+      },
+      "size_MB": 17.87
+    }
+  }
+}
