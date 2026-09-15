@@ -5,17 +5,26 @@ This is the revived 2024/2025 spatial method (origin: ``FEM/motor_units.py``,
 ``emgforge.synthesis/numerical.py``). It computes the single-fibre action
 potential as the **spatial line-source integral**
 
-    SFAP(t) = (σ_in · π · a²) / v · ∫ φ(z) · CSD(z, t) dz
+    SFAP(t) = ∫ φ(z) · i_m(z, t) dz,     i_m = σ_in · π · a² · ∂²Vm/∂z²
 
 where ``φ(z)`` is the lead field sampled along the fibre (reciprocity: the
-potential field produced by a source at the *electrode*) and ``CSD(z, t)`` is
+potential field produced by a source at the *electrode*) and ``i_m(z, t)`` is
 the current-source density of the travelling intracellular action potential:
 two counter-propagating Rosenfalck IAP-derivative waves launched from the
 neuromuscular junction (NMJ) and clipped at the tendons by fibre-end windows.
 
 Discretised, the integral is a single matrix–vector product::
 
-    sfap = (CSD @ φ) · dz · scale / v          # CSD is (n_time, n_z)
+    sfap = (CSD @ φ) · dz · polarity          # CSD is (n_time, n_z)
+
+There is **no 1/v prefactor**: the IAP is defined in *space*
+(``Vm(v·t − |z − z₀|)``) and the CSD already carries the full
+``σ_in·π·a²·∂²Vm/∂z²``, so the line-source integral is CV-independent. The
+Nandedkar & Stålberg "amplitude ∝ 1/CV" law is for an IAP fixed in *time*;
+it would have to come from stretching the IAP with v, not from a prefactor.
+(Validation check A0.2, ``scripts/validation/tier_a_cylinder.py``: with the
+old ``/v`` the engine/oracle amplitude ratio was exactly 1/v — 0.497 at v = 2,
+0.249 at v = 4; fixed 2026-09-15.)
 
 There is **no FFT, no ``pare``, no ``radon_section``, no ``np.flip``** — the
 travelling-wave sign and the fibre-end termination are explicit. That is the
@@ -236,7 +245,11 @@ def compute_sfap_spatial(
     t_ms = np.arange(cfg.w) / cfg.fsamp * 1000.0 + cfg.t_start_ms
 
     csd = build_csd_matrix(z, t_ms, posz_mm, len1_mm, len2_mm, dz, cfg)
-    sfap = (csd @ phi) * dz * cfg.polarity / cfg.v
+    # No `/ cfg.v` here: `csd` is already the physical i_m = σ_in·π·a²·∂²Vm/∂z²
+    # of a spatially-defined IAP, so the integral is CV-independent. The former
+    # `/ cfg.v` made the amplitude exactly 1/v of the closed-form line-source
+    # oracle (validation check A0.2: 0.497 at v=2, 0.249 at v=4). Fixed 2026-09-15.
+    sfap = (csd @ phi) * dz * cfg.polarity
 
     t_out = t_ms - (cfg.w / cfg.fsamp * 1000.0 / 2.0 if cfg.center_time else 0.0)
     debug = {"phi": phi, "dz_mm": dz, "z": z, "csd": csd}

@@ -9,8 +9,12 @@ travelling-wave sign and the fibre-end termination are *visible* in the code.
 ## The method in one line
 
 ```
-SFAP(t) = (σ_in · π · a²)/v · ∫ φ(z) · CSD(z, t) dz   ≈   (CSD @ φ) · dz · scale / v
+SFAP(t) = ∫ φ(z) · i_m(z, t) dz,  i_m = σ_in · π · a² · ∂²Vm/∂z²   ≈   (CSD @ φ) · dz · polarity
 ```
+
+No `1/v` prefactor: the IAP is defined in space (`Vm(v·t − |z − z₀|)`), so the
+line-source integral is CV-independent (validation check A0.2 — the former `/v`
+made the amplitude exactly 1/v of the closed-form oracle; fixed 2026-09-15).
 
 - `φ(z)` — the lead field sampled along the fibre (reciprocity: potential from a
   source at the **electrode**). Comes from the analytical cylinder or an FEM solve

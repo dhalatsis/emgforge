@@ -24,11 +24,14 @@ SpatialConfig(
 ```
 
 The whole engine is one identity — no FFT, no `radon`, no `np.flip` — so timing and the
-fibre-end terminations are explicit in the code (`engines/spatial.py:6-23`):
+fibre-end terminations are explicit in the code (`engines/spatial.py` header docstring):
 
 ```
-SFAP(t) = (sigma_in * pi * a^2)/v * INTEGRAL  phi(z) * CSD(z,t) dz   ~=  (CSD @ phi) * dz * polarity / v
+SFAP(t) = INTEGRAL  phi(z) * i_m(z,t) dz,   i_m = sigma_in * pi * a^2 * d2Vm/dz2   ~=  (CSD @ phi) * dz * polarity
 ```
+
+There is no `1/v` prefactor: the IAP is defined in space, so the line-source integral is
+CV-independent (the former `/v` was removed 2026-09-15 — see §8 and validation check A0.2).
 
 ---
 
@@ -141,10 +144,12 @@ SFAP(t) = (sigma_in * pi * a^2)/v * INTEGRAL  phi(z) * CSD(z,t) dz   ~=  (CSD @ 
 - **Operator-consistency gate** (`test_golden.py`): the spatial engine on the same 12 φ,
   under a *matched* config, agrees on **shape at |r| ≥ 0.95** (mean 0.997). It asserts the
   two engines compute the same integral, not that either is correct against physics.
-- **Three disagreements are deliberately pinned** (so a change is a deliberate act, not
-  silent drift): anti-phase **polarity** (signed r ≤ −0.95), a stable **~−2 ms lag**
-  (physical- vs window-centred time), and a **3–5× non-constant amplitude ratio** (0.15–0.35,
-  with a guard that it is *not* a single constant — pending an amplitude audit).
+- **Two disagreements are deliberately pinned** (so a change is a deliberate act, not
+  silent drift): anti-phase **polarity** (signed r ≤ −0.95) and a stable **~−2 ms lag**
+  (physical- vs window-centred time). The **amplitude ratio** is pinned at **0.80–1.05**
+  (measured 0.84–1.01, mean 0.95, CV-independent: the same σ = 8 mm Gaussian field at
+  v = 3/4/5 m/s gives 0.951/0.962/0.963). Before the 2026-09-15 `1/v` fix it was 0.15–0.35 and *looked*
+  non-constant (1.65× spread) — that spread was the 1/v factor across the set's v = 3/3.3/4/5.
 - **21 self-regression cases** (`tests/synthesis/muap_cases.py`), pure NumPy, exercising every
   knob a refactor could disturb: the four windows, `denoise` none vs monopole,
   `csd_derivative` 1 vs 2, cylinder vs PM regime, asymmetric semi-lengths, NMJ offset,
@@ -173,13 +178,27 @@ engine robust on FEM-sampled φ. That is the whole reason the recipe exists.
 > lag and a monopole-free source, so the pinned polarity/lag disagreements below are the
 > **Fourier engine's** (r = −0.64…−0.79 vs first principles; the Farina port's propagating main
 > lobe is positive, i.e. inverted vs the textbook). Two new items on the spatial side: the
-> amplitude constant divides by `v` once too often (`spatial.py:239`, ratio to first principles
-> = 1/v exactly), and on FEM φ the SFAP *amplitude* is erratic at ±40 % across depth (mesh
-> structure reaching φ''; the 3-monopole fit does not remove it) while shape, timing and
-> spectrum are faithful.
+> amplitude constant divided by `v` once too often (`compute_sfap_spatial`, ratio to first
+> principles = 1/v exactly — **fixed 2026-09-15**, see below), and on FEM φ the SFAP
+> *amplitude* is erratic at ±40 % across depth (mesh structure reaching φ''; the 3-monopole
+> fit does not remove it) while shape, timing and spectrum are faithful.
 
-- **Amplitude:** spatial vs Fourier disagree 3–5×, not by a constant factor — amplitude audit
-  pending (`test_golden.py`; `tests/regression/SHAPE_VS_AMPLITUDE.md`).
+- **Amplitude constant — FIXED 2026-09-15.** `compute_sfap_spatial` computed
+  `(CSD @ φ)·dz·polarity / v`, but the CSD is already the physical
+  `σ_in·π·a²·∂²Vm/∂z²` of a *spatially*-defined IAP, so the integral is CV-independent
+  and the `/v` was spurious. Validation check A0.2 (engine vs the closed-form line-source
+  oracle, `scripts/validation/harness.py::sfap_first_principles`) measured an amplitude
+  ratio of exactly 1/v before the fix (0.497 at v = 2, 0.249 at v = 4) and 1.00 at both
+  velocities after it. Every spatial MUAP is now larger by exactly v (×4.0 cylinder regime,
+  ×3.3 PM regime) with a bit-identical peak-normalised waveform; the 21-case reference was
+  regenerated and the golden amplitude gate re-pinned (0.15–0.35 → 0.80–1.05). The
+  Nandedkar & Stålberg "amplitude ∝ 1/CV" law holds for an IAP fixed in *time*; whether CV
+  should stretch this engine's spatial IAP is a separate, still-open design decision — no
+  CV-dependent stretching was added.
+- **Amplitude, spatial vs Fourier:** with the constant fixed the two engines agree to
+  0.84–1.01 (mean 0.95) on the golden set, CV-independent. The residual ≤ 16 % is the
+  window/φ-handling difference between the methods (`test_golden.py`;
+  `tests/regression/SHAPE_VS_AMPLITUDE.md`).
 - **Sign:** which engine carries the correct polarity is an open physics question, pinned not
   resolved.
 - **Spatial EOF** under-produced vs Fourier (φ(tendon)-weighted + numerically smeared) — open.
