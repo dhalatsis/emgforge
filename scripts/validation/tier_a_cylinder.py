@@ -54,11 +54,12 @@ for v_ in (2.0, 4.0):
     amp_v[v_] = best_r(t_r, s_r_, t_s, s_s)[2]
 check(T, "A0.2 spatial engine amplitude constant equals first principles",
       all(abs(a - 1.0) < 0.05 for a in amp_v.values()),
-      f"engine/reference amplitude ratio = {amp_v[2.0]:.3f} at v=2, {amp_v[4.0]:.3f} at v=4  (= 1/v)",
+      f"engine/reference amplitude ratio = {amp_v[2.0]:.3f} at v=2, {amp_v[4.0]:.3f} at v=4",
       "ratio 1.00 ± 5 %, independent of v",
       principle="for a fixed spatial IAP the extracellular potential does not depend on CV; "
-                "`sfap = (CSD @ φ)·dz/v` divides by v once too often (CSD is already ∂²Vm/∂z²)",
-      refs="Plonsey & Barr, Bioelectricity ch. 8; engines/spatial.py:239", known=True)
+                "CSD is already σ_in·π·a²·∂²Vm/∂z², so `sfap = (CSD @ φ)·dz` carries no 1/v "
+                "(the former `/v` gave exactly 1/v here — 0.497 / 0.249; removed 2026-09-15)",
+      refs="Plonsey & Barr, Bioelectricity ch. 8; engines/spatial.py:compute_sfap_spatial")
 
 # --- A0.3 Fourier engine vs first principles (+ mirrored-IAP diagnosis) --------
 rf, lf, rf_m = [], [], []

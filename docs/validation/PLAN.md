@@ -106,8 +106,10 @@ selectivity, non-stationarity, MUAP physiological scale (C-04 flag).
 
 ## Status and findings (2026-09-10)
 
-Tier A 14/15 (4 known; the fail is A1.1b), tier B 14/14, tier C 4/5 (3 known; the fail
-is C2), tier S 7/7 (1 known). The numbers are in the report; the findings that matter:
+Counting every check (2026-09-15, corrected amplitude constant, tiers C/S on the released
+forearm pool D2 with `EMGFORGE_MUAP_BANK`): tier A 16/20 (3 known; the fail is A1.1b),
+tier B 14/14, tier C 6/8 (1 known; the fail is C2), tier S 8/8 — 44 of 50 pass, 4 known,
+2 fail. The numbers are in the report; the findings that matter:
 
 **1. The spatial engine is the physics.** Against a closed-form line-source oracle it
 scores r = 1.0000 with zero lag in every geometry (A0.1), its source is monopole-free to
@@ -131,6 +133,9 @@ the measured ratio to first principles is exactly 1/v (0.497 at v = 2, 0.249 at 
 A0.2). A physiological CV dependence (Nandedkar & Stålberg 1983: amplitude ∝ 1/CV) should
 come from stretching the IAP in space with v, not from a prefactor. Relevant to the open
 amplitude audit and to the "MUAPs 40× too small" C-04 flag (a factor 3–4 of it).
+**Fixed 2026-09-15**: the `/v` was removed from `compute_sfap_spatial` and A0.2 passes
+(ratio 1.00 at v = 2 and v = 4); the 21-case reference was regenerated (every spatial case
+scaled by exactly v, waveforms unchanged) and the golden amplitude gate re-pinned to 0.80–1.05.
 
 **4. The golden recipe's SFAP *amplitude* on FEM φ is not yet trustworthy (±40 %),
 its shape and spectrum are.** On FEM fields the spatial engine integrates φ'' faithfully
@@ -169,9 +174,9 @@ fibre-geometry fix.
 
 ## Next steps, in order
 
-1. **Fix the 1/v amplitude constant** in `engines/spatial.py` (and re-pin the 21
-   regression cases and the golden amplitude gate); decide whether CV should stretch the
-   IAP.
+1. ~~**Fix the 1/v amplitude constant** in `engines/spatial.py` (and re-pin the 21
+   regression cases and the golden amplitude gate)~~ — done 2026-09-15 (finding 3); still
+   to decide whether CV should stretch the IAP.
 2. **Audit the Fourier engine's conventions** against A0.3 (IAP orientation, sign, the
    window-centre shift); either fix it to match first principles or retire it as an oracle.
 3. **FEM φ fidelity for the spatial recipe**: try a finer mesh around the fibre band and a

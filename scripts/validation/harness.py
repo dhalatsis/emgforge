@@ -74,16 +74,20 @@ def check(tier: str, name: str, passed, measured: str, expect: str,
 
 
 def finish(tier: str) -> int:
-    n = [r for r in RESULTS if r["tier"] == tier and not r["known"]]
-    n_pass = sum(r["passed"] for r in n)
-    n_known = sum(1 for r in RESULTS if r["tier"] == tier and r["known"] and not r["passed"])
+    """Summarise: pass / total counts EVERY check (a passing 'known' check is a pass);
+    'known' = documented limitations that failed and do not fail the tier."""
+    recs = [r for r in RESULTS if r["tier"] == tier]
+    n_pass = sum(r["passed"] for r in recs)
+    n_known = sum(1 for r in recs if r["known"] and not r["passed"])
+    n_fail = sum(1 for r in recs if not r["known"] and not r["passed"])
     print("=" * 74)
-    print(f"  {tier}: {n_pass}/{len(n)} checks passed"
+    print(f"  {tier}: {n_pass}/{len(recs)} checks passed"
           + (f"  ·  {n_known} known limitation(s) flagged" if n_known else "")
+          + (f"  ·  {n_fail} FAILED" if n_fail else "")
           + f"  ·  {time.time() - _T0:.0f}s")
     print("=" * 74)
     (OUT / f"{tier}.json").write_text(json.dumps(RESULTS, indent=1))
-    return 0 if n_pass == len(n) else 1
+    return 0 if n_fail == 0 else 1
 
 
 # ----------------------------------------------------------------------------- analytical oracle

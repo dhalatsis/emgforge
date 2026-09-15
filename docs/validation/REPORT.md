@@ -1,17 +1,19 @@
 # emgforge validation report
 
-Generated 2026-09-15 03:08 by `scripts/validation/run_all.py`. Plan and rationale: `docs/validation/PLAN.md`; literature: `docs/validation/BIBLIOGRAPHY.md`. Tiers C/S MUAP bank: `_results/paper/datasets/forearm_fcu_mu_pool.npz`.
+Generated 2026-09-15 03:57 by `scripts/validation/run_all.py`. Plan and rationale: `docs/validation/PLAN.md`; literature: `docs/validation/BIBLIOGRAPHY.md`. Tiers C/S MUAP bank: `_results/paper/datasets/forearm_fcu_mu_pool.npz`.
+
+Counting: **pass / total** counts every check (a passing documented-limitation check is a pass); **known** = documented limitations that fail and do not fail the tier; **fail** = genuine failures.
 
 ## Tier A — Cylinder — analytical vs pipeline
 
-**14/15 gated checks pass**, 4 flagged as known limitations.
+**16/20 checks pass**, 3 flagged as known limitations, 1 failed.
 
 ![tier A](figures/tier_a_cylinder.png)
 
 | | check | measured | expected | refs |
 |---|---|---|---|---|
 | ✓ | A0.1 spatial engine ≡ first-principles line-source integral (shape, timing) | r = [1.0, 0.9999, 0.9999], lag(ms) = [-0.0, -0.05, -0.05] over NMJ offsets 0/−20/−30 mm | r ≥ 0.999 and \|lag\| ≤ 0.1 ms: same integral, so only discretisation can differ | Rosenfalck 1969; Andreassen & Rosenfalck 1981; Dimitrov & Dimitrova 1998 |
-| ⚠ known | A0.2 spatial engine amplitude constant equals first principles | engine/reference amplitude ratio = 0.497 at v=2, 0.249 at v=4  (= 1/v) | ratio 1.00 ± 5 %, independent of v | Plonsey & Barr, Bioelectricity ch. 8; engines/spatial.py:239 |
+| ✓ | A0.2 spatial engine amplitude constant equals first principles | engine/reference amplitude ratio = 0.994 at v=2, 0.994 at v=4 | ratio 1.00 ± 5 %, independent of v | Plonsey & Barr, Bioelectricity ch. 8; engines/spatial.py:compute_sfap_spatial |
 | ⚠ known | A0.3 Fourier engine vs first principles (signed r, lag) | signed r = [-0.795, -0.684, -0.643] at lag [1.4, 2.55, 0.85] ms;  vs a spatially MIRRORED IAP: r = [-0.788, -0.684, -0.642] | r ≥ +0.99 (same integral, same sign, no lag) | GOLDEN_METHOD.md §6, §8; Farina & Merletti 2001 |
 | ✓ | A0.4a sampling invariance: fsamp 4096→2048 and dz 0.98→0.5 mm leave the SFAP unchanged | fsamp: r=1.00000 p2p ratio=0.9977;  dz: r=0.99886 p2p ratio=1.0011 | r > 0.995, amplitude within 2 % (discretisation-converged) |  |
 | ✓ | A0.4b translation: moving the electrode Δz along the fibre delays the propagating lobe by Δz/v | Δz=20 mm → main-lobe delay 4.88 ms (expect 5.00) | \|Δ\| ≤ one sample (0.24 ms) |  |
@@ -33,7 +35,7 @@ Generated 2026-09-15 03:08 by `scripts/validation/run_all.py`. Plan and rational
 
 ## Tier B — MUAP features vs the literature
 
-**14/14 gated checks pass**.
+**14/14 checks pass**.
 
 ![tier B](figures/tier_b_features.png)
 
@@ -56,7 +58,7 @@ Generated 2026-09-15 03:08 by `scripts/validation/run_all.py`. Plan and rational
 
 ## Tier C — Interference EMG & motor-unit pool
 
-**4/5 gated checks pass**, 1 flagged as known limitations.
+**6/8 checks pass**, 1 flagged as known limitations, 1 failed.
 
 ![tier C](figures/tier_c_interference.png)
 
@@ -71,12 +73,28 @@ Generated 2026-09-15 03:08 by `scripts/validation/run_all.py`. Plan and rational
 | ✓ | C7 interference-EMG spectrum: MNF/MDF at moderate force in 70–130 Hz | @drive 0.5 (monopolar): MNF 81 Hz, MDF 77 Hz | MDF 70–130 Hz (bipolar norms: biceps 90±18, TA 116±20). Expected to fail while the C-04 fibre geometry yields 33 ms MUAPs — the spectrum is bounded by the MUAP duration | Lindström & Magnusson 1977; initial-MDF norms (J Clin Neurophysiol 1998); De Luca 2002 |
 | ✓ | C8 larger motor units produce larger MUAPs (size ↔ amplitude on the recording side) | Spearman(fibres per MU, grid-max p2p) = +0.98 over 100 MUs (sizes 5–395 fibres) | ρ > 0.5 (amplitude ∝ fibre count at fixed depth; depth scatter lowers ρ) | Roeleveld 1998; Merletti & Muceli 2019 §2.4; Del Vecchio 2017 (size ↔ MUAP) |
 
+## Tier S — Chain-level sanity (simulator)
+
+**8/8 checks pass**.
+
+![tier S](figures/simulator_sanity.png)
+
+| | check | measured | expected | refs |
+|---|---|---|---|---|
+| ✓ | Orderly recruitment (Henneman size principle) | n_active @ drive [0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0] = [37, 51, 67, 84, 94, 100, 100]; thresholds sorted=True | n_active non-decreasing in drive; smallest units recruited first |  |
+| ✓ | Onion-skin rate coding | @drive 0.7: first-recruited 40.0 Hz vs last 5.6 Hz (98 active) | earlier (smaller) units discharge faster than later (larger) ones |  |
+| ✓ | Interference-EMG amplitude ↑ with contraction | plateau RMS(µV) @ [0.1, 0.2, 0.35, 0.5, 0.7, 0.9] = [14.822, 28.279, 49.059, 61.24, 97.757, 124.795] | monotone increase with drive |  |
+| ✓ | EMG ↔ force: monotone and MVC-calibrated | plateau force(%MVC) @ [0.1, 0.2, 0.35, 0.5, 0.7, 0.9, 1.0] = [7.4, 16.0, 30.3, 46.8, 69.8, 92.2, 102.5] | monotone in drive; ≈100 %MVC at full drive |  |
+| ✓ | Conduction velocity from HD-EMG propagation | pool median CV 4.32 m/s (range 4.1–4.8 over 100 MUs, IED 10.1 mm); corr(size, CV) = -0.41 | physiological muscle-fibre CV, mean ≈4 m/s — the model uses one fibre CV (≈uniform across the pool) |  |
+| ✓ | Spatial selectivity of a MUAP on the array | peak-channel RMS / grid-mean RMS = 2.16 (MU 99) | a MUAP is localised on the array, not a uniform far field (ratio > 1.5) |  |
+| ✓ | Non-stationarity over a movement | RMS flexed / RMS extended = 8.66  (90.856 vs 10.495 µV) | EMG amplitude is modulated by joint angle, not just by the drive |  |
+| ✓ | MUAP physiological scale | median p2p 23.60 µV, median duration 18.1 ms | single-MU surface MUAP ≈ 20–800 µV, 5–20 ms (Merletti & Muceli 2019; Farina 2014) (the 0.6 µV / 33 ms of earlier runs was an electrode-placement artefact plus the 1/v constant) |  |
+
 ## Summary
 
-| tier | pass | gated | known |
-|---|---|---|---|
-| A | 14 | 15 | 4 |
-| B | 14 | 14 | 0 |
-| C | 4 | 5 | 1 |
-
-Tier S (chain-level sanity, `scripts/sanity/simulator_sanity.py`): see `scripts/sanity/simulator_sanity.py` output.
+| tier | pass | total | known | fail |
+|---|---|---|---|---|
+| A | 16 | 20 | 3 | 1 |
+| B | 14 | 14 | 0 | 0 |
+| C | 6 | 8 | 1 | 1 |
+| S | 8 | 8 | 0 | 0 |

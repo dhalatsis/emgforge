@@ -1,0 +1,757 @@
+{
+ "summary": {
+  "n_electrodes": 105,
+  "n_fibres": 100,
+  "samples_per_fibre": 200,
+  "r_signed_mean": 0.999394945132561,
+  "r_signed_min": 0.9989192614118685,
+  "r_signed_max": 0.9999375843598212,
+  "abs_r_mean": 0.999394945132561,
+  "abs_r_min": 0.9989192614118685,
+  "amp_ratio_median": 1.129607006868293,
+  "amp_ratio_min": 1.0312001955446166,
+  "amp_ratio_max": 1.2301729629465747,
+  "model_build_s": 2.8091540336608887,
+  "solve_and_sample_s_per_electrode": 2.081755524589902,
+  "mesh": "forearm_WR.msh",
+  "sigma_mode": "uniform z-aligned muscle anisotropy (as the saved fields)",
+  "reference": "NeuroDec / PM phi_raw_per_electrode for subject WR (Maksymenko et al. 2023)"
+ },
+ "per_electrode": [
+  {
+   "electrode": 0,
+   "z_mm": 136.96209716796875,
+   "r_signed": 0.9993714206812252,
+   "amp_ratio_fresh_over_saved": 1.0380494311390738,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 1,
+   "z_mm": 136.26007080078125,
+   "r_signed": 0.999163295044461,
+   "amp_ratio_fresh_over_saved": 1.0606182869407028,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 2,
+   "z_mm": 135.60691833496094,
+   "r_signed": 0.9990914493930068,
+   "amp_ratio_fresh_over_saved": 1.087576861487583,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 3,
+   "z_mm": 134.990966796875,
+   "r_signed": 0.9992003001985866,
+   "amp_ratio_fresh_over_saved": 1.1200482837720354,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 4,
+   "z_mm": 134.46063232421875,
+   "r_signed": 0.9994696148158686,
+   "amp_ratio_fresh_over_saved": 1.1571268063930122,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 5,
+   "z_mm": 134.0037841796875,
+   "r_signed": 0.9997647281885365,
+   "amp_ratio_fresh_over_saved": 1.1961704340346666,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 6,
+   "z_mm": 133.66659545898438,
+   "r_signed": 0.9998957755346074,
+   "amp_ratio_fresh_over_saved": 1.2270689318658343,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 7,
+   "z_mm": 133.02743530273438,
+   "r_signed": 0.9993371025398573,
+   "amp_ratio_fresh_over_saved": 1.0371652706235441,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 8,
+   "z_mm": 132.3192596435547,
+   "r_signed": 0.9991068525006813,
+   "amp_ratio_fresh_over_saved": 1.0597871432122035,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 9,
+   "z_mm": 131.6726531982422,
+   "r_signed": 0.9990389893008386,
+   "amp_ratio_fresh_over_saved": 1.0873248360004837,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 10,
+   "z_mm": 131.0123291015625,
+   "r_signed": 0.9991738597911879,
+   "amp_ratio_fresh_over_saved": 1.1182514397184276,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 11,
+   "z_mm": 130.42410278320312,
+   "r_signed": 0.9994592149424927,
+   "amp_ratio_fresh_over_saved": 1.1511695746729231,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 12,
+   "z_mm": 130.00418090820312,
+   "r_signed": 0.9997235991129864,
+   "amp_ratio_fresh_over_saved": 1.1800125612202126,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 13,
+   "z_mm": 129.6357421875,
+   "r_signed": 0.9998989940601369,
+   "amp_ratio_fresh_over_saved": 1.2106647256009695,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 14,
+   "z_mm": 129.3175048828125,
+   "r_signed": 0.9993907564614282,
+   "amp_ratio_fresh_over_saved": 1.0312001955446166,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 15,
+   "z_mm": 128.581787109375,
+   "r_signed": 0.9991158861422581,
+   "amp_ratio_fresh_over_saved": 1.052116884199494,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 16,
+   "z_mm": 127.9070053100586,
+   "r_signed": 0.9989893229279307,
+   "amp_ratio_fresh_over_saved": 1.0803808606250453,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 17,
+   "z_mm": 127.32516479492188,
+   "r_signed": 0.9990793871441568,
+   "amp_ratio_fresh_over_saved": 1.1070256781732406,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 18,
+   "z_mm": 126.67176055908203,
+   "r_signed": 0.9993564678831897,
+   "amp_ratio_fresh_over_saved": 1.138781877101602,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 19,
+   "z_mm": 126.1672592163086,
+   "r_signed": 0.9996686500278241,
+   "amp_ratio_fresh_over_saved": 1.167761835718568,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 20,
+   "z_mm": 125.7306137084961,
+   "r_signed": 0.9998626017508057,
+   "amp_ratio_fresh_over_saved": 1.1905828444671032,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 21,
+   "z_mm": 125.14690399169922,
+   "r_signed": 0.9992725434576955,
+   "amp_ratio_fresh_over_saved": 1.0370181674847962,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 22,
+   "z_mm": 124.42198181152344,
+   "r_signed": 0.9989994252403921,
+   "amp_ratio_fresh_over_saved": 1.0627423782956806,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 23,
+   "z_mm": 123.73168182373047,
+   "r_signed": 0.9989790947125351,
+   "amp_ratio_fresh_over_saved": 1.0938546257650226,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 24,
+   "z_mm": 123.15061950683594,
+   "r_signed": 0.999168537138643,
+   "amp_ratio_fresh_over_saved": 1.1207954715564514,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 25,
+   "z_mm": 122.52804565429688,
+   "r_signed": 0.9995036813282729,
+   "amp_ratio_fresh_over_saved": 1.1509413585150896,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 26,
+   "z_mm": 121.97283935546875,
+   "r_signed": 0.999779838689607,
+   "amp_ratio_fresh_over_saved": 1.175354341639161,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 27,
+   "z_mm": 121.57208251953125,
+   "r_signed": 0.9999039035650283,
+   "amp_ratio_fresh_over_saved": 1.1929833834878998,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 28,
+   "z_mm": 121.29727935791016,
+   "r_signed": 0.9992779887105477,
+   "amp_ratio_fresh_over_saved": 1.0359899030195518,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 29,
+   "z_mm": 120.5743637084961,
+   "r_signed": 0.9989856907859104,
+   "amp_ratio_fresh_over_saved": 1.0609190218827815,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 30,
+   "z_mm": 119.88970947265625,
+   "r_signed": 0.9989381502013963,
+   "amp_ratio_fresh_over_saved": 1.092432000721455,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 31,
+   "z_mm": 119.28031158447266,
+   "r_signed": 0.9991105006504609,
+   "amp_ratio_fresh_over_saved": 1.118493368786865,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 32,
+   "z_mm": 118.62920379638672,
+   "r_signed": 0.9994244986599247,
+   "amp_ratio_fresh_over_saved": 1.1454595763254165,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 33,
+   "z_mm": 118.06782531738281,
+   "r_signed": 0.9997297050981336,
+   "amp_ratio_fresh_over_saved": 1.169068336921601,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 34,
+   "z_mm": 117.67715454101562,
+   "r_signed": 0.9998918606204448,
+   "amp_ratio_fresh_over_saved": 1.1852402719103008,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 35,
+   "z_mm": 117.42655181884766,
+   "r_signed": 0.999287446338181,
+   "amp_ratio_fresh_over_saved": 1.0357239688714317,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 36,
+   "z_mm": 116.67385864257812,
+   "r_signed": 0.9989837771213386,
+   "amp_ratio_fresh_over_saved": 1.0599893731062704,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 37,
+   "z_mm": 116.00121307373047,
+   "r_signed": 0.9989192614118685,
+   "amp_ratio_fresh_over_saved": 1.0924183211178933,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 38,
+   "z_mm": 115.40718841552734,
+   "r_signed": 0.9990877641330265,
+   "amp_ratio_fresh_over_saved": 1.1189369151112742,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 39,
+   "z_mm": 114.74479675292969,
+   "r_signed": 0.9993855297782563,
+   "amp_ratio_fresh_over_saved": 1.144768915080057,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 40,
+   "z_mm": 114.26127624511719,
+   "r_signed": 0.9996584015397586,
+   "amp_ratio_fresh_over_saved": 1.1639380918295623,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 41,
+   "z_mm": 113.72745513916016,
+   "r_signed": 0.9998928263420748,
+   "amp_ratio_fresh_over_saved": 1.1832031386399893,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 42,
+   "z_mm": 113.42587280273438,
+   "r_signed": 0.9992459493233867,
+   "amp_ratio_fresh_over_saved": 1.039365105752991,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 43,
+   "z_mm": 112.67560577392578,
+   "r_signed": 0.9989623011402164,
+   "amp_ratio_fresh_over_saved": 1.065174158194809,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 44,
+   "z_mm": 111.95612335205078,
+   "r_signed": 0.9989518866692363,
+   "amp_ratio_fresh_over_saved": 1.1000974434373114,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 45,
+   "z_mm": 111.33379364013672,
+   "r_signed": 0.9991712198581268,
+   "amp_ratio_fresh_over_saved": 1.1280437267887584,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 46,
+   "z_mm": 110.64798736572266,
+   "r_signed": 0.9994892669153697,
+   "amp_ratio_fresh_over_saved": 1.154116498723411,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 47,
+   "z_mm": 110.11566925048828,
+   "r_signed": 0.9997470640649806,
+   "amp_ratio_fresh_over_saved": 1.1720807508415125,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 48,
+   "z_mm": 109.56365966796875,
+   "r_signed": 0.9999188445774854,
+   "amp_ratio_fresh_over_saved": 1.1869103060615214,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 49,
+   "z_mm": 109.36344146728516,
+   "r_signed": 0.9991970147592463,
+   "amp_ratio_fresh_over_saved": 1.0440101492724025,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 50,
+   "z_mm": 108.604736328125,
+   "r_signed": 0.9989467947955976,
+   "amp_ratio_fresh_over_saved": 1.0726288651430582,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 51,
+   "z_mm": 107.97279357910156,
+   "r_signed": 0.9989761820791566,
+   "amp_ratio_fresh_over_saved": 1.1028640336440056,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 52,
+   "z_mm": 107.2453842163086,
+   "r_signed": 0.9992374213310925,
+   "amp_ratio_fresh_over_saved": 1.1349927910693764,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 53,
+   "z_mm": 106.64046478271484,
+   "r_signed": 0.9995206137360099,
+   "amp_ratio_fresh_over_saved": 1.1585025182804873,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 54,
+   "z_mm": 105.98192596435547,
+   "r_signed": 0.9997904237340721,
+   "amp_ratio_fresh_over_saved": 1.1780161221252399,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 55,
+   "z_mm": 105.52823638916016,
+   "r_signed": 0.9999199908944416,
+   "amp_ratio_fresh_over_saved": 1.1881869179983766,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 56,
+   "z_mm": 105.61432647705078,
+   "r_signed": 0.9992639290249845,
+   "amp_ratio_fresh_over_saved": 1.0418292125941162,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 57,
+   "z_mm": 104.84758758544922,
+   "r_signed": 0.9990129380671173,
+   "amp_ratio_fresh_over_saved": 1.065094491873914,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 58,
+   "z_mm": 104.20970153808594,
+   "r_signed": 0.9989527170547197,
+   "amp_ratio_fresh_over_saved": 1.0941758008173537,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 59,
+   "z_mm": 103.45367431640625,
+   "r_signed": 0.9991656878729859,
+   "amp_ratio_fresh_over_saved": 1.129607006868293,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 60,
+   "z_mm": 102.87699127197266,
+   "r_signed": 0.9994638144292023,
+   "amp_ratio_fresh_over_saved": 1.1567543173554935,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 61,
+   "z_mm": 102.1581039428711,
+   "r_signed": 0.9997574246601295,
+   "amp_ratio_fresh_over_saved": 1.1793983786144828,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 62,
+   "z_mm": 101.70719146728516,
+   "r_signed": 0.9999037946939802,
+   "amp_ratio_fresh_over_saved": 1.189676222227224,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 63,
+   "z_mm": 101.48863983154297,
+   "r_signed": 0.9992095551291179,
+   "amp_ratio_fresh_over_saved": 1.0479267024085925,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 64,
+   "z_mm": 100.73553466796875,
+   "r_signed": 0.9989817229884935,
+   "amp_ratio_fresh_over_saved": 1.0732538910085332,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 65,
+   "z_mm": 100.0876235961914,
+   "r_signed": 0.9989810133220669,
+   "amp_ratio_fresh_over_saved": 1.1045766333030986,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 66,
+   "z_mm": 99.34828186035156,
+   "r_signed": 0.9993006123872558,
+   "amp_ratio_fresh_over_saved": 1.144839319841913,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 67,
+   "z_mm": 98.73117065429688,
+   "r_signed": 0.9996144872386666,
+   "amp_ratio_fresh_over_saved": 1.1721815163525775,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 68,
+   "z_mm": 98.06259155273438,
+   "r_signed": 0.9998399351511866,
+   "amp_ratio_fresh_over_saved": 1.190097657569911,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 69,
+   "z_mm": 97.57310485839844,
+   "r_signed": 0.9999366424816153,
+   "amp_ratio_fresh_over_saved": 1.1966967916334696,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 70,
+   "z_mm": 97.5616683959961,
+   "r_signed": 0.9992119917990998,
+   "amp_ratio_fresh_over_saved": 1.0490262999828828,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 71,
+   "z_mm": 96.80089569091797,
+   "r_signed": 0.9989814956837723,
+   "amp_ratio_fresh_over_saved": 1.073646920933084,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 72,
+   "z_mm": 96.16173553466797,
+   "r_signed": 0.9989885657864693,
+   "amp_ratio_fresh_over_saved": 1.1075312617208124,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 73,
+   "z_mm": 95.4159164428711,
+   "r_signed": 0.9993422224546479,
+   "amp_ratio_fresh_over_saved": 1.149780910292217,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 74,
+   "z_mm": 94.78181457519531,
+   "r_signed": 0.9996513721694528,
+   "amp_ratio_fresh_over_saved": 1.1777317979703443,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 75,
+   "z_mm": 94.10838317871094,
+   "r_signed": 0.9998467337048559,
+   "amp_ratio_fresh_over_saved": 1.1958850219772201,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 76,
+   "z_mm": 93.61933898925781,
+   "r_signed": 0.9999311861264596,
+   "amp_ratio_fresh_over_saved": 1.2027589526494178,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 77,
+   "z_mm": 93.80940246582031,
+   "r_signed": 0.9992442475507128,
+   "amp_ratio_fresh_over_saved": 1.0491719479671329,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 78,
+   "z_mm": 93.0386962890625,
+   "r_signed": 0.9990219474407603,
+   "amp_ratio_fresh_over_saved": 1.0684308784097023,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 79,
+   "z_mm": 92.41741180419922,
+   "r_signed": 0.9989633151619743,
+   "amp_ratio_fresh_over_saved": 1.0996938006722867,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 80,
+   "z_mm": 91.65508270263672,
+   "r_signed": 0.9992682311250383,
+   "amp_ratio_fresh_over_saved": 1.142939187126622,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 81,
+   "z_mm": 91.04188537597656,
+   "r_signed": 0.9996135483423962,
+   "amp_ratio_fresh_over_saved": 1.1751552645328418,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 82,
+   "z_mm": 90.33819580078125,
+   "r_signed": 0.9998334054716971,
+   "amp_ratio_fresh_over_saved": 1.1986486174133903,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 83,
+   "z_mm": 89.83155059814453,
+   "r_signed": 0.9999167499493127,
+   "amp_ratio_fresh_over_saved": 1.208355864059749,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 84,
+   "z_mm": 89.8067855834961,
+   "r_signed": 0.9992015601205759,
+   "amp_ratio_fresh_over_saved": 1.0555666943969038,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 85,
+   "z_mm": 89.05474090576172,
+   "r_signed": 0.9990007102484147,
+   "amp_ratio_fresh_over_saved": 1.0755995195196626,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 86,
+   "z_mm": 88.405517578125,
+   "r_signed": 0.9989898453046057,
+   "amp_ratio_fresh_over_saved": 1.1068537166020902,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 87,
+   "z_mm": 87.65215301513672,
+   "r_signed": 0.9993417655966881,
+   "amp_ratio_fresh_over_saved": 1.1509394122396586,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 88,
+   "z_mm": 87.01595306396484,
+   "r_signed": 0.9996894111771631,
+   "amp_ratio_fresh_over_saved": 1.184619286185283,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 89,
+   "z_mm": 86.34022521972656,
+   "r_signed": 0.9998797490361913,
+   "amp_ratio_fresh_over_saved": 1.2083821051534305,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 90,
+   "z_mm": 85.78539276123047,
+   "r_signed": 0.9999328453283042,
+   "amp_ratio_fresh_over_saved": 1.2171732264940773,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 91,
+   "z_mm": 85.77416229248047,
+   "r_signed": 0.9991671683661673,
+   "amp_ratio_fresh_over_saved": 1.062984892332181,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 92,
+   "z_mm": 85.01990509033203,
+   "r_signed": 0.9990054729716212,
+   "amp_ratio_fresh_over_saved": 1.0833270949716034,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 93,
+   "z_mm": 84.2670669555664,
+   "r_signed": 0.9990733204533393,
+   "amp_ratio_fresh_over_saved": 1.1204719559134084,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 94,
+   "z_mm": 83.62195587158203,
+   "r_signed": 0.9994212842545787,
+   "amp_ratio_fresh_over_saved": 1.1603163561394687,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 95,
+   "z_mm": 82.89169311523438,
+   "r_signed": 0.9997953005614639,
+   "amp_ratio_fresh_over_saved": 1.199315653496644,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 96,
+   "z_mm": 82.31438446044922,
+   "r_signed": 0.9999078953627601,
+   "amp_ratio_fresh_over_saved": 1.217356496492103,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 97,
+   "z_mm": 81.66787719726562,
+   "r_signed": 0.9999375843598212,
+   "amp_ratio_fresh_over_saved": 1.2249509856741276,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 98,
+   "z_mm": 82.08458709716797,
+   "r_signed": 0.9992638103513537,
+   "amp_ratio_fresh_over_saved": 1.069559094826328,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 99,
+   "z_mm": 81.33586883544922,
+   "r_signed": 0.9991398912265902,
+   "amp_ratio_fresh_over_saved": 1.0835094773100011,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 100,
+   "z_mm": 80.5790023803711,
+   "r_signed": 0.9991405721549986,
+   "amp_ratio_fresh_over_saved": 1.1141207388575236,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 101,
+   "z_mm": 79.92440032958984,
+   "r_signed": 0.9993790514259611,
+   "amp_ratio_fresh_over_saved": 1.15148971104542,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 102,
+   "z_mm": 79.18929290771484,
+   "r_signed": 0.999758981879425,
+   "amp_ratio_fresh_over_saved": 1.1945156954968699,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 103,
+   "z_mm": 78.58257293701172,
+   "r_signed": 0.9998988937182427,
+   "amp_ratio_fresh_over_saved": 1.2177076684261412,
+   "fibres_in_mesh": 100
+  },
+  {
+   "electrode": 104,
+   "z_mm": 77.93450164794922,
+   "r_signed": 0.9999311699084743,
+   "amp_ratio_fresh_over_saved": 1.2301729629465747,
+   "fibres_in_mesh": 100
+  }
+ ]
+}

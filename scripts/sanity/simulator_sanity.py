@@ -34,8 +34,13 @@ RESULTS = []          # (name, passed, known)
 STORE = {}            # values kept for the summary figure
 
 
+RECORDS = []          # same record format as scripts/validation/harness.py → tier S rows
+
+
 def check(name, passed, measured, expect, note="", known=False):
     RESULTS.append((name, bool(passed), known))
+    RECORDS.append(dict(tier="S", name=name, passed=bool(passed), known=known, measured=str(measured),
+                        expect=str(expect) + (f" ({note})" if note else ""), principle="", refs=""))
     tag = "KNOWN" if (known and not passed) else ("PASS" if passed else "FAIL")
     mark = {"PASS": "✓", "FAIL": "✗", "KNOWN": "⚠"}[tag]
     print(f"  [{mark} {tag:5s}] {name}")
@@ -201,13 +206,16 @@ check("Non-stationarity over a movement",
 valid = p2p > 0
 med_p2p = float(np.median(p2p[valid]) * 1e6)               # µV
 med_dur = float(np.median(dur))                            # ms
-scale_ok = (20 <= med_p2p <= 800) and (4 <= med_dur <= 15)
+# surface MUAP: tens to hundreds of µV (largest superficial units 1–2 mV); main complex
+# 5–20 ms (Merletti & Muceli 2019 ≈15 ms for a 60 mm fibre at 4 m/s; Farina 2014 ~20 ms)
+scale_ok = (20 <= med_p2p <= 800) and (5 <= med_dur <= 20)
 STORE["scale"] = (p2p[valid] * 1e6, med_dur)
 check("MUAP physiological scale",
       scale_ok,
       f"median p2p {med_p2p:.2f} µV, median duration {med_dur:.1f} ms",
-      "single-MU surface MUAP ≈ 20–800 µV, 4–15 ms",
-      note="known C-04: straight constant-depth fibres → broad, weak fields", known=True)
+      "single-MU surface MUAP ≈ 20–800 µV, 5–20 ms (Merletti & Muceli 2019; Farina 2014)",
+      note="the 0.6 µV / 33 ms of earlier runs was an electrode-placement artefact plus the 1/v constant",
+      known=True)
 
 
 # ------------------------------------------------------------------------- summary
@@ -271,6 +279,9 @@ fig.suptitle(f"emgforge sanity — {n_pass}/{n_real} physics checks pass"
              + (f", {n_known} known C-04 flag" if n_known else ""), fontsize=13)
 fig.savefig(OUT / "simulator_sanity.png", dpi=130, bbox_inches="tight")
 print("\nwrote", OUT / "simulator_sanity.png")
+import json
+_vout = ROOT / "_results/validation"; _vout.mkdir(parents=True, exist_ok=True)
+(_vout / "S.json").write_text(json.dumps(RECORDS, indent=1))     # rows for the validation report
 
 import sys
 sys.exit(0 if n_pass == n_real else 1)              # known-limitation flags don't fail the run
