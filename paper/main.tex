@@ -34,10 +34,11 @@
 
 \title{\textbf{emgforge}: a first-principles-validated forward model of surface EMG, from volume-conductor lead fields to motor-unit action potentials and interference signals}
 
-\author{Dimitrios Halatsis\thanks{Department of Bioengineering, Imperial College London, UK. Correspondence: \texttt{d.chalatsis22@imperial.ac.uk}. Code: \repo.}
-  \and Noura Ezaz-Nikpay\thanks{Department of Computing, Imperial College London, UK.}
-  \and Pranav Mamidanna\thanks{I-X Centre for AI in Science and Department of Bioengineering, Imperial College London, UK.}
-  \and Dario Farina\thanks{Department of Bioengineering, Imperial College London, UK.}}
+\author{Dimitrios Halatsis$^{1,*}$ \quad Noura Ezaz-Nikpay$^{2}$ \quad Pranav Mamidanna$^{1,3}$ \quad Dario Farina$^{1}$\\[6pt]
+  \small $^{1}$Department of Bioengineering, Imperial College London, London, UK\\
+  \small $^{2}$Department of Computing, Imperial College London, London, UK\\
+  \small $^{3}$I-X Centre for AI in Science, Imperial College London, London, UK\\[4pt]
+  \small $^{*}$Correspondence: \texttt{d.chalatsis22@imperial.ac.uk}. Code: \repo}
 \date{Preprint --- September 2026}
 
 \begin{document}
@@ -909,11 +910,17 @@ Code: \repo{} (MIT), branch \path{paper/arxiv-v1}. The validation suite is
 \path{scripts/validation/run_all.py}; the figure and dataset scripts are in
 \path{paper/figures/}; dataset manifests in \path{paper/datasets/}.
 
+\section*{Funding}
+D.H. was supported by UK Research and Innovation (UKRI Centre for Doctoral Training in AI
+for Healthcare, grant EP/S023283/1), the Imperial-META Wearable Neural Interfaces Research
+Centre and the Onassis Foundation (Scholarship ID F~ZT~012-1/2023-2024). N.E.-N. was
+supported by UK Research and Innovation (UKRI AI Centre for Doctoral Training in Digital
+Healthcare, grant EP/Y030974/1).
+
 \FloatBarrier
 \bibliographystyle{unsrtnat}
 \bibliography{refs}
 
-\clearpage
 \appendix
 \section{The validation checks}
 \label{app:checks}
