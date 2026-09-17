@@ -208,6 +208,8 @@ def solve_and_evaluate(
 
     print(f"  Solving for electrode at {electrode_point}...")
     t0 = time.time()
+    # 5 mm = the legacy source width of the cached lead fields (the paper: narrows the
+    # lateral footprint, FWHM 25 vs 40 mm analytical; 1 mm matches) — explicit on purpose
     uh = model.solve_for_point(electrode_point, source_sigma=5.0)
     iters = model._last_solver.getIterationNumber()
     print(f"  Solved in {iters} iterations ({time.time()-t0:.1f}s)")

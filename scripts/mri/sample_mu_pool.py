@@ -36,7 +36,7 @@ from emgforge.mri.core.fiber_directions import MuscleFiberModel
 from emgforge.mri.core.muscle_fiber_bed import build_muscle_beds
 from emgforge.mri.core.motor_unit_pool import sample_henneman_pool, simulate_compound_emg
 from emgforge.mri.core.fem_solver import MRIFEMModel
-from emgforge.synthesis import FibreBed, SpatialConfig, field_to_muap, get_mri_config
+from emgforge.synthesis import FibreBed, field_to_muap, get_mri_config, production_config
 from emgforge.synthesis.preprocessing import denoise_field_n
 
 # --- paths (WR subject) ---
@@ -55,17 +55,12 @@ SEED = 0
 def build_config(engine: str, half: float):
     """The per-fibre synthesis config for the chosen engine."""
     if engine == "spatial":
-        # Production FEM recipe: monopole denoise (removes mesh ripple BEFORE the
-        # CSD 2nd-derivative amplifies it) + one-sided tendon window. Physical-time,
-        # so a small pre-roll gives lead-in when the NMJ sits under the electrode.
-        return SpatialConfig(
-            denoise="monopole", denoise_n_poles=3,
-            fiber_window="one_sided", tukey_alpha=0.25,
-            csd_derivative=2, upsample_factor=2,
-            fsamp=2048.0, w=256, edge_taper_left=5, edge_taper_right=10,
-            t_start_ms=-10.0, v=4.0,
-        )
+        # The production recipe (defined once in emgforge.synthesis): monopole denoise
+        # (removes mesh ripple BEFORE the CSD 2nd-derivative amplifies it) + one-sided
+        # tendon window, physical time with a −10 ms pre-roll.
+        return production_config(fs=2048.0, v=4.0, w=256)
     if engine == "fourier":
+        # comparison-only route (field_to_muap warns once that it is not validated)
         return replace(get_mri_config(), len1_mm=half, len2_mm=half, v=4.0)
     raise ValueError(f"unknown engine {engine!r}")
 

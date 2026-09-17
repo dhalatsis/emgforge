@@ -70,9 +70,11 @@ from emgforge.synthesis.preprocessing import (
 class SpatialConfig(SynthesisConfig):
     """Settings for the spatial SFAP/MUAP engine.
 
-    Defaults mirror the canonical PM-dataset recipe so results are directly
-    comparable to the Fourier pipeline: a light edge taper + Butterworth on
-    φ(z), no upsample, Tukey fibre-end windows.
+    A bare ``SpatialConfig()`` is **not the production recipe** — use
+    :func:`emgforge.synthesis.production_config` (or :meth:`SpatialConfig.production`).
+    The bare defaults (Butterworth denoise, Tukey fibre-end window, ``t_start_ms=0``)
+    are the historical PM-dataset settings; they are kept unchanged because the
+    reference sets under ``tests/synthesis/data`` were recorded with them.
     """
 
     # φ(z) preprocessing (applied per fibre before the integral)
@@ -132,6 +134,39 @@ class SpatialConfig(SynthesisConfig):
     # only prepends baseline — it never changes the waveform. Default 0 (the MRI
     # case detects far from the NMJ, so its action already lands inside [0, w/fs]).
     t_start_ms: float = 0.0
+
+    @classmethod
+    def production(cls, *, fs: float = 2048.0, v: float = 4.0, w: int = 256) -> "SpatialConfig":
+        """The validated direct line-source recipe — alias of :func:`production_config`."""
+        return production_config(fs=fs, v=v, w=w)
+
+
+def production_config(*, fs: float = 2048.0, v: float = 4.0, w: int = 256) -> SpatialConfig:
+    """The production synthesis recipe — direct line-source synthesis — as one value.
+
+    This is the single source of truth for the recipe justified step by step in
+    ``synthesis/DIRECT_LINE_SOURCE.md`` §0 and validated against the closed-form
+    line-source oracle and the Farina (2004) cylinder (``scripts/validation``,
+    ``tests/sanity/test_route_defaults.py``): a free-position 3-monopole fit of φ(z),
+    a short cosine edge taper (5 / 10 samples), 2× cubic upsampling, the physical
+    second-derivative current source, a one-sided (tendon-only) fibre-end window,
+    and physical time starting at −10 ms (t = 0 at the NMJ discharge).
+
+    Only the sampling regime is a parameter: ``fs`` / ``w`` set the time axis and
+    ``v`` the conduction velocity (cylinder tier: ``fs=4096``; MRI tier: ``fs=2048``).
+    ``emgforge.mri.pipeline.production_config``, ``scripts/validation/harness.golden_cfg``
+    and ``scripts/mri/mu_electrode_grid.SPCFG`` are thin wrappers over this function.
+    Use ``dataclasses.replace`` to derive a deliberate variant.
+    """
+    return SpatialConfig(
+        denoise="monopole", denoise_n_poles=3,
+        fiber_window="one_sided", tukey_alpha=0.25,
+        csd_derivative=2, upsample_factor=2,
+        edge_taper_left=5, edge_taper_right=10,
+        center_time=False, t_start_ms=-10.0,
+        sigma_in=1.0, fiber_radius_mm=0.05, polarity=1,
+        v=float(v), fsamp=float(fs), w=int(w),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -237,10 +272,12 @@ def compute_sfap_spatial(
     len1_mm, len2_mm : semi-fibre lengths NMJ→proximal / NMJ→distal tendon.
     posz_mm : NMJ position relative to the electrode (z=0). For an FEM φ that
         already encodes the NMJ in its sampling, leave at 0.
+    config : ``None`` → :func:`production_config` (the validated recipe, physical
+        time from −10 ms). Pass a ``SpatialConfig`` to choose a deliberate variant.
 
     Returns ``(t_ms, sfap, debug)``.
     """
-    cfg = config or SpatialConfig()
+    cfg = config if config is not None else production_config()
     phi, dz = _preprocess_phi(phi_z, dz_mm, cfg)
     Nz = len(phi)
     z = (np.arange(Nz) - Nz // 2) * dz

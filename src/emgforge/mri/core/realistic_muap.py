@@ -299,15 +299,17 @@ def compute_harmonic_muap(phi_per_fiber, dz_mm, half1_mm, half2_mm, posz_mm,
         Optional per-fibre conduction velocity (m/s). If None, the config ``v``
         is used for all fibres.
     config : SpatialConfig or None
-        Spatial-engine config. Defaults to ``SpatialConfig()``.
+        Spatial-engine config. ``None`` → :func:`emgforge.synthesis.production_config`
+        (the validated direct line-source recipe; a bare ``SpatialConfig()`` is not it).
 
     Returns
     -------
     (t_ms, muap) : the common time axis and the summed MUAP.
     """
-    from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
+    from emgforge.synthesis.engines.spatial import (
+        SpatialConfig, compute_sfap_spatial, production_config)
 
-    cfg = config or SpatialConfig()
+    cfg = config if config is not None else production_config()
     n_fib = len(phi_per_fiber)
     half1_mm = np.asarray(half1_mm, dtype=float)
     half2_mm = np.asarray(half2_mm, dtype=float)
@@ -412,6 +414,8 @@ def main():
     fem = MRIFEMModel(MESH, fiber_config=FIBER_CFG, nifti_path=NIFTI)
     elec = fem.get_skin_surface_point(args.electrode_theta, args.electrode_z_frac)
     t0 = time.time()
+    # 5 mm = the legacy source width of the cached lead fields (the paper: narrows the
+    # lateral footprint, FWHM 25 vs 40 mm analytical; 1 mm matches) — explicit on purpose
     fem.solve_for_point(elec, source_sigma=5.0)
     print(f"  solved in {time.time()-t0:.1f}s")
     phi = np.array([fem.evaluate_solution_at_points(p) for p in paths])

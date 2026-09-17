@@ -94,7 +94,12 @@ class MRIFEMModel:
     """
 
     default_options = {
-        "source_sigma": 5.0,        # Gaussian source width (mm)
+        # Gaussian source width (mm). 5 mm is the LEGACY default every cached lead field
+        # and released dataset was solved with — kept for reproducibility, not because
+        # it is right: the paper finds 5 mm narrows the lateral MUAP footprint (FWHM
+        # 25 mm vs 40 mm analytical) and 1 mm matches the analytical cylinder. Pass
+        # ``source_sigma`` explicitly (scripts/run_pipeline.py --source-sigma).
+        "source_sigma": 5.0,
         "source_degree": 1,         # source function space degree
         "boundary_value": 0,        # Neumann BC value
         "solver_type": "gmres",     # PETSc KSP type
@@ -565,7 +570,10 @@ class MRIFEMModel:
         point : (3,) array
             Source location in physical coordinates (mm).
         source_sigma : float, optional
-            Gaussian source width in mm. Default from options.
+            Gaussian source width in mm. Default from options (5 mm — the legacy
+            value the cached / released lead fields use; the paper shows it narrows
+            the lateral footprint, FWHM 25 vs 40 mm analytical, and 1 mm matches).
+            State it explicitly at every call site.
 
         Returns
         -------

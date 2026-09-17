@@ -71,22 +71,27 @@ are regenerable from the builder scripts above.
 ## Usage
 
 ```python
-from emgforge.synthesis.engines.spatial import compute_sfap_spatial, SpatialConfig
+from emgforge.synthesis import production_config
+from emgforge.synthesis.engines.spatial import compute_sfap_spatial
 
-# single fibre — the engine's boundary (φ passed in, no summation)
+# single fibre — the engine's boundary (φ passed in, no summation). config=None is
+# production_config(); pass production_config(v=3.26) etc. to set the regime.
 t, sfap, dbg = compute_sfap_spatial(phi_z, dz_mm, len1_mm=64, len2_mm=144,
-                                    posz_mm=0.0, config=SpatialConfig(v=3.26))
+                                    posz_mm=0.0, config=production_config(v=3.26))
 
 # a motor unit — sum over a FibreBed via the unified entry (engine chosen by
-# config type). `field` is φ(z) per fibre; `bed` is the geometry + conduction.
+# config type; None = the production recipe). `field` is φ(z) per fibre; `bed` is
+# the geometry + conduction.
 from emgforge.synthesis import field_to_muap, FibreBed
 bed = FibreBed.from_arrays(dz_mm, len1_mm=Lprox, len2_mm=Ldist, posz_mm=0.0, v=vs)
-res = field_to_muap(field, bed, SpatialConfig())      # res.muap, res.time_convention="physical"
+res = field_to_muap(field, bed)                        # res.muap, res.time_convention="physical"
 ```
 
-`SpatialConfig` highlights: `csd_derivative=2` (CSD), `v` (m/s ≡ mm/ms),
-`polarity` (±1), `fiber_window='tukey'`, `butterworth_cutoff=0.03`,
-`center_time=False` (physical time).
+`production_config()` is the single definition of the validated recipe (monopole
+denoise, one-sided tendon window, `csd_derivative=2`, 2× upsampling, physical time
+from −10 ms). A bare `SpatialConfig()` (`fiber_window='tukey'`, Butterworth
+denoise, `t_start_ms=0`) is **not** the recipe — its defaults are frozen only
+because the reference sets were recorded with them.
 
 ## Provenance
 

@@ -45,6 +45,7 @@ from pathlib import Path
 import numpy as np
 
 from emgforge.synthesis import FibreBed, SpatialConfig, field_to_muap
+from emgforge.synthesis import production_config as _production_config
 from emgforge.synthesis.preprocessing import denoise_field_n
 
 DATA = Path(__file__).resolve().parent / "data"
@@ -294,7 +295,15 @@ def solve_grid_leadfields(fem, elec, paths, *, source_sigma: float = 5.0, log=No
     """One reciprocity solve per electrode (Gaussian source of width ``source_sigma`` mm at
     the skin point), φ sampled along every fibre path. The fibre points' mesh cells are
     located once and reused for every electrode. Returns ``phi_grid (m, n, N, Nz)`` and
-    the per-electrode solve / sampling times."""
+    the per-electrode solve / sampling times.
+
+    ``source_sigma`` — the electrode's Gaussian source width (mm). The default, 5 mm, is
+    the legacy FEM value (``MRIFEMModel.default_options``) that every cached lead field
+    and released dataset was solved with, so it is kept; but the paper's cylinder study
+    finds that 5 mm narrows the lateral MUAP footprint (FWHM 25 mm vs 40 mm analytical)
+    while 1 mm reproduces the analytical cylinder. Choose it deliberately
+    (``scripts/run_pipeline.py --source-sigma``); changing the default here would silently
+    change every cached solve."""
     elec = np.asarray(elec, dtype=float)
     paths = np.asarray(paths, dtype=float)
     m, n = elec.shape[:2]
@@ -323,12 +332,11 @@ def solve_grid_leadfields(fem, elec, paths, *, source_sigma: float = 5.0, log=No
 def production_config(*, fs: float = 2048.0, v: float = 4.0, w: int = 256) -> SpatialConfig:
     """The direct line-source recipe (``synthesis/DIRECT_LINE_SOURCE.md``): 3-monopole fit of
     φ, short edge taper, 2× upsampling, second-derivative current source, one-sided tendon
-    window, physical time from −10 ms (t = 0 at the NMJ discharge)."""
-    return SpatialConfig(denoise="monopole", denoise_n_poles=3,
-                         fiber_window="one_sided", tukey_alpha=0.25,
-                         csd_derivative=2, upsample_factor=2,
-                         fsamp=fs, w=w, edge_taper_left=5, edge_taper_right=10,
-                         t_start_ms=-10.0, v=v)
+    window, physical time from −10 ms (t = 0 at the NMJ discharge).
+
+    A thin wrapper kept for the pipeline's callers: the recipe itself is defined once, in
+    :func:`emgforge.synthesis.production_config`."""
+    return _production_config(fs=fs, v=v, w=w)
 
 
 def config_dict(cfg) -> dict:

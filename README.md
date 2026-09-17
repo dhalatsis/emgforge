@@ -43,15 +43,20 @@ line-source synthesis):
 
 ```python
 import numpy as np
-from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
+from emgforge.synthesis import production_config
+from emgforge.synthesis.engines.spatial import compute_sfap_spatial
 
 phi = np.load("phi_along_fibre.npy")      # lead field sampled along the fibre, centred on the electrode
-cfg = SpatialConfig(denoise="monopole", denoise_n_poles=3, csd_derivative=2, upsample_factor=2,
-                    fiber_window="one_sided", edge_taper_left=5, edge_taper_right=10,
-                    center_time=False, t_start_ms=-10.0, v=4.0, fsamp=4096.0, w=256)
+cfg = production_config(fs=4096.0)        # the validated recipe (v = 4 m/s, w = 256); the ONE definition
 t_ms, sfap, _ = compute_sfap_spatial(phi, dz_mm=0.977, len1_mm=60, len2_mm=60, posz_mm=-20, config=cfg)
 # t = 0 is the NMJ discharge; the lobe of an electrode 20 mm away lands at 5 ms, the end-of-fibre at L/v
 ```
+
+`production_config()` (monopole-fit denoising, one-sided tendon window, second-derivative
+current source, 2× upsampling, physical time from −10 ms) is the default everywhere:
+`field_to_muap(field, bed)` and `compute_sfap_spatial(phi, dz)` with no config use it. The
+Fourier engine (`MUAPConfig`) is kept for comparison only and warns when selected — it is
+anti-phase and lagged against the line-source oracle (`src/emgforge/synthesis/DIRECT_LINE_SOURCE.md`).
 
 **A motor-unit action potential** is the sum over a fibre bed (`FibreBed` carries per-fibre
 semi-lengths, NMJ position and conduction velocity):
@@ -62,15 +67,26 @@ bed = FibreBed.jittered(50, dz_mm=0.977, len1_mm=60, len2_mm=60, nmj_sigma_mm=5.
 muap = field_to_muap(phi_matrix, bed, cfg).muap      # phi_matrix: (50, Nz), one lead-field line per fibre
 ```
 
-**Interference EMG and force on an HD grid** from the MRI forearm pool:
+**Interference EMG and force on an HD grid** from the MRI forearm — build the grid MUAP
+tensor once with the pipeline, then drive it:
+
+```bash
+python scripts/run_pipeline.py --muscle 8 --grid 5x5 --n-mu 20    # → _results/pipeline/L8_5x5_ied10_mu20/
+```
 
 ```python
 from emgforge import Simulator
 from emgforge.activation import drive
-sim = Simulator.from_mri(muscle=8, m=5, fs=2048.0)   # FCU, 5×5 skin grid (uses the cached MUAP tensor)
+sim = Simulator.from_pipeline("_results/pipeline/L8_5x5_ied10_mu20/pipeline_output.npz")
+# sim = Simulator.from_mri(path="muap_tensor_L8_M5.npz")     # alternative: a released (N, E, w) tensor
 E = drive.add_common_drive(drive.trapezoid(0.5, 0.5, 2.0, 0.5, fs=2048.0), sigma=0.02)
 rec = sim.run(E, seed=0)                              # rec.emg (25, T), rec.force (%MVC), rec.spikes
 ```
+
+`Simulator.from_mri(muscle=8, m=5)` without a path looks for a `run_pipeline.py` output
+for that muscle and grid first; it only falls back — with a warning — to the legacy
+`_results/mu_pool/electrode_grid` tensor of `scripts/activation/build_grid_tensor.py`,
+whose vertex-snapped electrode grid is known to be wrong (not for results).
 
 ## One command from segmentation to EMG
 

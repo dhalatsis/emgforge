@@ -23,7 +23,7 @@ from emgforge.mri.core.fiber_directions import MuscleFiberModel
 from emgforge.mri.core.muscle_fiber_bed import build_muscle_beds
 from emgforge.mri.core.motor_unit_pool import sample_henneman_pool
 from emgforge.mri.core.fem_solver import MRIFEMModel
-from emgforge.synthesis import FibreBed, SpatialConfig, field_to_muap
+from emgforge.synthesis import FibreBed, field_to_muap, production_config
 
 ROOT = Path(__file__).resolve().parents[2]
 SEG = ROOT / "src/emgforge/mri/data/forearm_WR_segmentation.nii.gz"
@@ -32,9 +32,8 @@ CFG = ROOT / "_results/sanity/fem_cache/forearm_WR_fibers.json"
 OUT = ROOT / "_results/mu_pool/electrode_grid"
 LABELS = json.load(open(ROOT / "src/emgforge/mri/data/pd_lab_labels.json"))["common_labels"]
 IZ_FRAC = 0.305
-SPCFG = SpatialConfig(denoise="monopole", denoise_n_poles=3, fiber_window="one_sided",
-                      tukey_alpha=0.25, csd_derivative=2, upsample_factor=2, fsamp=2048.0,
-                      w=256, edge_taper_left=5, edge_taper_right=10, t_start_ms=-10.0, v=4.0)
+# the production recipe (MRI regime fs=2048, v=4, w=256) — defined once in emgforge.synthesis
+SPCFG = production_config(fs=2048.0, v=4.0, w=256)
 
 
 def mu_bed(bed, mu, arc_dz, L_fib):
@@ -91,6 +90,9 @@ def main():
         for i, zf in enumerate(zfracs):
             for j, th in enumerate(thetas):
                 elec = fem.get_skin_surface_point(th, zf); elec_xyz[i, j] = elec
+                # source_sigma=5.0 mm is the legacy FEM default kept so this cache stays
+                # comparable with the released lead fields; the paper finds 5 mm narrows
+                # the lateral footprint (FWHM 25 vs 40 mm analytical) and 1 mm matches.
                 fem.solve_for_point(elec, source_sigma=5.0)
                 phi_grid[i, j] = np.array([fem.evaluate_solution_at_points(p) for p in bed.paths])
             print(f"  row {i+1}/{M} solved ({time.time()-t0:.0f}s)")

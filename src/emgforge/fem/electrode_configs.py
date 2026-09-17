@@ -134,6 +134,13 @@ class ElectrodeFEMSolver:
         If True (default), use the native NativePointSource reimplementation
         (no external scifem dependency). Set False to use scifem.PointSource
         (scifem must be installed).
+    source_mode : str
+        "point" (default) or "gaussian". Only "gaussian" uses ``source_sigma``.
+    source_sigma : float
+        Gaussian source width (mesh units, mm). The 5.0 default is the legacy
+        value the cached / released lead fields were solved with; the paper finds
+        5 mm narrows the lateral MUAP footprint (FWHM 25 vs 40 mm analytical) and
+        1 mm matches. Kept for reproducibility — pass it explicitly.
     **fem_options
         Additional options passed to FEMModel
 
