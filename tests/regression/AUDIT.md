@@ -137,7 +137,7 @@ on this detail.
    should reproduce the analytical MUAP at `r ≈ 1.0`. This is the
    unbreakable invariant: any change that breaks it is a bug.
 2. **Physical agreement**: FEM φ → production pipeline → MUAP should match
-   analytical MUAP at `r ≥ 0.997` on the golden cylinder cases.
+   analytical MUAP at `r ≥ 0.997` on the cylindrical reference cases.
 
 Step 2 of the bench (the actual snapshot run) will baseline these numbers
 on the current pipeline so we can detect regressions per change.

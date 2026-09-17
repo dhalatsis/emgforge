@@ -160,8 +160,8 @@ def compute_C_from_phi_z(
 #
 # NOTE: two scripts still hand-roll this block instead of calling these helpers —
 # `scripts/synthesis/build_golden.py` and
-# `scripts/synthesis/compare_spatial_vs_fourier.py`. The first generates the golden
-# set the spatial engine is gated against, so a drift there is invisible to CI.
+# `scripts/synthesis/compare_spatial_vs_fourier.py`. The first generates the cylindrical
+# reference set the spatial engine is gated against, so a drift there is invisible to CI.
 # ---------------------------------------------------------------------------
 
 def build_pare(

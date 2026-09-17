@@ -8,15 +8,27 @@ This module builds that bed for each muscle once at a chosen fiber
 density (fibers / mm² of cross-section at z-mid). MU sampling then
 becomes a cheap distance lookup over the precomputed positions.
 
-Three sampling methods supported (see ``FiberBed.build``):
+Four sampling methods supported (see ``build_muscle_beds``):
   - "uniform"   uniform density on the muscle cross-section
   - "poisson"   Bridson Poisson-disk → minimum-spacing biology-like packing
   - "hex"       hex lattice + small jitter (most anatomical, simplest math)
+  - "harmonic"  masked-Laplace streamlines (Noura's fibre-geometry method,
+                :mod:`emgforge.mri.core.harmonic_fibers`). Default = single-NMJ:
+                one full-length fibre per streamline, mid-belly NMJ. With
+                ``series=True`` (EXPERIMENTAL) each streamline is cut into SHORT
+                in-series fibres, each with an atlas-placed NMJ.
+
+The uniform/poisson/hex methods record each fibre as a FULL-length morphing-disk
+path with a single global ``half_mm`` (the RED/GREY assumption). The "harmonic"
+method uses curved, non-crossing, depth-following streamlines instead, and records
+each fibre's own semi-lengths + NMJ in the per-fibre arrays ``half1_mm`` /
+``half2_mm`` / ``posz_mm`` (single-NMJ full-length by default; short in-series when
+``series=True``).
 
 The bed records each fiber as a dict:
-  - r_norm, theta_deg     morphing-disk coordinates
+  - r_norm, theta_deg     morphing-disk coordinates (harmonic: geometric proxy)
   - x_mid, y_mid          physical xy at z-mid
-  - path (Nz, 3)          full 3D path along z (built once)
+  - path (Nz, 3)          3D path along z (full-length; harmonic: short segment)
   - tangent (Nz, 3)       unit tangents (for σ rotation if wanted)
 
 Typical use:
@@ -28,6 +40,7 @@ Typical use:
 """
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -42,7 +55,7 @@ class FiberBed:
 
     label: int
     density: float                       # fibers / mm² target
-    method: str                          # "uniform" | "poisson" | "hex"
+    method: str                          # "uniform" | "poisson" | "hex" | "harmonic"
     r_norms: np.ndarray                  # (N,)
     theta_degs: np.ndarray               # (N,)
     xy_mid: np.ndarray                   # (N, 2) physical (x, y) at z_mid
@@ -52,6 +65,23 @@ class FiberBed:
     half_mm: float                       # fiber half-length used downstream
     centroid_xy: np.ndarray              # (2,) muscle centroid at z_mid
     cross_section_area_mm2: float
+
+    # --- SHORT-fibre / placed-IZ arrays (method="harmonic" only) ---------
+    # None for uniform/poisson/hex (which use the single global ``half_mm``).
+    # When set, each fibre is a short in-series segment with its OWN semi-
+    # lengths and NMJ, and ``paths``/``tangents`` are object arrays of
+    # variable-length (Nz_i, 3) polylines (uniform ``dz_mm`` arc spacing).
+    half1_mm: Optional[np.ndarray] = None      # (N,) NMJ->proximal semi-length
+    half2_mm: Optional[np.ndarray] = None      # (N,) NMJ->distal   semi-length
+    posz_mm: Optional[np.ndarray] = None       # (N,) NMJ pos in centred-array convention
+    iz_fractions: Optional[np.ndarray] = None  # (N,) longitudinal fraction of each NMJ
+    is_atlas: Optional[np.ndarray] = None      # (N,) bool: atlas IZ vs geometric fill
+    dz_mm: Optional[float] = None              # arc-length step of harmonic paths
+
+    @property
+    def is_harmonic(self) -> bool:
+        """True when this bed holds short, per-fibre-length harmonic fibres."""
+        return self.half1_mm is not None
 
     def fibers_in_mu(self, mu_cx, mu_cy, radius_mm):
         """Indices of fibers whose (x_mid, y_mid) is within radius_mm
@@ -130,6 +160,76 @@ def _build_hex(R_max, mx, my, cs, z_mid, density, rng, jitter_frac=0.15):
     return keys
 
 
+def _build_harmonic_bed(fiber_model, label, dz, min_fibers, grid_mm, atlas, series=False,
+                        iz_jitter_mm=0.0, seed=0):
+    """Build a harmonic-streamline FiberBed for one muscle
+    (``emgforge.mri.core.harmonic_fibers``).
+
+    ``series=False`` (default) → single-NMJ: one full-length fibre per streamline,
+    mid-belly NMJ. ``series=True`` → EXPERIMENTAL series-fibering: short in-series
+    fibres with atlas-placed IZs. Either way each fibre carries its own semi-lengths
+    + NMJ, so the bed populates ``half1_mm`` / ``half2_mm`` / ``posz_mm`` and stores
+    the variable-length paths/tangents as object arrays.
+    """
+    from emgforge.mri.core.harmonic_fibers import (
+        HarmonicFibreField,
+        atlas_fibre_params,
+    )
+
+    m = fiber_model.muscles[label]
+    mask = fiber_model.seg_data == label
+    vs = np.asarray(fiber_model.voxel_size, dtype=float)
+
+    field = HarmonicFibreField(mask, vs, solve=True)
+    if series:
+        Lf, iz, _ = atlas_fibre_params(label, atlas)
+        fibres = field.short_fibers(Lf, iz, grid_mm=grid_mm, dz_mm=dz)
+    else:
+        fibres = field.long_fibers(grid_mm=grid_mm, dz_mm=dz,
+                                   iz_jitter_mm=iz_jitter_mm, seed=seed)
+    if len(fibres) < min_fibers:
+        return None
+
+    n = len(fibres)
+    xy_mid = np.zeros((n, 2))
+    half1 = np.zeros(n)
+    half2 = np.zeros(n)
+    posz = np.zeros(n)
+    iz_fr = np.zeros(n)
+    is_atl = np.zeros(n, dtype=bool)
+    paths = np.empty(n, dtype=object)
+    tangents = np.empty(n, dtype=object)
+    for i, fb in enumerate(fibres):
+        paths[i] = fb.path
+        tangents[i] = fb.tangents
+        xy_mid[i] = fb.path[len(fb.path) // 2, :2]
+        half1[i] = fb.half1_mm
+        half2[i] = fb.half2_mm
+        posz[i] = fb.posz_mm
+        iz_fr[i] = fb.iz_fraction
+        is_atl[i] = fb.is_atlas
+
+    cent = field.ctr[:2]
+    d = np.linalg.norm(xy_mid - cent, axis=1)
+    R_max = float(d.max()) if n else 1.0
+    # Geometric r_norm / theta proxies (length-correct; used only for MU
+    # sampling bookkeeping, not for the morphing-disk path harmonic bypasses).
+    r_norms = d / max(R_max, 1e-6)
+    thetas = np.degrees(np.arctan2(xy_mid[:, 1] - cent[1], xy_mid[:, 0] - cent[0])) % 360.0
+
+    return FiberBed(
+        label=label, density=float("nan"), method="harmonic",
+        r_norms=r_norms, theta_degs=thetas, xy_mid=xy_mid,
+        z_vals=np.array([field.z0, field.z1]),
+        paths=paths, tangents=tangents,
+        half_mm=float(np.mean(half1 + half2) / 2.0),
+        centroid_xy=cent.copy(),
+        cross_section_area_mm2=float("nan"),
+        half1_mm=half1, half2_mm=half2, posz_mm=posz,
+        iz_fractions=iz_fr, is_atlas=is_atl, dz_mm=float(dz),
+    )
+
+
 def build_muscle_beds(
     fiber_model,
     density=2.0,
@@ -138,6 +238,10 @@ def build_muscle_beds(
     seed=0,
     labels=None,
     min_fibers=30,
+    grid_mm=2.0,
+    atlas=None,
+    series=False,
+    iz_jitter_mm=0.0,
 ):
     """Build a FiberBed for each muscle in ``fiber_model``.
 
@@ -149,15 +253,33 @@ def build_muscle_beds(
         Target fiber density (fibers / mm² at z-mid). Real muscle has
         ~50-500 fibers/mm² at typical light-microscopy scale; for our
         coarse MUAP grid 1-5 fibers/mm² is enough to oversample MUs.
-    method : {"uniform", "poisson", "hex"}
+    method : {"uniform", "poisson", "hex", "harmonic"}
+        The morphing-disk methods ("uniform"/"poisson"/"hex") build
+        full-length fibres with a single global ``half_mm``. "harmonic"
+        builds masked-Laplace-streamline fibres (needs only ``seg_data``, not
+        centerlines / cross-sections) — single-NMJ full-length by default.
+    series : bool
+        (harmonic only) EXPERIMENTAL. When True, cut each streamline into short
+        in-series fibres with atlas-placed multiple IZs instead of one mid-belly
+        NMJ. Emits a warning; the single-NMJ model is the production default.
+    iz_jitter_mm : float
+        (harmonic single-NMJ only) scatter each NMJ along its fibre by
+        ``N(0, iz_jitter_mm)`` about the innervation zone — the IZ is a band a few mm
+        wide, so a small jitter adds physiological MUAP dispersion. 0 = deterministic
+        (uses ``seed``).
     dz : float
-        z-spacing for fiber paths (mm).
+        z-spacing for fiber paths (mm). For "harmonic" this is the uniform
+        arc-length spacing of the short-fibre polylines.
     seed : int
         RNG seed.
     labels : list[int] or None
         If None, build for all viable muscles.
     min_fibers : int
         Skip muscles that yield fewer than this many fibers.
+    grid_mm : float
+        (harmonic only) cross-section seeding grid spacing (mm).
+    atlas : dict or None
+        (harmonic only) pre-loaded forearm atlas; loaded from disk if None.
 
     Returns
     -------
@@ -165,6 +287,27 @@ def build_muscle_beds(
     """
     rng = np.random.default_rng(seed)
     beds = {}
+
+    if method == "harmonic":
+        if series:
+            warnings.warn(
+                "harmonic series-fibering (multi-NMJ) is EXPERIMENTAL; the single-NMJ "
+                "model (series=False) is the production default.",
+                stacklevel=2,
+            )
+        if labels is None:
+            labels = sorted(
+                l for l, mm in fiber_model.muscles.items()
+                if mm.tissue_type == "muscle"
+            )
+        for label in labels:
+            bed = _build_harmonic_bed(
+                fiber_model, label, dz, min_fibers, grid_mm, atlas, series=series,
+                iz_jitter_mm=iz_jitter_mm, seed=seed,
+            )
+            if bed is not None:
+                beds[label] = bed
+        return beds
 
     if labels is None:
         labels = sorted(

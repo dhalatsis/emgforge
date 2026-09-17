@@ -1,263 +1,245 @@
-# EMG forward models and MUAP validation evidence
+# Validation bibliography — forward models and MUAP phenomenology
 
-## Research conclusion
+Compiled 2026-09-10 from two literature surveys (forward models and their validation;
+quantitative MUAP/EMG phenomenology). Purpose: every check in `scripts/validation/`
+cites a principle from here, with the number it is held against. Where a source could
+only be read in abstract, that is said. Check IDs (A0.1, B4b, …) refer to
+`docs/validation/PLAN.md`.
 
-The literature supports a hierarchy of sanity checks rather than a universal “healthy
-MUAP shape.” The strongest checks are mathematical identities and controlled responses:
-linearity, source balance, analytical-cylinder reproduction, mesh convergence,
-propagation delay, attenuation with source distance, and predictable changes under
-electrode or fibre perturbations. Absolute duration, amplitude, phase count and spectral
-limits depend on the muscle, recording montage, electrode area, tissue thickness,
-filtering and how the waveform was extracted. They should be validated against a matched
-experimental reference population, not used as context-free constants.
+---
 
-This conclusion agrees with the structure-based modelling literature, which separates
-source description, motor-unit organization, volume conduction, recording configuration,
-and recruitment/firing behaviour.[^1] It also matches modern numerical pipelines, where
-the conductor solve is separated from fibre physiology and the final EMG is a linear
-superposition of fibre or motor-unit contributions.[^2]
+## Part I — Forward models, and how each was validated
 
-## Forward-model families
+### Source models (transmembrane potential / current)
 
-| Family | Representative work | What it contributes | Best use in emgforge validation |
+- **Rosenfalck 1969**, *Acta Physiol Scand Suppl* 321:1–168. Core-conductor theory: the
+  transmembrane current is the second spatial derivative of the IAP, scaled by fibre
+  radius/intracellular conductivity. Default IAP `Vm(z) = 96·z³·e^(−z) − 90 mV` (z in mm) —
+  the source used by our engines (`emgforge.synthesis.iap`), by Petersen & Rostalski 2019
+  and by Maksymenko 2023. → **A0.1, A0.5**.
+- **Andreassen & Rosenfalck 1981**, *CRC Crit Rev Bioeng* 6:267 — the IAP→SFAP relation as
+  a convolution of the transmembrane current with the volume conductor's weighting
+  function; the experimental confrontation of the 1969 model. → **A0.1**.
+- **Nandedkar & Stålberg 1983**, *Med Biol Eng Comput* 21:158 (doi 10.1007/BF02441531).
+  Line-source SFAP; "for a given fibre the amplitude is inversely proportional to the
+  conduction velocity" — *when the IAP is fixed in time*. Our engines fix the IAP in space,
+  so the potential is CV-independent; see the note under A0.2.
+- **Dimitrov & Dimitrova 1998**, *Med Eng Phys* 20:374 (doi 10.1016/S1350-4533(98)00014-9).
+  MUP as a linear time-shift-invariant system: input = first time derivative of the IAP,
+  impulse response = a dipole moving along the finite fibre, with generation at the
+  end-plate and extinction at the tendons. Companion spectral papers *Med Eng Phys* 20:580
+  and 20:702. → **A2.3, B4**.
+- **Kleinpenning, Gootzen, van Oosterom & Stegeman 1990**, *Math Biosci* 101:41 and
+  **Petersen 2016** (Lübeck workshop paper): the Farina–Merletti source
+  `i(z,t) = d/dz[ψ(z−z_i−vt)p₁(z) − ψ(−z+z_i−vt)p₂(z)]` equals propagating terms +
+  `GEN(t)δ(z−z_i)` + `EOF_k(t)δ(z−z_i∓L_k)`, and these are the **unique** terms that make
+  `∫ i(z,t) dz = 0` for all t. → **A0.5** (monopole-free source).
+- **van Veen et al. 1993**, *Biophys J* 64:1492 (PMC1262474): measured transmembrane
+  current fits experimental SFAPs best; analytical and measured IAPs give comparable
+  results. **Wallinga-de Jonge et al. 1985**, *EEG Clin Neurophysiol* 60:539: rat fast-fibre
+  IAP amplitude ≈ 91 mV, rise 0.14 ms, 690 V/s. **Lateva & McGill 1998** (PMID 9851304):
+  the slow afterwave comes from the IAP's negative afterpotential.
+- **Griep et al. 1982**, *EEG Clin Neurophysiol* 53:388: the gold-standard design —
+  calculated and recorded the *same* MUAP with post-hoc histological fibre positions.
+
+### Analytical volume conductors
+
+- **Gootzen, Stegeman & van Oosterom 1991**, *EEG Clin Neurophysiol* 81:152 (PMID 1708717).
+  Bounded anisotropic cylinder + finite fibre; verified against surface MUAPs ("very good
+  resemblance"); finite limb dimensions *enhance* the end-of-fibre effect. → **B4**.
+- **Roeleveld, Stegeman et al. 1997a/b**, *Acta Physiol Scand* 160:175 and 161:465;
+  **Roeleveld, Blok, Stegeman & van Oosterom 1997**, *J Electromyogr Kinesiol* 7:221 (PMID 11369265); **Blok, Stegeman
+  & van Oosterom 2002**, *Ann Biomed Eng* 30:566. 52 biceps MUs, 36-channel sEMG + scanning
+  EMG: MUP amplitude vs depth is an inverse power law (bipolar steeper than monopolar);
+  MU depth ≈ 0.2 × the surface width over which the MUP exceeds 50 % of its maximum; *all*
+  models decayed faster than the measurements and a distinct thin skin layer (3-layer
+  model) fits best. → **B5, B6**.
+- **Merletti, Lo Conte, Avignone & Guglielminotti 1999** (Parts I/II), *IEEE TBME*
+  46:810/821. Tripole model (I = 24.6, −35.4, 10.8; a = 2.1, b = 4.8 mm) in an anisotropic
+  infinite medium; Part II fits biceps array recordings at 10–30 % MVC ("closely
+  approximated"). → **A0.5, B3**.
+- **Farina & Rainoldi 1999**, *Med Eng Phys* 21:487: planar 4-layer transfer function
+  (closed form reproduced in Petersen 2016) — fat attenuates *and widens* the surface
+  distribution. **Farina & Merletti 2001**, *IEEE TBME* 48:637: the layered conductor as a
+  2-D spatial filter; Radon transform for generation/extinction; explains the SD spectral
+  dips. **Farina, Cescon & Merletti 2002**, *Biol Cybern* 86:445: the canonical sensitivity
+  study (fat, inclination, depth, electrode size, IED, fibre length → amplitude, spectrum,
+  CV estimate); tables paywalled. **Farina et al. 2002**, *Muscle Nerve* 26:681: crosstalk is
+  mostly the non-propagating component; SD > DD; grows with IED. → **B4c, B8, B9, B10, B11**.
+- **Farina, Mesin, Martina & Merletti 2004**, *IEEE TBME* 51:415 — the multilayer
+  cylinder our `emgforge.analytical` ports. Parameters (Merletti & Muceli 2019 Fig. 7):
+  σ_bone 0.02, σ_fat 0.05, σ_skin 1, σ_muscle 0.1/0.5 S/m. Validated *by others*:
+  **Maksymenko et al. 2023** FEM vs this cylinder NMSE 3 % (1 mm deep) – 5 % (11 mm).
+  → **A1, A2**.
+- **Mesin & Farina 2004–2008**; **Mesin 2005** (WIT): a new solver is verified "by
+  comparison with the known solution" for homogeneous planar multilayer tissue; lists the
+  analytic solutions available for checking numerics (Clark & Plonsey 1968 infinite
+  isotropic; Farina & Merletti 2001 planar; Gootzen 1991 / Blok 2002 / Farina 2004
+  cylindrical). End-of-fibre components "have approximately constant amplitude on
+  different channels". **Mesin, Damiano & Farina 2007** (J Neurosci Methods 160:327; PMID 17070925): pennation biases surface CV
+  estimates (15° → 4.7–4.9 m/s for a true 4.0). **Mesin 2013** *Comput Biol Med* 43:942/953
+  reviews. → **A0, B4a, B2**.
+- **Carriou et al. 2016**, *Comput Biol Med* 74:54: fast HD-sEMG cylinder model;
+  numerical electrode integration checked against the analytic electrode transfer
+  function. → **B9**.
+- **Ma et al. 2022**, *IEEE TBME* (PMID 34529557): curvilinear-fibre analytical model vs
+  two FEMs — cross-correlation 0.98, nRMSE ≤ 0.04, MDF error ≈ 3 % — the cleanest template
+  for "analytical vs FEM on one anatomy". → **A2.1**.
+
+### Numerical (FEM) volume conductors
+
+- **Lowery, Stoykov, Taflove & Kuiken 2002**, *IEEE TBME* 49:446: multilayer FEM; replacing
+  outer muscle by resistive fat/skin at fixed distance *raises* amplitude and frequency
+  content and steepens the decay; adding fat thickness *lowers* amplitude, frequency
+  content and circumferential decay; bone near the surface raises the potential between
+  bone and source. **Kuiken, Lowery & Stoykov 2003**, *Prosthet Orthot Int* 27:48: fat
+  3/9/18 mm → RMS −31.3/−80.2/−90.0 %. **Lowery et al. 2004**, *IEEE TBME* 51:2138: MRI-based
+  arm vs measured surface potentials, normalised rms error 18–27 %. **Stoykov et al. 2002**:
+  capacitive effects up to 50 % at 100 Hz for extreme permittivities. → **B11, B12**.
+- **Botelho, Curran & Lowery 2019**, *PLoS Comput Biol* 15:e1007267: DTI-based FDI model,
+  reciprocity lead fields, Rosenfalck source with compensatory end sources; RMS within the
+  experimental IQR; skewness/kurtosis of the EMG 0.21/5.41 simulated vs 0.49/5.44 measured.
+  → **C4**.
+- **Teklemariam et al. 2016**, *PLoS One* (PMC4757537): COMSOL h-refinement over 6 mesh
+  levels with signal RMS as the convergence metric. → discretisation practice (A0.4a).
+- **Maksymenko, Clarke, Mendez Guerra, Deslauriers-Gauthier & Farina 2023**, *Nat Commun*
+  14:1600 (NeuroDec): FEM with hierarchical basis sources and adjoint/reciprocity; validated
+  against the Farina 2004 cylinder (NMSE 3–5 %), against experimental wrist-task RMS, and
+  downstream (decomposition RoA 93.8 % vs 82.4 %). → **A1, A2**.
+- **Klotz et al. 2020** multi-domain (bidomain-type) model; **OpenDiHu 2024** — in-silico
+  scalability rather than experimental validation.
+
+### Motor-unit pools and whole-signal models
+
+- **Fuglevand, Winter, Patla & Stashuk 1992**, *Biol Cybern* 67:143: dipole model; only MUs
+  within 10–12 mm contribute significant energy; electrode area barely changes detection
+  depth, IED does. **Fuglevand, Winter & Patla 1993**, *J Neurophysiol* 70:2470: the pool
+  model (exponential thresholds, linear rate coding, renewal ISIs); plausibility judged by
+  EMG–force. → **B5, B9, C3**.
+- **Keenan & Valero-Cuevas 2007**, *J Neurophysiol* 98:1581: a Monte-Carlo fitness rubric —
+  EMG amplitude vs force and force CoV vs force must match experiment; 3/439 parameter
+  sets passed. **Keenan et al. 2005**, *J Appl Physiol* 98:120: amplitude cancellation 33 %
+  at 20 % excitation → 62–65 % at maximum. → **C5, C6**.
+- **Hamilton-Wright & Stashuk 2005**, *IEEE TBME* 52:171: validated by clinical MUP
+  statistics and jitter. **Dimitrov et al. 2008**, *J Electromyogr Kinesiol* 18:35: fatigue
+  simulation. **Petersen & Rostalski 2019**, *Front Physiol* 10:176: comprehensive model on
+  the planar conductor; near-Laplacian amplitude distribution. **Arjunan et al. 2020**:
+  equivalence tests on PSD peak, RMS and force.
+- **Ma et al. 2024** BioMime (*IEEE TNNLS*; arXiv 2211.01856): conditional generative
+  surrogate of NeuroDec MUAPs, held-out nRMSE 1.8 %. **NeuroMotion 2024**, *PLoS Comput
+  Biol* 20:e1012257. **MUniverse 2025** (NeurIPS D&B): synthetic / hybrid / experimental
+  decomposition benchmarks.
+
+### Conductivity sets in circulation
+
+| set | σ_muscle,z | σ_muscle,r | fat | skin | bone |
+|---|---|---|---|---|---|
+| Torino / Farina 2004 (ours) | 0.5 | 0.1 | 0.04–0.05 | **1.0** | 0.02 S/m |
+| Gabriel-1996-based, 100 Hz | ≈1.33 | 0.267 | 0.021 | **4.6×10⁻⁴** | separate cortical/cancellous |
+
+Anisotropy ratio: 5 (Gielen 1984, macroscopic) to 16 (Rush 1963). The skin value is the
+largest disagreement in the field; Roeleveld et al. 1997 (JEK) and Blok 2002 show a distinct
+thin skin layer changes the lateral decay enough to matter against data.
+
+---
+
+## Part II — Quantitative phenomenology (what a correct SFAP / MUAP / EMG looks like)
+
+| feature | expected | source | check |
 |---|---|---|---|
-| Single-fibre source models | Rosenfalck; Gydikov and Trayanova; Dimitrov/Dimitrova lineage[^3][^4] | IAP/current-source shape, onset, propagation and extinction | IAP units, derivative convention, finite-fibre end components |
-| Layered planar analytical | Farina and Merletti; Farina and Rainoldi[^5][^6] | Separation of source, conductor and detection filters; fast controlled sweeps | Linearity, electrode filter, fat/depth low-pass trends |
-| Layered cylindrical analytical | Blok et al.; Farina et al.[^7][^8] | Eccentric fibres, anisotropic muscle, bone/fat/skin and finite fibres | Primary analytical oracle and parameter sweeps |
-| Idealized FEM | Lowery et al.; Stoykov et al.[^9][^10] | Nonsymmetric multilayer conductors and dispersive/capacitive variants | Mesh/domain/source convergence and analytical-cylinder comparison |
-| MRI/anatomical FEM | Lowery et al.; Mesin et al.; Pereira Botelho et al.[^11][^12][^13] | Real boundaries, curved fibres, spatially varying anisotropy and deformation | Geometry canaries and subject-specific array patterns |
-| Multiscale biophysical FEM | Mordhorst et al.[^14] | Membrane excitation, contraction, fatigue and deformation in one framework | Future checks for dynamic geometry and changing membrane properties |
-| Fast adjoint digital twin | Maksymenko et al.[^2] | Electrode-wise adjoint solves, basis sources and large fibre populations | Architectural reference; cylinder error and array-feature benchmarks |
-| Learned surrogate | BioMime and NeuroMotion[^15][^16] | Conditional generation of dynamic MUAP fields from a numerical teacher | Future surrogate-versus-teacher and out-of-distribution tests |
-| Whole-pool analytical model | Petersen and Rostalski[^17] | Recruitment, rate coding, force, EMG, and explicit current conservation | Activation and interference-EMG validation beyond single MUAPs |
+| Fibre conduction velocity | ≈4 m/s, range 3–5; populations 4.55 ± 0.33 (Zwarts 1988), 2.6–5.3 (Andreassen & Arendt-Nielsen 1987); CV(m/s) = 0.043·D(µm) + 0.83 (Blijham 2006); 3.4 %/°C (Troni 1991) | Merletti & Muceli 2019 | A2.4, B2, S5 |
+| CV from arrays | cross-correlation of SD/DD channels on one side of the IZ; SD 0.1–0.2 m/s; IED > 10 mm unsuitable | Farina & Merletti 2004 | A2.4, B2 |
+| Monopolar SFAP between IZ and tendon | triphasic + − +, dominant negative phase | Merletti & Muceli 2019 Fig. 2; Arabadzhiev 2013 | B1 |
+| Surface MUAP duration | ≈15 ms for an SD MUAP of a 60 mm fibre at 4 m/s; ~20 ms typical | Merletti & Muceli 2019; Farina 2014 | B7, S8 |
+| Intramuscular MUAP / SFAP | needle MUAP 8–15 ms, ~0.5 mV; SFAP > 200 µV, rise < 300 µs from fibres within 0.3 mm | Dumitru 1999; SFEMG guidelines 2019 | — |
+| End-of-fibre component | same latency on all channels; onset at L/CV; present in monopolar, reduced by SD, further by DD; EOF/propagating grows with depth, comparable at ~22 mm | Merletti & Muceli 2019 §2.2.2; Gootzen 1991; Roeleveld 1998; Rodriguez-Falces & Place 2018 | A2.3, B4a–c |
+| Crosstalk | mostly non-propagating; 20–30 mm lateral to a muscle; SD > DD; grows with IED | Farina 2002 (Muscle Nerve) | B4c |
+| Innervation zone | bidirectional propagation; monopolar potentials mirror about the IZ; SD channel on the IZ ≈ zero and reverses phase | Masuda 1983/1985; Merletti & Muceli 2019 §2.2.1 | B3 |
+| Spatial filters | SD gain \|2 sin(π e f_s)\|; zeros at f = n·v/IED (400 Hz at 10 mm, 4 m/s); mono > SD > DD detection depth | Lindström & Magnusson 1977; Lynn 1978; Disselhorst-Klug 1997 | B8, B4c |
+| Point source in anisotropic medium | φ ∝ 1/√(σ_z ρ² + σ_r z²); isopotentials elongated by √(σ_z/σ_r) | Plonsey & Barr; Rush 1963; Malmivuo & Plonsey ch. 11 | A0, B12 |
+| Amplitude vs depth | inverse power law, log-log linear; bipolar steeper; MU depth ≈ 0.2 × 50 %-width; only MUs within 10–12 mm contribute significant energy; SD single fibre at 1 % of the superficial max by ≈8 mm | Roeleveld 1997a/b; Fuglevand 1992; Merletti & Muceli 2019 Fig. 7 | B5, B6 |
+| Fat | RMS −31/−80/−90 % at 3/9/18 mm; attenuation and widening; MNF down | Kuiken 2003; Farina & Rainoldi 1999; Lowery 2002 | B11 |
+| Transverse extent | bipolar 24–32 mm, monopolar 72–96 mm (biceps MUs 15–25 mm deep) | Roeleveld/Stegeman 2013 | B6 |
+| MU territory / scale | 5–10 mm diameter; 15–1500 fibres; largest monopolar MUAPs 1–2 mV; MVC RMS 0.2–1.5 mV | Buchthal 1957/59; Stålberg & Antoni 1980; Merletti & Muceli 2019 | S8, C8 |
+| Amplitude ∝ fibre count | linear (MUAP = Σ SFAP) | Merletti & Muceli 2019; Roeleveld 1998 | A0.4c, B7 |
+| Electrode size | Ø5 mm −3 dB at 100 c/m; Ø10 mm at 50 c/m; > 5 mm alters spectra | Merletti & Muceli 2019 Table 1 | B9 |
+| IED | SD amplitude ∝ IED for small IED; saturates near λ/2 (≈20 mm) | De Luca 2002; Hermens 2000 | B10 |
+| Spectrum | 95 % of power < 400–500 Hz; MDF 70–130 Hz at moderate force (biceps 90 ± 18, TA 116 ± 20); MDF, MNF ∝ CV | Stulen & De Luca 1981; Arendt-Nielsen & Mills 1985; J Clin Neurophysiol 1998 norms | A0.4d, C7 |
+| EMG–force | between linear (FDI, soleus) and quadratic (biceps, deltoid) | Lawrence & De Luca 1983; Woods & Bigland-Ritchie 1983 | C6, S3–4 |
+| Amplitude cancellation | 33 % at 20 % → 62–65 % at maximum | Keenan 2005 | C5 |
+| Amplitude PDF | between Laplacian and Gaussian; super-Gaussian at ≤ 10 % MVC; ≈ Gaussian above 40–50 %; ARV/RMS 0.71–0.80 | Clancy & Hogan 1999; Nazarpour 2013 | C4 |
+| Firing rates / ISI | 5–40 pps; onion skin; ISI CoV 0.1–0.3; refractory ~20 ms | De Luca & Hostage 2010; Dideriksen 2012 | C1, C2, S1–2 |
+| Recruitment / twitch | thresholds right-skewed; twitch range ≈100× | Fuglevand 1993 | C3 |
+| Pennation | 15° inclination → CV overestimated 15–25 %; DD least biased | Mesin et al. 2007 | (future) |
+| Reciprocity / superposition / translation | Helmholtz reciprocity (Malmivuo & Plonsey eq. 11.30); linearity; z-invariance of layered conductors | Plonsey 1963; Farina & Merletti 2001 | A0.4b–c, A3 |
 
-No single family is a complete oracle. Analytical models offer exact controlled cases but
-simplify anatomy. Anatomical FEM handles geometry but introduces discretisation,
-conductivity uncertainty and boundary choices. Learned generators inherit their
-teacher’s assumptions. Experimental templates contain the desired physiology but also
-unknown sources, noise, filtering and decomposition bias.
+---
 
-## Principles that can become strong sanity checks
+## Part III — Validation practices in the field, ranked, and where they land in our suite
 
-### 1. The conductor and synthesis operators are linear
+1. Monopole-free source (∫ i dz = 0 ∀t) — Petersen 2016, Merletti 1999 → **A0.5** ✓ (7.7e-17).
+2. FEM vs analytical multilayer cylinder on identical geometry — Maksymenko 2023 (NMSE 3–5 %), Ma 2022 (xcorr 0.98) → **A1.1–1.3, A2.1**.
+3. Analytical limits (infinite anisotropic medium, planar multilayer) — Mesin 2005 → **A0.1–0.3**.
+4. Discretisation convergence — Mesin 2005, Teklemariam 2016 → **A0.4a**.
+5. Amplitude-vs-depth law and detection volume — Roeleveld 1997, Fuglevand 1992 → **B5, B6**.
+6. Propagating vs non-propagating behaviour — Gootzen 1991, Dimitrov 1998, Mesin 2005 → **A2.3, B4**.
+7. Layer material vs distance sign checks — Lowery 2002, Kuiken 2003 → **B11**.
+8. Electrode / spatial-filter transfer functions — Farina & Merletti 2001, Lynn 1978 → **B8–B10**.
+9. CV recovery — Merletti 1999 II, Farina 2002, Mesin et al. 2007 → **A2.4, B2, S5**.
+10. Single-fibre scaling laws — Nandedkar & Stålberg 1983 → **A0.2, A0.4d**.
+11. Source-level plausibility — Rosenfalck, Wallinga 1985 → **A0.1** (IAP fixed by the engines).
+12. Surface MUAP shape vs recordings with known geometry — Griep 1982, Merletti 1999 II, Lowery 2004, Botelho 2019 → **not yet**: needs the WR HD-sEMG units (see PLAN.md, next steps).
+13. Interference statistics and pool relations — Keenan 2007, Fuglevand 1993, Clancy & Hogan 1999 → **C1–C8, S1–S4**.
+14. Quasi-static / capacitance — Stoykov 2002 → assumption stated; not tested.
+15. Downstream-task validation — Maksymenko 2023, MUniverse → **not yet**.
 
-In the quasi-static formulation, tissue potential is obtained from a Poisson problem,
-and detected EMG is the conductor response to a distributed membrane-current source.
-Farina and Merletti explicitly separated temporal source properties from the spatial
-volume-conductor and detection filters.[^5] The modern digital-twin formulation likewise
-reuses linear basis solutions and forms arbitrary fibre contributions afterward.[^2]
+---
 
-Therefore source scaling, polarity inversion, fibre superposition and motor-unit
-superposition are exact tests. They should pass to numerical precision before any
-physiological trend is considered. A failure is a software or formulation error, not
-biological variability.
+## Part IV — Sources (with links)
 
-### 2. A matched cylinder is the primary end-to-end numerical oracle
-
-Farina et al. derived a multilayer cylindrical surface-EMG model with anisotropic muscle
-and concentric bone, muscle, fat and skin layers.[^8] Blok et al. independently developed
-a finite three-layer eccentric-source cylinder and found that adding skin improved
-agreement with measured potential distributions.[^7] These models offer a rare case in
-which complex volume conduction has an analytical reference.
-
-Maksymenko et al. used this strategy to validate a numerical four-layer cylinder and
-reported normalized mean-square errors of 3% for a fibre 1 mm from the muscle surface
-and 5% at 11 mm.[^2] They attributed part of the residual to the analytical cylinder being
-infinite and the numerical one finite. Their 5% normalized-MSE value is a useful initial
-reference only if the same formula is reproduced and all remaining model differences are
-documented. The validation report should state each error formula explicitly and also
-include NRMSE. A more useful result is a convergence curve: error should fall with mesh
-refinement and stabilize as the cylinder is extended.
-
-Shape-only correlation is insufficient. The comparison must preserve sign and volts,
-report NRMSE and amplitude ratio, and show any lag without silently optimizing it away.
-The analytical-φ-to-synthesis subproblem should be much stricter because it excludes FEM
-error; emgforge now gates it at machine precision.
-
-### 3. Propagating and non-propagating components have different spatial signatures
-
-Surface-array measurements show that MUAPs propagate away from the motor endplate in
-both directions. Masuda and Sadoyama found that most extracted surface MUAPs were
-triphasic and propagated symmetrically toward the tendons; more complex and asymmetric
-waveforms also occurred and were associated with endplate scatter and excitation
-delays.[^18] Conduction velocity is inferred from the delay between channels along the
-fibre.[^19]
-
-For two electrodes separated by `Δz` in a locally space-invariant region, the expected
-delay is `Δt = Δz/v`. This is a strong local test of the physical-time engine and fibre
-orientation. It becomes only approximate near boundaries, curved fibres, tissue
-inhomogeneity or large electrodes.
-
-The innervation zone and tendons add components that do not simply translate. The
-digital-twin paper shows differential cancellation for electrodes straddling the NMJ,
-propagating components in the bulk, and non-propagating components from AP generation
-at the NMJ and extinction at the tendon.[^2] Roeleveld et al. reported a mainly negative
-propagating wave followed by a positive wave simultaneously present across electrode
-positions.[^20] Consequently an HD-array test should separately score propagation slope,
-NMJ cancellation and simultaneous end-of-fibre activity.
-
-Absolute polarity is montage- and reference-dependent. The robust rule is consistency
-with the declared electrode order and sign convention.
-
-### 4. Finite fibres must generate onset and termination effects
-
-Gydikov and Trayanova showed that finite-fibre onset and termination alter the
-extracellular potential, with distinct biphasic components near the endplate and fibre
-end.[^4] Farina and Merletti’s Radon formulation incorporates generation and extinction
-without approximating the source shape.[^5] More recent work confirms that muscle
-shortening changes final phases in a way that depends strongly on electrode distance to
-the myotendinous zone.[^21]
-
-A useful test therefore changes tendon distance while holding the conductor fixed. The
-late component should move continuously and change in relative amplitude; removing the
-finite-end operator should cause a large, intentional test failure. A universal sign for
-the last lobe is unsafe because it changes with electrode placement and convention.
-
-### 5. Source distance and subcutaneous tissue act as spatial low-pass filters
-
-Fuglevand et al. found that surface MUAP frequency content decreases steeply as the
-electrode-to-motor-unit distance increases, and that the dominant detected contribution
-came from fibres within roughly 10–12 mm for their model and montage.[^22] That distance
-is not a universal detection boundary, but the attenuation and loss of high spatial
-frequency are robust directions.
-
-Farina and Rainoldi found that subcutaneous layers attenuate and widen the potential
-distribution at the muscle surface.[^6] Lowery et al.’s multilayer FEM also showed that
-fat, skin and bone alter amplitude, frequency content and circumferential decay, with
-increasing fat thickness lowering amplitude/frequency and changing spread.[^9] These
-findings justify monotonic controlled sweeps of source distance and fat thickness using
-peak-to-peak amplitude, median frequency and spatial width.
-
-The relation should not be inverted into a claim that amplitude uniquely determines
-depth. Motor-unit size, fibre count, cancellation, electrode montage and conductivity
-also affect amplitude.
-
-### 6. Electrode geometry is part of the forward model
-
-Farina, Cescon and Merletti systematically varied electrode size/shape, spatial filter,
-interelectrode distance, fibre inclination/depth/length and subcutaneous thickness, and
-showed that all affect surface SFAP amplitude and spectral content.[^23] Finite electrodes
-approximately average the potential beneath their surface under practical EMG
-conditions.[^24] Larger electrodes should therefore suppress fine spatial structure, and
-differential montages should reject shared far-field components while introducing their
-own spatial transfer function.
-
-Validation inputs must record electrode area, shape, interelectrode distance, filter
-order and channel polarity. Comparing a point-electrode monopolar simulation with a
-large bipolar experimental template as if they were the same observable is not a valid
-morphology test.
-
-### 7. Conduction velocity links spatial and temporal scales
-
-For a fixed spatial source and conductor, higher conduction velocity compresses the
-waveform in time and shifts power upward in frequency. This relation underpins array
-methods that estimate velocity from interchannel delay.[^19] Experimental low-threshold
-MU data provide a concrete scale: Farina et al. reported a pre-fatigue conduction
-velocity of 3.9 ± 0.2 m/s and action-potential duration of 11.1 ± 0.8 ms; after endurance,
-velocity fell by 6.3% while duration increased by 9.8%.[^25]
-
-Those numbers are informative, not global gates. The direction of change is the stronger
-test. The model should also be tested at fixed fibre geometry so that changing `v` does
-not silently change the sampled spatial window.
-
-### 8. Motor-unit morphology requires explicit dispersion
-
-A surface MUAP is a sum of SFAPs, and the fibre population is not perfectly synchronous.
-Masuda and Sadoyama observed endplate spread up to 14 mm along the fibre direction and
-associated some complex asymmetric MUAPs with junction scatter and excitation delay.[^18]
-The expected controlled response is broader duration, lower coherent peak and often
-lower median frequency as NMJ or conduction-velocity dispersion grows.
-
-This is stronger than requiring every MUAP to be triphasic. Most MUAPs in one classic
-array study were triphasic, but some had more than five phases.[^18] Phase count is useful
-as a population statistic after matching the acquisition filter; it is not a universal
-per-waveform rejection rule.
-
-## Morphology features and how to use them
-
-| Feature | Strong use | Main confounders |
-|---|---|---|
-| Signed waveform correlation | Matched implementation/oracle comparison | Time convention and electrode polarity |
-| NRMSE in volts | Matched end-to-end comparison | Calibration and reference definition |
-| Peak-to-peak / RMS | Controlled depth, size or recruitment sweep | Fibre count, cancellation, montage, conductivity |
-| Active duration | Velocity and dispersion sweeps | Bandpass, threshold, tendon distance |
-| Median/mean frequency | Depth/fat/velocity trends | Window, sampling, electrode filter, noise |
-| DC-area ratio | Baseline or unbalanced transient diagnostic | Truncated acquisition window |
-| Tail-energy ratio | Cropping, wraparound and centring diagnostic | A real event located at the window edge |
-| Phase/turn count | Protocol-matched population comparison | Noise and bandwidth |
-| End-of-fibre lobe ratio/timing | Tendon and fibre-length sweep | Electrode location and sign convention |
-| Array propagation slope | Fibre direction and conduction velocity | Curvature, pennation, inhomogeneity |
-| Spatial amplitude width | Source distance/fat/electrode area sweep | Muscle boundaries and anisotropy |
-
-Clinical needle-EMG duration values should not be transferred directly to surface MUAPs.
-Even within invasive recordings, Dumitru et al. showed that wider recording bandwidth
-and improved signal-to-noise could extend measured MUAP duration from the conventional
-roughly 10 ms toward 30 ms.[^26] The operational definition and acquisition chain are part
-of the metric.
-
-## Numerical and anatomical checks beyond morphology
-
-Lowery et al. demonstrated that idealized cylinders can approximate amplitude-decay
-trends when tissue thickness is chosen well, while subject-specific geometry can still
-substantially alter waveform shape.[^11] Their work also examined capacitance and
-dispersion; Stoykov et al. showed that plausible low-conductivity/high-permittivity
-choices could materially reduce surface potential at 100 Hz, while emphasizing the
-uncertainty in in-vivo properties.[^10] This argues for treating resistive quasi-static
-physics as a declared model assumption and adding a sensitivity study before claiming
-absolute spectral fidelity.
-
-Pereira Botelho et al. built an MRI/DTI-informed forearm FEM with spatially varying
-anisotropy and used reciprocity to solve once per electrode rather than once per fibre.[^13]
-Mesin et al. showed that shortening-induced geometry and conductivity-tensor changes can
-substantially alter amplitude and frequency content.[^12] Small-perturbation continuity,
-coordinate-frame rotation, reciprocity and mesh refinement are therefore as important as
-single-waveform resemblance for emgforge’s MRI path.
-
-At the population level, Petersen and Rostalski explicitly formulate fibres so they are
-never a net current source or sink.[^17] Source balance is a strong numerical invariant.
-Their integration of MU recruitment, rate coding, force and surface EMG also provides a
-reference for validating the activation layer separately from the MUAP forward model.
-
-## Recommended evidence program
-
-The immediate release gate should combine the exact analytical-operator test, the
-metamorphic physics suite, existing solver contracts and tolerant regression snapshots.
-The next Slurm campaign should produce a like-for-like FEM-cylinder convergence report.
-After that, build array-level canaries for propagation/NMJ/tendon topology and controlled
-fat, electrode and geometry sweeps.
-
-Experimental validation should use decomposed multichannel MUAP templates with the raw
-montage geometry, sampling rate, analogue/digital filters, muscle identity and subject
-anatomy where possible. Split subjects between calibration and validation. Compare joint
-feature distributions and spatial maps, retain absolute volts, and report how much each
-simulator parameter was tuned to the validation data. A fit obtained after selecting
-parameters on the same waveform is a calibration result, not an independent validation.
-
-## Sources
-
-[^1]: Stegeman, D. F., Blok, J. H., Hermens, H. J., and Roeleveld, K. “[Surface EMG models: properties and applications](https://doi.org/10.1016/S1050-6411(00)00023-7).” *Journal of Electromyography and Kinesiology* 10(5), 313–326 (2000).
-[^2]: Maksymenko, K., Clarke, A. K., Mendez Guerra, I., Deslauriers-Gauthier, S., and Farina, D. “[A myoelectric digital twin for fast and realistic modelling in deep learning](https://doi.org/10.1038/s41467-023-37238-w).” *Nature Communications* 14, 1600 (2023).
-[^3]: Rosenfalck, P. “[Intra- and extracellular potential fields of active nerve and muscle fibres](https://pubmed.ncbi.nlm.nih.gov/5383732/).” *Acta Physiologica Scandinavica Supplementum* 321, 1–168 (1969).
-[^4]: Gydikov, A. A., and Trayanova, N. A. “[Extracellular potentials of single active muscle fibres: effects of finite fibre length](https://doi.org/10.1007/BF00318202).” *Biological Cybernetics* 53, 363–372 (1986).
-[^5]: Farina, D., and Merletti, R. “[A novel approach for precise simulation of the EMG signal detected by surface electrodes](https://doi.org/10.1109/10.923782).” *IEEE Transactions on Biomedical Engineering* 48(6), 637–646 (2001).
-[^6]: Farina, D., and Rainoldi, A. “[Compensation of the effect of sub-cutaneous tissue layers on surface EMG: a simulation study](https://doi.org/10.1016/S1350-4533(99)00075-2).” *Medical Engineering & Physics* 21(6–7), 487–497 (1999).
-[^7]: Blok, J. H., Stegeman, D. F., and van Oosterom, A. “[Three-layer volume conductor model and software package for applications in surface electromyography](https://doi.org/10.1114/1.1475345).” *Annals of Biomedical Engineering* 30, 566–577 (2002).
-[^8]: Farina, D., Mesin, L., Martina, S., and Merletti, R. “[A surface EMG generation model with multilayer cylindrical description of the volume conductor](https://doi.org/10.1109/TBME.2003.820998).” *IEEE Transactions on Biomedical Engineering* 51(3), 415–426 (2004).
-[^9]: Lowery, M. M., Stoykov, N. S., Taflove, A., and Kuiken, T. A. “[A multiple-layer finite-element model of the surface EMG signal](https://doi.org/10.1109/10.995683).” *IEEE Transactions on Biomedical Engineering* 49(5), 446–454 (2002).
-[^10]: Stoykov, N. S., Lowery, M. M., Taflove, A., and Kuiken, T. A. “[Frequency- and time-domain FEM models of EMG: capacitive effects and aspects of dispersion](https://doi.org/10.1109/TBME.2002.800754).” *IEEE Transactions on Biomedical Engineering* 49(8), 763–772 (2002).
-[^11]: Lowery, M. M., Stoykov, N. S., Dewald, J. P. A., and Kuiken, T. A. “[Volume conduction in an anatomically based surface EMG model](https://doi.org/10.1109/TBME.2004.836494).” *IEEE Transactions on Biomedical Engineering* 51(12), 2138–2147 (2004).
-[^12]: Mesin, L., Joubert, M., Hanekom, T., Merletti, R., and Farina, D. “[A finite element model for describing the effect of muscle shortening on surface EMG](https://doi.org/10.1109/TBME.2006.870256).” *IEEE Transactions on Biomedical Engineering* 53(4), 593–600 (2006).
-[^13]: Pereira Botelho, D., Curran, K., and Lowery, M. M. “[Anatomically accurate model of EMG during index finger flexion and abduction derived from diffusion tensor imaging](https://doi.org/10.1371/journal.pcbi.1007267).” *PLOS Computational Biology* 15(8), e1007267 (2019).
-[^14]: Mordhorst, M., Heidlauf, T., and Röhrle, O. “[Predicting electromyographic signals under realistic conditions using a multiscale chemo-electro-mechanical finite element model](https://doi.org/10.1098/rsfs.2014.0076).” *Interface Focus* 5, 20140076 (2015).
-[^15]: Ma, S., Clarke, A. K., Maksymenko, K., Deslauriers-Gauthier, S., Sheng, X., Zhu, X., and Farina, D. “[Conditional generative models for simulation of EMG during naturalistic movements](https://doi.org/10.1109/TNNLS.2024.3438368).” *IEEE Transactions on Neural Networks and Learning Systems* 36(5), 9224–9237 (2025).
-[^16]: Ma, S., Mendez Guerra, I., Caillet, A. H., et al. “[NeuroMotion: open-source platform with neuromechanical and deep network modules to generate surface EMG signals during voluntary movement](https://doi.org/10.1371/journal.pcbi.1012257).” *PLOS Computational Biology* 20(7), e1012257 (2024).
-[^17]: Petersen, E., and Rostalski, P. “[A comprehensive mathematical model of motor unit pool organization, surface electromyography, and force generation](https://doi.org/10.3389/fphys.2019.00176).” *Frontiers in Physiology* 10, 176 (2019).
-[^18]: Masuda, T., and Sadoyama, T. “[The propagation of single motor unit action potentials detected by a surface electrode array](https://doi.org/10.1016/0013-4694(86)90146-X).” *Electroencephalography and Clinical Neurophysiology* 63(6), 590–598 (1986).
-[^19]: Soares, F. A., Carvalho, J. L. A., Miosso, C. J., de Andrade, M. M., and da Rocha, A. F. “[Motor unit action potential conduction velocity estimated from surface electromyographic signals using image processing techniques](https://doi.org/10.1186/s12938-015-0079-4).” *BioMedical Engineering OnLine* 14, 84 (2015).
-[^20]: Roeleveld, K., Blok, J. H., Stegeman, D. F., and van Oosterom, A. “[Volume conduction models for surface EMG; confrontation with measurements](https://doi.org/10.1016/S1050-6411(97)00009-6).” *Journal of Electromyography and Kinesiology* 7(4), 221–232 (1997).
-[^21]: Rodríguez-Falces, J., Malanda, A., and Navallas, J. “[Effects of muscle shortening on single-fiber, motor unit, and compound muscle action potentials](https://doi.org/10.1007/s11517-021-02482-z).” *Medical & Biological Engineering & Computing* 60, 349–364 (2022).
-[^22]: Fuglevand, A. J., Winter, D. A., Patla, A. E., and Stashuk, D. “[Detection of motor unit action potentials with surface electrodes: influence of electrode size and spacing](https://doi.org/10.1007/BF00201021).” *Biological Cybernetics* 67, 143–153 (1992).
-[^23]: Farina, D., Cescon, C., and Merletti, R. “[Influence of anatomical, physical, and detection-system parameters on surface EMG](https://doi.org/10.1007/s00422-002-0309-2).” *Biological Cybernetics* 86, 445–456 (2002).
-[^24]: van Dijk, J. P., Lowery, M. M., Lapatki, B. G., and Stegeman, D. F. “[Evidence of potential averaging over the finite surface of a bioelectric surface electrode](https://doi.org/10.1007/s10439-009-9680-7).” *Annals of Biomedical Engineering* 37, 1141–1151 (2009).
-[^25]: Farina, D., Gazzoni, M., and Merletti, R. “[Spike-triggered average torque and muscle fiber conduction velocity of low-threshold motor units following submaximal endurance contractions](https://doi.org/10.1152/japplphysiol.01127.2004).” *Journal of Applied Physiology* 98, 1495–1502 (2005).
-[^26]: Dumitru, D., King, J. C., and Nandedkar, S. D. “[Comparison of single-fiber and macro electrode recordings: relationship to motor unit action potential duration](https://doi.org/10.1002/(SICI)1097-4598(199711)20:11%3C1381::AID-MUS5%3E3.0.CO;2-6).” *Muscle & Nerve* 20(11), 1381–1388 (1997).
+Merletti & Muceli 2019 *J Electromyogr Kinesiol* 49:102363 (doi 10.1016/j.jelekin.2019.102363) ·
+Campanini et al. 2022 *Sensors* 22:4150 (PMC9185290) · Fuglevand et al. 1992 (PMID 1627684) ·
+Fuglevand, Winter & Patla 1993 *J Neurophysiol* 70:2470 · Roeleveld et al. 1997a (PMID 9208044),
+1997b (PMID 9429653), 2001 (PMID 11369265), 1998 (PMID 9626247) · Roeleveld/Stegeman 2013
+*J Electromyogr Kinesiol* (S1050641113000734) · Blok et al. 2002 (PMID 12086007) · Gootzen et al.
+1991 (PMID 1708717) · Lowery et al. 2002 (doi 10.1109/10.995683), 2004 (PMID 15605861) · Kuiken,
+Lowery & Stoykov 2003 *Prosthet Orthot Int* 27:48 · Stoykov et al. 2002 (PMID 12148814) · Farina &
+Rainoldi 1999 (doi 10.1016/S1350-4533(99)00075-2) · Farina & Merletti 2001 (PMID 11396594) · Farina,
+Cescon & Merletti 2002 (doi 10.1007/s00422-002-0309-2) · Farina et al. 2002 *Muscle Nerve* (doi
+10.1002/mus.10256) · Farina et al. 2003 (doi 10.1109/TBME.2003.808830) · Farina, Mesin, Martina &
+Merletti 2004 (doi 10.1109/TBME.2003.820998) · Farina & Merletti 2004 *J Neurosci Methods* (PMID
+15003386) · Farina, Negro, Gazzoni & Enoka 2008 (PMC2544462) · Farina, Merletti & Enoka 2014
+(PMC4254845) · Mesin & Farina 2004 (PMID 15376500), 2006 (PMID 16686399); Mesin et al. 2006 (PMID
+16602565, 17070925, 17073322); Mesin 2005 WIT (BIO05010FU); Mesin, Merletti & Vieira 2011 *J
+Biomech* 44:1096; Mesin 2013 (PMID 23489655; S0010482513000784) · Merletti et al. 1999 I/II (PMID
+10396899/10396900) · Merletti, Farina & Gazzoni 2003 (doi 10.1016/S1050-6411(02)00082-2) · Carriou
+et al. 2016 (PMID 27183535) · Ma et al. 2022 (PMID 34529557); Ma et al. 2024 BioMime (arXiv
+2211.01856); NeuroMotion 2024 *PLoS Comput Biol* 20:e1012257 · Maksymenko et al. 2023 *Nat Commun*
+14:1600 (doi 10.1038/s41467-023-37238-w) · Botelho, Curran & Lowery 2019 *PLoS Comput Biol*
+15:e1007267 · Teklemariam et al. 2016 (PMC4757537) · Klotz et al. 2020 (PMID 31529291); OpenDiHu
+2024 (S187775032400084X) · Keenan et al. 2005 (PMID 15377649); Keenan & Valero-Cuevas 2007 (doi
+10.1152/jn.00577.2007) · Hamilton-Wright & Stashuk 2005 (PMID 15709654) · Dimitrov & Dimitrova
+1998 (PMID 9773690; 10098616); Arabadzhiev 2013 (doi 10.1007/s11517-013-1037-6) ·
+Dimitrov et al. 2008 (PMID 16963280) · Petersen & Rostalski 2019 *Front Physiol* 10:176; Petersen
+2016 (Lübeck IME) · Arjunan et al. 2020 (PMID 31774372) · Rosenfalck 1969; Andreassen &
+Rosenfalck 1981 (PMID 7044677) · Nandedkar & Stålberg 1983 (doi 10.1007/BF02441531) · Griep et
+al. 1982 (PMID 6175501) · van Veen et al. 1993 (PMC1262474) · Wallinga-de Jonge et al. 1985 ·
+Rodriguez-Falces et al. 2012 (doi 10.1007/s11517-012-0879-7); Rodriguez-Falces & Place 2018
+(PMC5852100) · Lateva & McGill 1998 (PMID 9851304) · Kleinpenning et al. 1990 *Math Biosci* 101:41
+· Clancy & Hogan 1999 (PMID 10356879) · Nazarpour et al. 2013 (PMC3878385) · Lawrence & De Luca
+1983 (PMID 6874489) · Woods & Bigland-Ritchie 1983 (PMID 6650674) · Beck et al. 2005 (PMID 15935960)
+· De Luca & Hostage 2010 (doi 10.1152/jn.01018.2009); De Luca & Contessa 2015 (PMC4295621) ·
+Dideriksen et al. 2012 (PMC3378401) · Stulen & De Luca 1981 (PMID 7275132) · Lindström & Magnusson
+1977 *Proc IEEE* 65:653 · Arendt-Nielsen & Mills 1985 (PMID 2578364) · Sinderby et al. 1996 (PMID
+8606692) · Lynn et al. 1978 (doi 10.1007/BF02442444) · initial-MDF norms *J Clin Neurophysiol* 1998
+(PMID 9563580) · De Luca 2002 Delsys tutorial · Hermens et al. 2000 SENIAM (doi
+10.1016/S1050-6411(00)00027-4) · Rush, Abildskov & McFee 1963 *Circ Res* 12:40 · Gielen,
+Wallinga-de Jonge & Boon 1984 (PMID 6503387) · Gabriel, Lau & Gabriel 1996 *Phys Med Biol* 41 ·
+Malmivuo & Plonsey 1995 ch. 11 (bem.fi/book/11) · Plonsey & Barr, *Bioelectricity* · Masuda et al.
+1983/1985 (doi 10.1109/TBME.1985.325614) · Beretta Piccoli et al. 2014 (doi 10.1002/mus.23934) ·
+Disselhorst-Klug, Silny & Rau 1997 (PMID 9210816) · Buchthal et al. 1957/1959 · Stålberg & Antoni
+1980 (PMC490585) · Sanders et al. 2019 SFEMG guidelines · Dumitru, King & Rogers 1999 (PMID
+10366227) · Andreassen & Arendt-Nielsen 1987 (PMC1192232) · Del Vecchio et al. 2017 (PMID
+28751374), 2018 (doi 10.1111/apha.12930) · Zwarts et al. 1988; Arendt-Nielsen & Zwarts 1989 · Troni
+et al. 1991 (PMID 20870519) · Blijham et al. 2006 (PMID 16424073) · Håkansson 1956 (PMID 13339449)
+· Nordander et al. 2003 *Eur J Appl Physiol* 89:514 · Lundsberg et al. 2024 *Sci Rep* (PMC10869353).

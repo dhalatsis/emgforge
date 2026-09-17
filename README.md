@@ -1,142 +1,184 @@
 # emgforge
 
-**emgforge** is a biomedical simulation library for generating **synthetic
-EMG / MUAP forward-model data**. It takes parameterized tissue geometry through
-a **finite-element (FEM) volume-conductor** solve to obtain a reciprocal lead
-field, then synthesizes **single-fibre action potentials (SFAP)** and sums them
-into **motor-unit action potentials (MUAP)** and high-density surface EMG
-(HD-sEMG). It is aimed at researchers who need physically-grounded, labelled EMG
-data — for example to train and benchmark deep-learning models for EMG decoding.
-
-## The pipeline
+**emgforge** is an open forward model of the electromyogram. It takes tissue geometry —
+a parametric limb or a segmented MRI forearm — through a volume-conductor solve to the
+reciprocal **lead field** each muscle fibre sees from an electrode, turns that lead field
+into **single-fibre action potentials** with a line-source model, sums fibres into
+**motor-unit action potentials** (single channel or an HD-EMG grid), and drives the motor
+units with a phenomenological motoneuron pool to produce **interference EMG and force**,
+static or non-stationary. Every step is checkable in isolation, and is checked: against a
+closed-form line-source solution, the Farina (2004) analytical cylinder, and the
+quantitative EMG literature (`docs/validation/`).
 
 ```
-tissue geometry ──▶ FEM volume ──▶ lead field ──▶ SFAP ──▶ Σ over fibres ──▶ MUAP / HD-sEMG
-  (gmsh mesh)       conductor      φ(z)           (per fibre)  (+ NMJ / CV /
-                    solve                                        tendon scatter)
+anatomy ──▶ volume conductor ──▶ lead field φ(z) ──▶ SFAP synthesis ──▶ MUAPs ──▶ activation ──▶ EMG & force
+ cylinder /   analytical or FEM    reciprocity,       direct line-source  per MU,     pool, twitch,   static /
+ MRI mask     (FEniCSx + gmsh)     one solve/electrode (CSD ⋅ φ, physical  HD grid     drive          dynamic
+                                                       time)
+   └──▶ fibre bed (straight / harmonic streamlines) ──▶ motor-unit pool (Henneman sizes) ──┘
 ```
 
-The lead field `φ(z)` — the potential a fibre sees from a source at the electrode
-(by reciprocity) — is the hinge of the whole method. It can come from three
-**field sources**, and be turned into a MUAP by either of two **integration
-engines**:
-
-| Integration engine | FEM 5-layer cylinder | Analytical Farina 4-layer | MRI-FEM forearm |
-|---|---|---|---|
-| **Fourier** (Farina radon) | ✅ production, array-wide | ✅ reference | ✅ anatomy |
-| **Spatial** (CSD @ φ, time-domain) | cross-check¹ | ✅ r ≈ 0.997 | limited¹ |
-
-¹ On clean cylinder/analytical φ the two engines agree at r ≈ 0.997; for
-array-wide synthesis the Fourier engine is the more robust choice (see
-`muap_generator/spatial_refactor/README.md`).
+The paper describing the whole chain, its first-principles validation and the released
+datasets lives on the `paper/arxiv` branch (tag `arxiv-v1` is the source submitted to
+arXiv); `main` carries the code, tests and validation suite.
 
 ## Install
 
-The FEM stack (`fenics-dolfinx`, `gmsh`) is **conda-only** — it is not on PyPI —
-so the supported setup is conda first, then an editable pip install:
+The FEM stack (`fenics-dolfinx`, `gmsh`) is conda-only, so the supported setup is a conda
+environment first, then an editable install:
 
 ```bash
-# 1. Create + activate the conda env (brings in dolfinx, gmsh, and the rest)
 conda env create -f environment.yml
 conda activate emgforge
-
-# 2. Install emgforge itself (makes `emgop` and `muap_generator` importable)
-pip install -e .
+pip install -e ".[mri]"        # [mri] adds nibabel for the MRI forearm tier
 ```
 
-Pip-only users can `pip install -r requirements.txt` to get the pure-Python parts
-(the SFAP/MUAP synthesis), but the FEM volume-conductor solve needs the conda env.
-
-Scripts that read or write bulk data default their data root to `./data`; override
-it with the `DATA_ROOT` environment variable.
+Everything downstream of the volume conductor (synthesis, motor units, activation) is pure
+NumPy/SciPy and works with `pip install -r requirements.txt` alone.
 
 ## Quickstart
 
-Given a matrix of lead-field lines `φ(z)` (one row per fibre) and the spatial
-sampling step `dz_mm`, synthesize a MUAP:
+**A single-fibre action potential from a lead field** with the production recipe (direct
+line-source synthesis):
 
 ```python
 import numpy as np
-from muap_generator import generate_muap_from_phi, MUAPConfig
+from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
 
-# phi_mat: (n_fibres, n_z) array of lead-field lines phi(z), one row per fibre.
-# dz_mm:   spatial sampling step along the fibre axis, in mm.
-phi_mat = np.load("phi_lines.npy")          # from an FEM solve or the analytical model
-result = generate_muap_from_phi(phi_mat, dz_mm=0.977, config=MUAPConfig())
-
-print(result.t_ms.shape, result.muap.shape)  # time axis + MUAP waveform
-print(result.metrics["peak_to_peak"])
-result.plot()                                 # quick matplotlib view
+phi = np.load("phi_along_fibre.npy")      # lead field sampled along the fibre, centred on the electrode
+cfg = SpatialConfig(denoise="monopole", denoise_n_poles=3, csd_derivative=2, upsample_factor=2,
+                    fiber_window="one_sided", edge_taper_left=5, edge_taper_right=10,
+                    center_time=False, t_start_ms=-10.0, v=4.0, fsamp=4096.0, w=256)
+t_ms, sfap, _ = compute_sfap_spatial(phi, dz_mm=0.977, len1_mm=60, len2_mm=60, posz_mm=-20, config=cfg)
+# t = 0 is the NMJ discharge; the lobe of an electrode 20 mm away lands at 5 ms, the end-of-fibre at L/v
 ```
 
-Other entry points:
+**A motor-unit action potential** is the sum over a fibre bed (`FibreBed` carries per-fibre
+semi-lengths, NMJ position and conduction velocity):
 
 ```python
-from muap_generator import generate_muap_from_npz          # from a voxel-grid .npz
-from muap_generator.spatial_refactor import compute_sfap_spatial  # time-domain engine
+from emgforge.synthesis import FibreBed, field_to_muap
+bed = FibreBed.jittered(50, dz_mm=0.977, len1_mm=60, len2_mm=60, nmj_sigma_mm=5.0, seed=1)
+muap = field_to_muap(phi_matrix, bed, cfg).muap      # phi_matrix: (50, Nz), one lead-field line per fibre
 ```
 
-The validated production defaults and the full parameter reference live in
-[`muap_generator/PIPELINE.md`](muap_generator/PIPELINE.md).
+**Interference EMG and force on an HD grid** from the MRI forearm pool:
+
+```python
+from emgforge import Simulator
+from emgforge.activation import drive
+sim = Simulator.from_mri(muscle=8, m=5, fs=2048.0)   # FCU, 5×5 skin grid (uses the cached MUAP tensor)
+E = drive.add_common_drive(drive.trapezoid(0.5, 0.5, 2.0, 0.5, fs=2048.0), sigma=0.02)
+rec = sim.run(E, seed=0)                              # rec.emg (25, T), rec.force (%MVC), rec.spikes
+```
+
+## One command from segmentation to EMG
+
+```bash
+python scripts/run_pipeline.py                        # FCU, 5×5 grid at 10 mm, 20 motor units, 2 workers
+python scripts/run_pipeline.py --n-mu 100 --grid 8x4 --ied 8 --muscle 11 --out _results/pipeline/brachioradialis
+```
+
+`scripts/run_pipeline.py` runs the whole chain **cold** from the committed WR forearm
+segmentation (`src/emgforge/mri/data/`; needs the `[mri]` extra) — nothing is read from a
+cache unless `--cache` is given — and times every stage (the stages are the functions of
+`emgforge.mri.pipeline`):
+
+1. **mesh** — resample the labels, marching cubes, smooth + decimate, fTetWild tetrahedra,
+   a tissue tag per cell (47 k cells, ≈ 50 s);
+2. **fibre directions + muscle geometry** — PCA direction and centreline per muscle (the
+   fibre-aligned σ), ray-cast cross-sections (the morphing-disk fibre frame) (≈ 7 s);
+3. **fibre bed + motor-unit pool** — Poisson-disk bed of the chosen muscle (637 FCU fibres),
+   Henneman pool (≈ 1 s);
+4. **volume conductor, electrode grid, lead fields** — σ tensor per cell + skin shell, a
+   regular M×N grid ray-cast onto the skin over the muscle, one reciprocity solve per
+   electrode with φ sampled along every fibre (25 solves, ≈ 25 s);
+5. **MUAPs** — the direct line-source recipe: the 3-monopole fit of every electrode–fibre
+   φ(z) once, then each unit's line-source integral on the grid (the slow part: ≈ 6 min for
+   20 units, ≈ 15 min for 100 with two workers);
+6. **activation** — motoneuron pool → spikes, twitches → force, spikes ⊛ MUAPs → EMG on
+   the grid, one trapezoid per drive level (< 1 s).
+
+It writes `<out>/pipeline_output.npz` (electrodes, bed, pool, lead-field bank, MUAP tensor,
+drive / EMG / force / spikes — `Simulator.from_pipeline(path)` reloads it) and
+`<out>/pipeline_timings.json` (per-stage wall times and sizes; `--table` renders the
+paper's stage table).
 
 ## Repository structure
 
 ```
-emgforge/
-├── src/emgop/            # FEM volume-conductor toolkit
-│   ├── fem/              #   FEniCSx point-source solver, electrode configs, sanity checks
-│   ├── meshing/          #   gmsh multi-layer cylinder mesh builders
-│   ├── pointcloud/       #   point-cloud lead-field sampling + analytical model
-│   ├── sampling/         #   Latin-hypercube parameter sampling
-│   └── voxel/            #   voxelization of FEM fields
-├── muap_generator/       # phi(z) -> SFAP -> MUAP synthesis
-│   ├── api.py            #   high-level generate_muap_from_phi / _npz
-│   ├── fourier.py        #   Fourier (Farina radon) integration engine
-│   ├── preprocessing.py  #   smoothing / resampling / edge tapering
-│   ├── spatial_refactor/ #   spatial (CSD @ phi) time-domain engine + verification
-│   └── PIPELINE.md       #   the validated recipe + parameter reference
-├── mri/core/             # MRI-FEM forearm anatomy pipeline
-├── scripts/              # end-to-end mesh -> FEM -> voxel driver scripts
-├── tests/                # unit tests + regression bench
-├── docs/pipeline/        # FEM, running, geometry and workflow docs
-├── pipeline.sh, run.sh   # batch drivers
-└── environment.yml, pyproject.toml, requirements.txt
+src/emgforge/
+├── analytical/      Farina et al. (2004) multilayer cylinder — the analytical reference
+├── meshing/         gmsh builders for layered parametric limbs
+├── fem/             FEniCSx reciprocity solver, tissue tensors, lead-field sampling, geometry
+├── mri/core/        MRI forearm: segmentation → mesh → fibre-aligned σ; fibre beds
+│                    (Poisson / hex / harmonic streamlines); Henneman motor-unit pools
+├── synthesis/       lead field → SFAP → MUAP: the spatial engine (direct line-source
+│                    synthesis), the Fourier reference engine, preprocessing, FibreBed;
+│                    DIRECT_LINE_SOURCE.md
+├── activation/      motoneuron pool, twitch/force, drive, compound EMG, dynamic EMG
+├── simulator.py     the Simulator facade
+└── tissue.py        conductivity constants (single source of truth)
+scripts/validation/  the tiered validation suite (run_all.py → _results/validation/VALIDATION_REPORT.md)
+scripts/sanity/      chain-level sanity checks
+docs/validation/     PLAN.md (the checks), BIBLIOGRAPHY.md (the literature), REPORT.md (numbers)
+tests/               unit tests and byte-exact regression sets
 ```
+
+## Direct line-source synthesis
+
+The SFAP is the line-source integral `SFAP(t) = ∫ i_m(z,t) φ(z) dz` with
+`i_m = σ_in π a² ∂²V_m/∂z²`, the Rosenfalck action potential launched from the NMJ in both
+directions and cut at the tendons. The production recipe around that integral (the
+*direct method* throughout the docs and the validation report) is: a
+**3-monopole fit of the lead field** (removes FEM mesh ripple before the second
+derivative), a short edge taper, **2× upsampling**, the **second-derivative current
+source**, a **one-sided tendon window** (flat at the NMJ) and **physical time** (t = 0 at
+the NMJ, end-of-fibre at L/v). Why each step is there, with the experiments behind it, is
+in [`src/emgforge/synthesis/DIRECT_LINE_SOURCE.md`](src/emgforge/synthesis/DIRECT_LINE_SOURCE.md).
 
 ## Validation
 
-- **analytical operator:** analytical cylinder φ passed through the public
-  production pipeline reproduces the independently assembled Farina waveform to
-  machine precision in signed shape and SI-scaled amplitude.
-- **vs cylinder FEM:** the established five-layer FEM campaign reaches mean Pearson
-  **r ≈ 0.99 (0.990–0.997)** against the four-layer cylindrical analytical model
-  across muscle-region fibre depths; a like-for-like convergence tier is specified
-  in the validation plan.
-- **regression bench:** the 200-case snapshot bench passes its **90/90** sanity
-  gate; the spatial engine matches the Fourier reference at **r = 0.997** on the
-  12-case golden cylindrical set.
-- The remaining analytical-vs-FEM gap (~5%) is a physical model difference
-  (finite vs infinite cylinder, Gaussian vs point source, 5- vs 4-layer), not a
-  pipeline artifact.
+`python scripts/validation/run_all.py` (≈4 min) runs four tiers of literature-anchored
+checks; the plan is [`docs/validation/PLAN.md`](docs/validation/PLAN.md), the sources
+[`docs/validation/BIBLIOGRAPHY.md`](docs/validation/BIBLIOGRAPHY.md), the numbers
+[`docs/validation/REPORT.md`](docs/validation/REPORT.md).
 
-The [validation plan](docs/validation/README.md) defines the automated gates and
-the [research bibliography](docs/validation/BIBLIOGRAPHY.md) maps forward-model
-evidence to MUAP sanity checks.
+| tier | scope | status |
+|---|---|---|
+| A | cylinder: first principles → analytical → FEM → pipeline | 16/20 (3 known, 1 fail) |
+| B | MUAP features vs the literature | 14/14 |
+| C | interference EMG & motor-unit pool (released D2 bank) | 6/8 (1 known, 1 fail) |
+| S | chain-level sanity (released D2 bank) | 8/8 |
 
-Snapshots and meshes used by the heavier regression tests are regenerable and are
-kept out of the repository; the unit tests under `tests/` run without them.
+"pass/total" counts every check; "known" = documented limitations kept with their real
+criteria. Headlines: the spatial engine reproduces a closed-form line-source oracle at
+r = 1.0000 with zero lag, a monopole-free source and (after the 2026-09-15 correction of
+a spurious 1/v) the right amplitude constant; end-of-fibre onset at L/v within 0.4 ms;
+CV, innervation-zone, end-of-fibre, depth, fat, electrode-size and IED laws match the
+literature. Open
+items: the Fourier engine is anti-phase and lagged vs first principles; on FEM lead fields
+the direct-method amplitude is erratic at ±40 % (shape and spectrum are faithful); the FEM
+cylinder decays ~30 % slower with depth than the analytical one; the renewal ISI model has
+no refractory floor. Tiers C/S take `EMGFORGE_MUAP_BANK=<forearm_fcu_mu_pool.npz>` to run
+on the released pool (median MUAP 24 µV, 18 ms on a regular 10 mm grid).
 
-## References
+Unit-level oracle tests — the validation ladder in `tests/validation/` (plan in
+[`docs/validation/README.md`](docs/validation/README.md), principles in
+[`docs/validation/PRINCIPLES.md`](docs/validation/PRINCIPLES.md)) — run with the test suite.
 
-- Maksymenko, K., et al. (2022). *A myoelectric digital twin for fast and
-  realistic modelling in deep learning.* **Nature Communications.** — the
-  digital-twin reference this work validates its forward model against.
-- Farina, D., Mesin, L., Martina, S., & Merletti, R. (2004). *A surface EMG
-  generation model with multilayer cylindrical description of the volume
-  conductor.* **IEEE Trans. Biomed. Eng.**, 51(3), 415–426.
-- Rosenfalck, P. (1969). *Intra- and extracellular potential fields of active
-  nerve and muscle fibres.* **Acta Physiol. Scand.**, 321, 1–168.
+## Datasets
+
+Reference datasets — a cylinder SFAP atlas, the 100-unit FCU pool with its 5×5 HD-EMG
+MUAP tensor, and interference-EMG trials — are generated by the scripts on the
+`paper/arxiv` branch (`paper/figures/make_dataset*.py`) and described by the manifests there.
+
+## Citing
+
+Halatsis, D., Ezaz-Nikpay, N., Mamidanna, P., Farina, D. (2026). *emgforge: a
+first-principles-validated forward model of surface EMG, from volume-conductor lead fields
+to motor-unit action potentials and interference signals.* arXiv preprint (source: branch `paper/arxiv`, tag `arxiv-v1`).
 
 ## License
 
-Released under the [MIT License](LICENSE). © 2026 Dimitrios Halatsis.
+MIT — © 2026 Dimitrios Halatsis.

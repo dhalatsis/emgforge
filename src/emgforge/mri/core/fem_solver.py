@@ -581,10 +581,16 @@ class MRIFEMModel:
 
     # ---- Evaluation ----
 
+    def locate_points(self, points: np.ndarray) -> np.ndarray:
+        """Mesh cell of each point (solve-independent; reuse across electrodes via
+        ``evaluate_solution_at_points(points, cells=...)``)."""
+        return self._leadfield.locate(points)
+
     def evaluate_solution_at_points(
         self,
         points: np.ndarray,
         uh: Function | None = None,
+        cells: np.ndarray | None = None,
     ) -> np.ndarray:
         """Evaluate the FEM solution at arbitrary points.
 
@@ -594,6 +600,9 @@ class MRIFEMModel:
             Evaluation points in physical coordinates (mm).
         uh : Function, optional
             Solution to evaluate. Defaults to last solve result.
+        cells : (N,) array, optional
+            ``locate_points(points)`` — skips the (expensive) cell lookup when the same
+            points are evaluated for many solves.
 
         Returns
         -------
@@ -601,7 +610,7 @@ class MRIFEMModel:
             Potential at each point.
         """
         uh = self.uh if uh is None else uh
-        return self._leadfield.phi(points, uh)
+        return self._leadfield.phi(points, uh, cells)
 
     # ---- Mesh info ----
 

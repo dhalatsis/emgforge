@@ -1,5 +1,5 @@
-"""Build the GOLDEN cylindrical reference set — the fixed fixture the spatial
-engine must always reproduce.
+"""Build the cylindrical reference set — the fixed fixture the spatial engine
+must always reproduce.
 
 For a panel of cylindrical geometries we store (φ, geometry, golden_sfap) where
 ``golden_sfap`` is the **validated Fourier pipeline** (`emgforge.synthesis.engines.fourier`,
@@ -42,7 +42,7 @@ FS, W = 2048.0, 256
 
 
 def fourier_golden(phi, dz, L1, L2, v, posz=0.0):
-    """Production Fourier SFAP on φ (the golden reference). Centred time axis.
+    """Fourier-engine SFAP on φ (the reference SFAP). Centred time axis.
 
     Includes the posz phase term (NMJ offset) exactly as emgforge.synthesis.engines.fourier."""
     zs = v * 1000.0 / FS
@@ -111,7 +111,7 @@ def main():
         out[f"{name}__golden_t_ms"] = t.astype(np.float32)
         out[f"{name}__golden_sfap"] = golden.astype(np.float32)
         print(f"  {name:22s} L1={L1:>4} L2={L2:>4} v={v:>4} posz={posz:>+6.1f} "
-              f"| golden trough@{t[np.argmin(golden)]:.1f}ms ptp={golden.ptp():.2e}")
+              f"| reference trough@{t[np.argmin(golden)]:.1f}ms ptp={golden.ptp():.2e}")
     out["case_names"] = np.array(names)
     out["fsamp_hz"] = np.float32(FS)
     out["w_samples"] = np.int32(W)

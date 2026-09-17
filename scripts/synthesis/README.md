@@ -1,4 +1,4 @@
-# verification — golden cylindrical regression set
+# verification — the cylindrical regression set
 
 The **fixed reference the spatial engine must always reproduce.** Run after any
 change to `spatial_sfap.py`:
@@ -13,7 +13,7 @@ pytest tests/synthesis                     # the gate (60 tests, ~1.5 s)
 holds 12 cases. Each is
 a clean **cylinder-like lead field** φ(z) + the SFAP produced by the **validated
 Fourier pipeline** (`muap_generator.fourier`, Farina 2004, r=0.997 vs MATLAB) on
-that same φ. A correct spatial (time-domain) engine must match each golden SFAP
+that same φ. A correct spatial (time-domain) engine must match each reference SFAP
 at **r ≥ 0.95**, because both compute the same line-source integral
 `∫ φ(z) ∂²Vm/∂z²(z−vt) dz` — one in the frequency domain, one in space/time.
 
@@ -42,14 +42,14 @@ The previous (per-half analytic, opposite-sign) construction scored mean r≈0.3
 
 ## Plots
 
-`figures/golden_vs_engine.png` — all 12 cases: golden (Fourier, black) vs the
+`figures/golden_vs_engine.png` — all 12 cases: reference (Fourier, black) vs the
 fixed engine (red), normalised + peak-aligned, r in each title. They overlay.
 
 ![golden_vs_engine](figures/golden_vs_engine.png)
 
-`figures/before_after_fix.png` — 3 cases showing golden vs the **buggy** engine
+`figures/before_after_fix.png` — 3 cases showing the reference vs the **buggy** engine
 (orange, per-half/subtract) vs the **fixed** engine (red, full-field numerical
-∂²/∂z²). The buggy curve is narrow/wrong; the fixed curve tracks the golden.
+∂²/∂z²). The buggy curve is narrow/wrong; the fixed curve tracks the reference.
 
 ![before_after_fix](figures/before_after_fix.png)
 

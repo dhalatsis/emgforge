@@ -74,3 +74,16 @@ _refactor/
 
 # investigation working folders (plots + summaries; committed refs live in docs/)
 _investigations/
+
+# paper: keep the figure sources/PDFs, drop render scratch
+!paper/figures/
+!paper/figures/**
+paper/figures/__pycache__/
+paper/_pages/
+paper/main.log
+paper/main.aux
+paper/main.bbl
+paper/main.blg
+paper/*.stub
+!paper/datasets/
+!paper/datasets/**

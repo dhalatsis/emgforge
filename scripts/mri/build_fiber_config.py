@@ -33,9 +33,10 @@ import argparse
 from emgforge.mri.core.fiber_directions import MuscleFiberModel
 
 
-def build(seg: str, out: str, min_slices: int = 3, smooth_sigma: float = 1.0) -> None:
+def build(seg: str, out: str, min_slices: int = 3, smooth_sigma: float = 1.0,
+          method: str = "pca") -> None:
     fm = MuscleFiberModel(seg)
-    fm.estimate_fibers(method="pca")
+    fm.estimate_fibers(method=method)
     fm.estimate_centerlines(min_slices=min_slices, smooth_sigma=smooth_sigma)
     fm.save_config(out)
 
@@ -54,8 +55,12 @@ def main() -> None:
                     help="min z-slices for a centerline (else global direction only)")
     ap.add_argument("--smooth-sigma", type=float, default=1.0,
                     help="centerline waypoint smoothing in slice bins (settled: 1.0)")
+    ap.add_argument("--method", default="pca",
+                    choices=["pca", "endpoints", "harmonic"],
+                    help="fibre-direction estimator (default: pca). 'harmonic' "
+                         "uses the masked-Laplace streamline field.")
     a = ap.parse_args()
-    build(a.seg, a.out, a.min_slices, a.smooth_sigma)
+    build(a.seg, a.out, a.min_slices, a.smooth_sigma, a.method)
 
 
 if __name__ == "__main__":

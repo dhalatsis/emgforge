@@ -7,7 +7,7 @@ already produced (``result.bed``), ``field_to_muap`` reproduces
 re-spelling of the existing computation, not a reimplementation — the migration
 is verified, not asserted.
 
-φ(z) inputs are the cylindrical golden cases (real Fourier reference fields),
+φ(z) inputs are the cylindrical reference cases (real Fourier reference fields),
 tiled across a multi-fibre bed.
 """
 from __future__ import annotations

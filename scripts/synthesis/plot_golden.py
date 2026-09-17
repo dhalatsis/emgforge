@@ -1,6 +1,6 @@
-"""Plot the golden cylindrical set vs the fixed spatial engine (12-panel gallery).
+"""Plot the cylindrical reference set vs the fixed spatial engine (12-panel gallery).
 
-For each golden case: golden (Fourier, black) vs spatial engine (red), normalised
+For each reference case: reference (Fourier, black) vs spatial engine (red), normalised
 and peak-aligned, titled with r. Visual companion to tests/synthesis/test_golden.py.
 
 Run: python \
@@ -60,13 +60,13 @@ def main():
         t, s, _ = compute_sfap_spatial(phi, dz, L1, L2, posz, cfg)
         sh, r, flip = best_shift_r(tg, g, t, s)
         c = tg[np.argmax(np.abs(g))]
-        ax.plot(tg, _norm(g), "k-", lw=2.0, label="golden (Fourier)")
+        ax.plot(tg, _norm(g), "k-", lw=2.0, label="reference (Fourier)")
         ax.plot(t + sh, flip * _norm(s), "tab:red", lw=1.2, label="spatial (fixed)")
         ax.set_xlim(c - 16, c + 16); ax.axhline(0, color="gray", lw=0.3)
         ax.set_yticks([]); ax.grid(alpha=0.25)
         ax.set_title(f"{n}\nr={r:.3f}", fontsize=8.5)
     axes.flat[0].legend(fontsize=7, loc="lower right")
-    fig.suptitle("Golden cylindrical set vs FIXED spatial engine — "
+    fig.suptitle("Cylindrical reference set vs FIXED spatial engine — "
                  "12/12 PASS, mean r=0.997 (normalised, peak-aligned)", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.97))
     fig.savefig(FIG / "golden_vs_engine.png", dpi=130, bbox_inches="tight")

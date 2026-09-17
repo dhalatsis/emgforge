@@ -72,12 +72,12 @@ MATCHED = dict(
 class Score:
     r: float          # signed, time-aligned Pearson
     lag_ms: float
-    peak_ratio: float  # peak(spatial) / peak(fourier golden)
+    peak_ratio: float  # peak(spatial) / peak(fourier reference)
 
 
 @pytest.fixture(scope="session")
 def scores() -> dict[str, Score]:
-    """Run the spatial engine once per golden case and score it. Session-scoped:
+    """Run the spatial engine once per reference case and score it. Session-scoped:
     the lag scan is the expensive part and the result never changes."""
     from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
 

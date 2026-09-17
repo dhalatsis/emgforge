@@ -118,11 +118,23 @@ class LeadField:
         self.uh = ConstrainedLinearProblem(a, L, self.V_scalar).solve(self.ksp)
         return self.uh
 
-    def phi(self, points: np.ndarray, uh: "Function | None" = None) -> np.ndarray:
-        """Evaluate the potential at arbitrary points."""
-        uh = self.uh if uh is None else uh
-        cell_ids = geometry.compute_closest_entity(
+    def locate(self, points: np.ndarray) -> np.ndarray:
+        """The cell containing (or nearest to) each point.
+
+        Depends on the mesh only, not on the solve — so for a fixed set of sample points
+        (a fibre bed) it can be computed once and handed to :meth:`phi` for every
+        electrode. On the WR forearm bed (127 k points) the lookup is ~100× the cost of
+        the evaluation itself.
+        """
+        return geometry.compute_closest_entity(
             self.tree, self.midpoints, self.mesh, points).squeeze()
+
+    def phi(self, points: np.ndarray, uh: "Function | None" = None,
+            cells: np.ndarray | None = None) -> np.ndarray:
+        """Evaluate the potential at arbitrary points (``cells``: a :meth:`locate` result
+        for the same points, to skip the lookup)."""
+        uh = self.uh if uh is None else uh
+        cell_ids = self.locate(points) if cells is None else cells
         return np.asarray(uh.eval(points, cell_ids)).reshape(-1)
 
 
