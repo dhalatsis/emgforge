@@ -1,12 +1,18 @@
 """
 High-level API for MUAP generation from reciprocal-field data.
 
-Wraps the Fourier pipeline with optimal preprocessing defaults determined
-from parameter-sweep experiments.
+``field_to_muap(field, bed, config)`` is the entry point. Its default route
+(``config=None``) is :func:`emgforge.synthesis.production_config` — the direct
+line-source (spatial) recipe validated against first principles. The Fourier
+engine (``MUAPConfig`` / :func:`generate_muap_from_phi`) is kept for comparison
+only: the validation suite shows it anti-phase and lagged against the closed-form
+line-source oracle (``synthesis/DIRECT_LINE_SOURCE.md`` §6, §8), so selecting it
+emits a ``UserWarning`` once per process.
 """
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
@@ -24,13 +30,40 @@ from emgforge.synthesis.engines.fourier import (
     fiber_field_contribution,
     section_from_field_spectrum,
 )
-from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial
+from emgforge.synthesis.engines.spatial import (
+    SpatialConfig,
+    compute_sfap_spatial,
+    production_config,
+)
 from emgforge.synthesis.preprocessing import (
     resample_centered_line,
     smooth_butterworth,
     taper_edges,
     upsample_matrix,
 )
+
+
+# ---------------------------------------------------------------------------
+# The Fourier route is comparison-only: say so, once per process
+# ---------------------------------------------------------------------------
+
+FOURIER_ROUTE_WARNING = (
+    "The Fourier synthesis engine (MUAPConfig / generate_muap_from_phi) is kept for "
+    "comparison only and is not validated against first principles: the validation "
+    "suite finds it anti-phase and lagged against the closed-form line-source oracle "
+    "(see synthesis/DIRECT_LINE_SOURCE.md). The validated route is the direct "
+    "line-source recipe, emgforge.synthesis.production_config() — the default of "
+    "field_to_muap(config=None)."
+)
+_FOURIER_WARNED = False       # reset to False to re-arm (tests do)
+
+
+def _warn_fourier_route_once(stacklevel: int = 3) -> None:
+    global _FOURIER_WARNED
+    if _FOURIER_WARNED:
+        return
+    _FOURIER_WARNED = True
+    warnings.warn(FOURIER_ROUTE_WARNING, UserWarning, stacklevel=stacklevel)
 
 
 # ---------------------------------------------------------------------------
@@ -514,13 +547,18 @@ def generate_muap_from_phi(
     len1_per_fiber: Optional[np.ndarray] = None,
     len2_per_fiber: Optional[np.ndarray] = None,
 ) -> MUAPResult:
-    """Generate a MUAP from a matrix of φ(z) lines (one per fibre).
+    """Generate a MUAP from a matrix of φ(z) lines (one per fibre) — **Fourier engine**.
+
+    This is the comparison-only Fourier route (window-centred time); it is not the
+    validated production path and emits :data:`FOURIER_ROUTE_WARNING` once per
+    process. New code should call :func:`field_to_muap` with the default
+    (``production_config()``) instead.
 
     Parameters
     ----------
     phi_mat : (Nfib, Nz) array
     dz_mm : spatial step (mm)
-    config : optional configuration
+    config : optional configuration (``None`` → a plain ``MUAPConfig()``)
     posz_mm_arr : optional per-fibre NMJ offsets (mm). If None and
         ``config.nmj_sigma_mm > 0``, drawn from N(0, σ).
     vs_per_fiber : optional per-fibre conduction velocity (m/s). If None
@@ -539,6 +577,7 @@ def generate_muap_from_phi(
     the slow per-fibre summation path runs (one FFT per fibre instead of
     one shared FFT). Roughly N× the runtime for an N-fibre MU.
     """
+    _warn_fourier_route_once()
     if config is None:
         config = MUAPConfig()
 
@@ -625,21 +664,30 @@ def field_to_muap(
 
     The engine is chosen by ``config``'s **type**, not a string flag:
 
+      * ``None`` → :func:`emgforge.synthesis.production_config` — the validated
+        direct line-source recipe on the spatial engine (physical time, t = 0 at
+        the NMJ discharge, window from −10 ms). **This is the default route.**
+      * ``SpatialConfig`` → the time-domain line-source engine with that
+        configuration (physical time). Derive variants from ``production_config()``
+        with ``dataclasses.replace``; a bare ``SpatialConfig()`` is not the recipe.
       * ``MUAPConfig``  → the frequency-domain Fourier engine (window-centred).
-      * ``SpatialConfig`` → the time-domain line-source engine (physical-time).
+        Kept for comparison only — not validated against first principles (it is
+        anti-phase and lagged against the line-source oracle; see
+        ``synthesis/DIRECT_LINE_SOURCE.md``). Emits a ``UserWarning`` once per
+        process.
 
     Given a ``MUAPConfig`` and the bed a call already produced (``result.bed``),
     the output is byte-identical to ``generate_muap_from_phi`` — this is just the
-    bed-first spelling of the same computation. ``config=None`` defaults to a
-    plain ``MUAPConfig()`` (Fourier), the historical behaviour.
+    bed-first spelling of the same computation.
     """
     if config is None:
-        config = MUAPConfig()
+        config = production_config()
 
     n_fib = len(bed)
 
     # ---- Fourier engine ------------------------------------------------
     if isinstance(config, MUAPConfig):
+        _warn_fourier_route_once()
         phi_mat = _as_field_matrix(field, n_fib)
         dz_mm = bed.uniform_dz           # raises NonUniformDz for a ragged bed
 

@@ -11,14 +11,22 @@ Two engines share one input contract, ``φ(z) → waveform``:
 The volume conductor enters only through φ(z); the engines do not care whether it
 came from the analytical cylinder or from an FEM solve.
 
+The **production route** is the spatial engine with :func:`production_config` —
+direct line-source synthesis, validated against the closed-form line-source oracle
+and the Farina (2004) cylinder (``synthesis/DIRECT_LINE_SOURCE.md``). It is the
+default of ``field_to_muap(config=None)``. The Fourier engine is kept for comparison
+only and warns once per process when selected.
+
 Quick start
 -----------
->>> from emgforge.synthesis import generate_muap_from_phi, get_optimal_config
->>> result = generate_muap_from_phi(phi_matrix, dz_mm=2.5, config=get_optimal_config())
->>> result.t_ms, result.muap
+>>> from emgforge.synthesis import FibreBed, field_to_muap, production_config
+>>> bed = FibreBed.uniform(50, dz_mm=0.977, len1_mm=60, len2_mm=60, v=4.0)
+>>> result = field_to_muap(phi_matrix, bed)                 # == production_config()
+>>> result.t_ms, result.muap                                # physical time, t=0 at the NMJ
 """
 
 from emgforge.synthesis.api import (
+    FOURIER_ROUTE_WARNING,
     MUAPConfig,
     MUAPResult,
     field_to_muap,
@@ -30,7 +38,7 @@ from emgforge.synthesis.api import (
 )
 from emgforge.synthesis.config import SynthesisConfig  # noqa: F401
 from emgforge.synthesis.fibres import Fibre, FibreBed, NonUniformDz  # noqa: F401
-from emgforge.synthesis.engines.spatial import SpatialConfig  # noqa: F401
+from emgforge.synthesis.engines.spatial import SpatialConfig, production_config  # noqa: F401
 from emgforge.synthesis.adaptive_w import choose_w as adaptive_choose_w  # noqa: F401
 from emgforge.synthesis.conventions import (  # noqa: F401
     Conventions,
@@ -40,6 +48,8 @@ from emgforge.synthesis.conventions import (  # noqa: F401
 from emgforge.synthesis.metrics import waveform_features  # noqa: F401
 
 __all__ = [
+    "production_config",
+    "FOURIER_ROUTE_WARNING",
     "MUAPConfig",
     "MUAPResult",
     "SynthesisConfig",

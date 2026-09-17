@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))                       # tests.regression.analytica
 OUT = ROOT / "_results/validation"
 OUT.mkdir(parents=True, exist_ok=True)
 
+from emgforge.synthesis import production_config                                     # noqa: E402
 from emgforge.synthesis.engines.spatial import SpatialConfig, compute_sfap_spatial  # noqa: E402
 from emgforge.synthesis.metrics import align_score                                   # noqa: E402
 from tests.regression.analytical_ref import (                                         # noqa: E402
@@ -35,11 +36,10 @@ V, FS, W = 4.0, 4096.0, 256          # cylinder-tier regime (dz = v/fs = 0.977 m
 
 def golden_cfg(**over) -> SpatialConfig:
     """The production spatial recipe — direct line-source synthesis
-    (DIRECT_LINE_SOURCE.md §0), cylinder regime."""
-    base = SpatialConfig(denoise="monopole", denoise_n_poles=3, csd_derivative=2,
-                         upsample_factor=2, fiber_window="one_sided",
-                         edge_taper_left=5, edge_taper_right=10, center_time=False,
-                         t_start_ms=-10.0, v=V, fsamp=FS, w=W, polarity=1)
+    (DIRECT_LINE_SOURCE.md §0), cylinder regime. A thin wrapper over the single
+    definition, ``emgforge.synthesis.production_config``; ``**over`` derives a
+    deliberate variant (e.g. ``fiber_window="boxcar"`` for the first-principles oracle)."""
+    base = production_config(fs=FS, v=V, w=W)
     return replace(base, **over) if over else base
 
 

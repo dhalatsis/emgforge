@@ -17,7 +17,17 @@ Subpackages
     The dataset spine — mesh building, fibre sampling, and φ sampling.
 
 Importing ``emgforge`` itself is dependency-light; the FEM subpackages pull the
-dolfinx stack only when imported.
+dolfinx stack only when imported. ``emgforge.Simulator`` / ``emgforge.Recording``
+(the neural pool + MUAPs → EMG facade, NumPy only) are resolved lazily on first use.
 """
 
 __version__ = "0.1.0"
+
+__all__ = ["Simulator", "Recording", "__version__"]
+
+
+def __getattr__(name):
+    if name in ("Simulator", "Recording"):
+        from emgforge import simulator
+        return getattr(simulator, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

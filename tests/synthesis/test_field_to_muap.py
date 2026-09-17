@@ -23,6 +23,7 @@ from emgforge.synthesis import (
     field_to_muap,
     generate_muap_from_phi,
     get_adaptive_config,
+    production_config,
 )
 from emgforge.synthesis.fibres import NonUniformDz
 
@@ -170,11 +171,26 @@ def test_bad_config_type_raises(golden):
         field_to_muap(_phi_mat(c, 2), bed, SynthesisConfig())  # bare marker, no engine
 
 
-def test_none_config_defaults_to_fourier(golden):
-    """config=None → plain MUAPConfig() (Fourier), the historical default."""
+def test_none_config_defaults_to_production_spatial(golden):
+    """config=None → production_config(): the validated direct line-source recipe on the
+    spatial engine, in physical time from −10 ms. (The Fourier engine was the historical
+    default until 2026-09; it is now comparison-only and must be asked for explicitly.)"""
     c = golden[CASE_NAMES[0]]
     bed = FibreBed.uniform(3, dz_mm=c.dz_mm, len1_mm=c.L1_mm, len2_mm=c.L2_mm, v=c.v)
     got = field_to_muap(_phi_mat(c, 3), bed, None)
-    assert got.time_convention == "window_centred"
-    assert isinstance(got.config, MUAPConfig)
+    ref = field_to_muap(_phi_mat(c, 3), bed, production_config())
+    assert np.array_equal(got.muap, ref.muap)                   # bit for bit
+    assert np.array_equal(got.t_ms, ref.t_ms)
+    assert got.time_convention == "physical"
+    assert isinstance(got.config, SpatialConfig) and got.config == production_config()
+    assert got.t_ms[0] == -10.0
     assert got.metrics                                          # metrics were computed
+
+
+def test_fourier_config_warns_it_is_comparison_only(golden):
+    import emgforge.synthesis.api as api
+    c = golden[CASE_NAMES[0]]
+    bed = FibreBed.uniform(3, dz_mm=c.dz_mm, len1_mm=c.L1_mm, len2_mm=c.L2_mm, v=c.v)
+    api._FOURIER_WARNED = False                                 # once per process: re-arm
+    with pytest.warns(UserWarning, match="comparison only"):
+        field_to_muap(_phi_mat(c, 3), bed, MUAPConfig(len1_mm=c.L1_mm, len2_mm=c.L2_mm, v=c.v))

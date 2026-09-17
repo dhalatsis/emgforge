@@ -284,7 +284,10 @@ def parse_args(argv=None):
     a.add_argument("--skin-shell", type=float, default=1.5, help="skin layer re-tagged inside the fat (mm)")
     a.add_argument("--sigma-mode", default="centerline", choices=["constant", "global", "centerline", "morphing"],
                    help="orientation of the muscle conductivity tensor")
-    a.add_argument("--source-sigma", type=float, default=5.0, help="Gaussian electrode source width (mm)")
+    a.add_argument("--source-sigma", type=float, default=5.0,
+                   help="Gaussian electrode source width (mm). 5.0 is the legacy FEM default the cached and "
+                        "released lead fields use; the paper finds it narrows the lateral footprint "
+                        "(FWHM 25 vs 40 mm analytical) and 1.0 matches the analytical cylinder")
     a.add_argument("--zc-frac", type=float, default=0.5, help="grid centre along the mesh (fraction of its z extent)")
     f = ap.add_argument_group("fibres / units / synthesis")
     f.add_argument("--density", type=float, default=4.0, help="fibre-bed density (fibres / mm^2)")
