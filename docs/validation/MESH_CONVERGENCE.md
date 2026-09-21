@@ -274,6 +274,143 @@ By the stated criterion (median p2p change < 5 % on the centre electrode and on 
 P=/home/dc23/miniconda3/envs/fenicsx-env/bin/python
 $P scripts/validation/mesh_convergence.py               # both parts + analysis (~55 min: cylinder 17 min, forearm 33 min, analysis 3 min)
 $P scripts/validation/mesh_convergence.py --part analyse   # metrics + figure from the cached levels only
+$P scripts/validation/mesh_convergence_waveforms.py        # §7: waveforms.json + waveforms_preview.png from the caches (~4 min)
 ```
 
 Levels are cached as `_results/validation/mesh_convergence/{cyl_f<factor>[_skin075],forearm_e<edge>}.npz` (meshes under `cyl_meshes/`, `forearm_meshes/`; the forearm electrode rays and bed hash in `forearm_common.npz`; the oracle's φ in `analytical_cache.npz`); a level is skipped, and the reason written to `{cyl,forearm}_skipped.json`, when the cubic cell-count prediction exceeds 4 M (cylinder) / 1 M (forearm), when the previous level peaked above 35 GB, or when less than 12 GB is available. Every number in this document is in `key_numbers.json` (`cylinder.levels[*].per_sigma.s5|s1.depth[*]`, `.depth_law`, `.ratio_scatter`, `.eof`, `cylinder.successive`, `cylinder.vs_finest`, `cylinder.variant_vs_current`, `cylinder.analytical.window_check`; `forearm.levels`, `forearm.successive`, `forearm.vs_finest`, `forearm.verdict`).
+
+## 7. MRI forearm: the 3-monopole model on real anatomy
+
+Script: `scripts/validation/mesh_convergence_waveforms.py` (reads the level caches only; no solve). Output: `_results/validation/mesh_convergence/waveforms.json` (the waveforms and every number below; the key layout is in its `structure` field) and `waveforms_preview.png`. The question: the cylinder study attributed the ±40 % SFAP amplitude item to the 3-monopole conditioning rather than the mesh — what does the same model do on the forearm, where there is no oracle but five meshes of the same bed and the same 25 electrodes.
+
+**Set-up.** Centre electrode (index 12) of the 5×5 grid, six bed fibres at increasing closest-approach distance to it: #48 at 4.2 mm, #131 at 6.0 mm, #306 at 8.1 mm, #484 at 9.9 mm, #474 at 12.5 mm, #452 at 15.8 mm. The four shallow fibres lie within 0.3 mm of the electrode's inward ray; the FCU is only ~11 mm thick under the electrode, so the two deepest are fibres whose closest approach is that far but 6.0 / 12.6 mm laterally off the ray. φ is the cached lead field (25 × 637 × 200, arc step ≈ 1.02 mm), the fit is the cached `phi_cond` (bit-identical to `denoise_field_n(φ, dz, n=3)`), the SFAP is the single-fibre direct recipe with the pipeline's geometry (NMJ at 0.305 of the arc length, no per-unit jitter, `production_config` time base); r values are on |z| ≤ 60 mm for φ″ and the residual and on the full 256-sample window for the SFAPs. The conditioning variants: `denoise="none"`, the production 3-monopole fit, 5- and 7-monopole fits (the same greedy fitter, more poles), and the engine's canonical Butterworth (`butterworth_cutoff=0.03`, order 2, i.e. 0.015 cycles per sample ≈ 68 mm cut-off wavelength at this arc step). 'Mesh-stable' is measured between successive levels and against the finest (0.012, 354 k cells); the 'shape cost' of a variant is its SFAP against the production recipe's on the finest mesh.
+
+### (i) The fit residual: how large, and is it the same on every mesh
+
+Residual = φ − 3-monopole fit; rms relative to p2p(φ). Its correlation between two meshes tells the two apart: a residual that is the same on every mesh is what the model cannot represent (misfit), one that changes with the mesh is ripple.
+
+| fibre | depth (mm) | lateral (mm) | residual rms / p2p at 0.05 / 0.03 / 0.02 / 0.015 / 0.012 | r(residual) successive, 0.05->0.03 / 0.03->0.02 / 0.02->0.015 / 0.015->0.012 | r(residual) vs 0.012 from 0.05 / 0.03 / 0.02 / 0.015 |
+|---|---|---|---|---|---|
+| #48 | 4.2 | 0.2 | 0.0058 / 0.0058 / 0.0093 / 0.0044 / 0.0046 | +0.05 / +0.57 / +0.25 / +0.64 | +0.28 / +0.31 / +0.27 / +0.64 |
+| #131 | 6.0 | 0.2 | 0.0042 / 0.0045 / 0.0060 / 0.0032 / 0.0026 | +0.13 / +0.41 / -0.20 / +0.33 | +0.25 / +0.31 / +0.38 / +0.33 |
+| #306 | 8.1 | 0.2 | 0.0049 / 0.0067 / 0.0055 / 0.0024 / 0.0026 | -0.08 / +0.21 / -0.05 / +0.14 | -0.03 / -0.01 / +0.23 / +0.14 |
+| #484 | 9.9 | 0.3 | 0.0083 / 0.0066 / 0.0043 / 0.0040 / 0.0036 | -0.15 / +0.35 / +0.36 / +0.55 | +0.32 / +0.32 / +0.39 / +0.55 |
+| #474 | 12.5 | 6.0 | 0.0074 / 0.0067 / 0.0055 / 0.0046 / 0.0038 | +0.51 / +0.21 / +0.21 / +0.33 | +0.05 / +0.18 / +0.48 / +0.33 |
+| #452 | 15.8 | 12.5 | 0.0093 / 0.0085 / 0.0052 / 0.0046 / 0.0035 | +0.14 / +0.51 / +0.50 / +0.44 | +0.45 / +0.22 / +0.62 / +0.44 |
+
+Whole bed, centre electrode (637 fibres; `mri_summary.bed_scatter`): residual rms / p2p median 0.0066 on 0.03 and 0.0036 on 0.012 (ratio 1.86); r(residual 0.03 vs 0.012) median 0.36, p10–p90 0.12–0.65, 24 % of fibres above 0.5. Per 2 mm of depth:
+
+| depth bin (mm) | fibres | rms / p2p on 0.03 | on 0.012 | r(residual) 0.03 vs 0.012, median (core \|z\| ≤ 60) |
+|---|---|---|---|---|
+| 3–5 | 21 | 0.0080 | 0.0048 | 0.17 (0.13) |
+| 5–7 | 72 | 0.0060 | 0.0030 | 0.23 (0.19) |
+| 7–9 | 128 | 0.0062 | 0.0027 | 0.31 (0.23) |
+| 9–11 | 158 | 0.0066 | 0.0033 | 0.37 (0.24) |
+| 11–13 | 125 | 0.0066 | 0.0038 | 0.36 (0.19) |
+| 13–15 | 91 | 0.0069 | 0.0046 | 0.45 (0.30) |
+| 15–17 | 42 | 0.0082 | 0.0051 | 0.66 (0.64) |
+
+On the forearm the residual is mostly mesh ripple: it halves from the current to the finest mesh, and between any two of the coarser meshes it is uncorrelated (r ≈ −0.2 … +0.5 for the six fibres, median 0.36 over the bed between 0.03 and 0.012). A mesh-independent part only emerges at the fine end — r(0.015 vs 0.012) = 0.3–0.65 for the six fibres, and the 0.012 residual keeps a ±20 mm-scale structure about the electrode (the waveforms) of 0.25–0.5 % of p2p; it is largest for the deep, lateral fibres (0.51 % at 15–17 mm, r = 0.66). The cylinder is the contrast case (`cyl_summary`): there, at 20 mm, the residual is the same on every mesh (r successive 0.78 / 0.90 / 0.97 for 0.42→0.3→0.24→0.2, rms 0.4 % of the peak at every level) — model misfit — while at 7 mm it is ripple (r 0.22 / 0.04 / 0.07) and at 10–13 mm mixed (r 0.57 / 0.69 / -0.14 at 10 mm, where the 0.2 mesh's residual drops to 0.07 % and no longer resembles the coarser ones).
+
+### (ii) The fitted φ″ across meshes
+
+| fibre (depth) | r(φ″ fit) successive, 0.05->0.03 / 0.03->0.02 / 0.02->0.015 / 0.015->0.012 | r(φ″ fit) vs 0.012 from 0.05 / 0.03 / 0.02 / 0.015 | r(φ″ raw) successive | r(φ) successive |
+|---|---|---|---|---|
+| #48 (4.2 mm) | 0.861 / 0.994 / 0.996 / 0.998 | 0.829 / 0.992 / 1.000 / 0.998 | +0.08 / +0.41 / +0.15 / +0.62 | 0.9978 / 0.9989 / 0.9987 / 0.9998 |
+| #131 (6.0 mm) | 0.955 / 0.996 / 0.985 / 0.985 | 0.960 / 0.996 / 1.000 / 0.985 | +0.31 / +0.43 / +0.38 / +0.81 | 0.9993 / 0.9993 / 0.9995 / 0.9999 |
+| #306 (8.1 mm) | 0.898 / 0.996 / 0.997 / 0.999 | 0.893 / 0.995 / 0.997 / 0.999 | +0.09 / +0.44 / +0.38 / +0.47 | 0.9986 / 0.9990 / 0.9997 / 0.9999 |
+| #484 (9.9 mm) | 0.994 / 0.872 / 0.874 / 0.999 | 0.993 / 0.995 / 0.871 / 0.999 | -0.13 / +0.34 / +0.15 / +0.36 | 0.9978 / 0.9989 / 0.9997 / 0.9999 |
+| #474 (12.5 mm) | 0.863 / 0.420 / 0.995 / 0.998 | 0.585 / 0.415 / 0.999 / 0.998 | +0.40 / +0.27 / +0.20 / +0.12 | 0.9989 / 0.9979 / 0.9996 / 0.9998 |
+| #452 (15.8 mm) | 0.996 / 0.996 / 0.982 / 0.992 | 0.991 / 0.981 / 0.993 / 0.992 | -0.10 / +0.17 / +0.05 / -0.01 | 0.9979 / 0.9991 / 0.9997 / 0.9997 |
+
+φ itself is converged (r ≥ 0.998 between any two levels) and the raw φ″ is noise at every level (r ≈ 0–0.8), as on the cylinder. The fitted φ″ converges — r ≥ 0.98 between the two finest meshes for all six fibres — but not monotonically: the greedy fit lands on a different 3-monopole solution for #484 on 0.02 (r = 0.87 to both neighbours) and for #474 on 0.03 (r = 0.42 to 0.02; its SFAP is 3× the other levels'), with φ agreeing to r ≥ 0.998 in both cases. That is the fit sensitivity seen on the cylinder (§3.2), now on real anatomy.
+
+### (iii) Which conditioning gives mesh-stable SFAPs, and at what shape cost
+
+All 637 bed fibres at the centre electrode, single-fibre SFAPs, five variants × five meshes (`mri_summary.iii_sfap.bed`). |Δp2p| is the p2p change between the two meshes; r the waveform correlation on the same time base.
+
+| conditioning | \|Δp2p\| median / p90 (%) per successive pair: 0.05->0.03 / 0.03->0.02 / 0.02->0.015 / 0.015->0.012 | r median per pair | 0.03 vs 0.012: \|Δp2p\| median / p90 (%), r median | 0.02 vs 0.012 | shape cost on 0.012 vs monopole(3): r median / p10, p2p ratio median [p10, p90] |
+|---|---|---|---|---|---|
+| none | 18.9/61 / 21.4/77 / 22.8/68 / 14.5/43 | 0.4811 / 0.5512 / 0.7369 / 0.8714 | 59.5 / 136, 0.6593 | 36.5 / 88, 0.7735 | 0.9457 / 0.810, 1.256 [1.06, 1.73] |
+| monopole(3) — production | 16.1/60 / 13.9/62 / 5.9/24 / 4.7/15 | 0.9565 / 0.9730 / 0.9910 / 0.9973 | 14.9 / 58, 0.9808 | 6.3 / 27, 0.9931 | 1.0000 / 1.000, 1.000 [1.00, 1.00] |
+| monopole(5) | 21.7/93 / 17.8/72 / 8.0/32 / 5.0/17 | 0.9005 / 0.9450 / 0.9824 / 0.9947 | 18.4 / 83, 0.9673 | 7.9 / 35, 0.9861 | 0.9986 / 0.984, 0.998 [0.96, 1.07] |
+| monopole(7) | 26.0/114 / 20.5/85 / 9.1/42 / 5.3/19 | 0.8618 / 0.9238 / 0.9785 / 0.9935 | 21.3 / 97, 0.9526 | 8.8 / 45, 0.9822 | 0.9965 / 0.976, 0.995 [0.95, 1.07] |
+| butterworth(0.03) | 3.9/8 / 4.5/8 / 1.7/4 / 1.1/5 | 0.9992 / 0.9995 / 0.9997 / 0.9999 | 6.0 / 14, 0.9994 | 2.6 / 7, 0.9997 | 0.7550 / 0.628, 0.371 [0.24, 0.58] |
+
+The same, current mesh (0.03) against the finest, by fibre depth (median |Δp2p| in %, median r per 2 mm bin):
+
+| conditioning | 3–5 mm | 5–7 mm | 7–9 mm | 9–11 mm | 11–13 mm | 13–15 mm | 15–17 mm |
+|---|---|---|---|---|---|---|---|
+| none | 29 % / 0.781 | 15 % / 0.815 | 42 % / 0.754 | 63 % / 0.643 | 69 % / 0.559 | 90 % / 0.522 | 130 % / 0.515 |
+| monopole(3) — production | 14 % / 0.953 | 17 % / 0.985 | 12 % / 0.972 | 20 % / 0.977 | 14 % / 0.981 | 13 % / 0.981 | 20 % / 0.994 |
+| monopole(5) | 18 % / 0.961 | 16 % / 0.977 | 16 % / 0.953 | 25 % / 0.944 | 16 % / 0.960 | 12 % / 0.973 | 16 % / 0.990 |
+| monopole(7) | 21 % / 0.925 | 17 % / 0.966 | 18 % / 0.938 | 27 % / 0.931 | 20 % / 0.946 | 16 % / 0.961 | 17 % / 0.984 |
+| butterworth(0.03) | 7 % / 1.000 | 8 % / 1.000 | 4 % / 1.000 | 3 % / 0.999 | 4 % / 0.999 | 11 % / 0.999 | 17 % / 0.998 |
+
+The six fibres in detail (p2p ratio coarse / fine per successive pair; r per pair; p2p on 0.03 relative to 0.012; shape cost on 0.012 vs monopole(3)):
+
+| fibre (depth) | conditioning | p2p ratio, 0.05->0.03 / 0.03->0.02 / 0.02->0.015 / 0.015->0.012 | r per pair | p2p 0.03 / 0.012 | shape: r, p2p ratio |
+|---|---|---|---|---|---|
+| #48 (4.2) | none | 1.219 / 0.648 / 1.337 / 1.124 | 0.628 / 0.875 / 0.722 / 0.934 | 0.974 | 0.9477, 1.097 |
+| #48 (4.2) | monopole(3) — production | 1.193 / 0.803 / 0.951 / 1.015 | 0.897 / 0.995 / 0.997 / 0.998 | 0.775 | 1.0000, 1.000 |
+| #48 (4.2) | monopole(5) | 1.312 / 0.809 / 0.894 / 1.100 | 0.867 / 0.996 / 0.979 / 0.992 | 0.795 | 0.9906, 0.941 |
+| #48 (4.2) | monopole(7) | 1.331 / 0.812 / 0.877 / 1.134 | 0.864 / 0.997 / 0.978 / 0.992 | 0.808 | 0.9853, 0.925 |
+| #48 (4.2) | butterworth(0.03) | 0.930 / 0.923 / 0.976 / 1.006 | 0.999 / 1.000 / 1.000 / 1.000 | 0.906 | 0.6131, 0.220 |
+| #131 (6.0) | none | 1.197 / 0.693 / 1.307 / 1.086 | 0.721 / 0.783 / 0.800 / 0.973 | 0.983 | 0.9821, 1.036 |
+| #131 (6.0) | monopole(3) — production | 1.055 / 0.825 / 1.006 / 0.961 | 0.968 / 0.997 / 0.991 / 0.992 | 0.798 | 1.0000, 1.000 |
+| #131 (6.0) | monopole(5) | 1.106 / 0.829 / 0.923 / 1.047 | 0.956 / 0.997 / 0.996 / 0.998 | 0.801 | 0.9994, 0.977 |
+| #131 (6.0) | monopole(7) | 1.110 / 0.821 / 0.917 / 1.049 | 0.949 / 0.995 / 0.994 / 0.997 | 0.790 | 0.9992, 0.975 |
+| #131 (6.0) | butterworth(0.03) | 0.945 / 0.927 / 0.968 / 0.993 | 1.000 / 1.000 / 1.000 / 1.000 | 0.891 | 0.6817, 0.286 |
+| #306 (8.1) | none | 0.847 / 1.023 / 1.527 / 0.803 | 0.432 / 0.602 / 0.797 / 0.939 | 1.254 | 0.9689, 1.289 |
+| #306 (8.1) | monopole(3) — production | 1.133 / 0.858 / 1.052 / 0.969 | 0.946 / 0.997 / 0.998 / 1.000 | 0.874 | 1.0000, 1.000 |
+| #306 (8.1) | monopole(5) | 1.186 / 0.858 / 1.018 / 0.959 | 0.917 / 0.989 / 0.996 / 0.999 | 0.837 | 0.9994, 1.017 |
+| #306 (8.1) | monopole(7) | 1.175 / 0.856 / 1.004 / 0.960 | 0.926 / 0.990 / 0.993 / 0.999 | 0.825 | 0.9994, 1.017 |
+| #306 (8.1) | butterworth(0.03) | 0.996 / 0.918 / 1.003 / 0.994 | 0.999 / 0.999 / 1.000 / 1.000 | 0.915 | 0.7361, 0.344 |
+| #484 (9.9) | none | 1.074 / 1.296 / 1.055 / 1.179 | 0.139 / 0.614 / 0.715 / 0.853 | 1.612 | 0.9735, 1.122 |
+| #484 (9.9) | monopole(3) — production | 0.953 / 0.870 / 0.976 / 1.003 | 0.995 / 0.952 / 0.955 / 0.999 | 0.852 | 1.0000, 1.000 |
+| #484 (9.9) | monopole(5) | 0.971 / 0.737 / 1.130 / 1.004 | 0.994 / 0.953 / 0.966 / 0.999 | 0.836 | 1.0000, 0.997 |
+| #484 (9.9) | monopole(7) | 0.961 / 0.702 / 1.191 / 1.002 | 0.993 / 0.940 / 0.958 / 0.998 | 0.838 | 0.9995, 0.990 |
+| #484 (9.9) | butterworth(0.03) | 0.976 / 0.923 / 1.012 / 1.009 | 0.999 / 0.999 / 1.000 / 1.000 | 0.943 | 0.7557, 0.371 |
+| #474 (12.5) | none | 0.794 / 1.949 / 1.058 / 1.441 | 0.610 / 0.646 / 0.613 / 0.753 | 2.971 | 0.9334, 1.256 |
+| #474 (12.5) | monopole(3) — production | 0.657 / 2.924 / 0.947 / 1.091 | 0.938 / 0.604 / 0.996 / 0.998 | 3.021 | 1.0000, 1.000 |
+| #474 (12.5) | monopole(5) | 0.811 / 2.910 / 0.930 / 1.106 | 0.893 / 0.591 / 0.993 / 0.997 | 2.990 | 0.9995, 1.022 |
+| #474 (12.5) | monopole(7) | 0.962 / 2.835 / 0.958 / 1.047 | 0.643 / 0.576 / 0.991 / 0.992 | 2.844 | 0.9949, 1.052 |
+| #474 (12.5) | butterworth(0.03) | 0.934 / 1.024 / 1.030 / 1.024 | 0.999 / 0.999 / 1.000 / 1.000 | 1.080 | 0.8046, 0.432 |
+| #452 (15.8) | none | 0.909 / 1.530 / 0.917 / 1.248 | -0.073 / 0.458 / 0.581 / 0.439 | 1.749 | 0.7491, 2.177 |
+| #452 (15.8) | monopole(3) — production | 0.928 / 1.072 / 0.899 / 1.181 | 0.996 / 0.996 / 0.982 / 0.993 | 1.138 | 1.0000, 1.000 |
+| #452 (15.8) | monopole(5) | 0.857 / 1.080 / 0.902 / 1.167 | 0.961 / 0.996 / 0.986 / 0.992 | 1.137 | 1.0000, 1.003 |
+| #452 (15.8) | monopole(7) | 0.856 / 1.086 / 0.915 / 1.153 | 0.939 / 0.997 / 0.992 / 0.993 | 1.145 | 0.9998, 1.004 |
+| #452 (15.8) | butterworth(0.03) | 0.910 / 1.071 / 1.002 / 1.074 | 0.997 / 0.999 / 1.000 / 0.999 | 1.152 | 0.9230, 0.625 |
+
+None of the shape-preserving variants is mesh-stable on the forearm, and adding poles makes it worse, not better: from the current mesh to the finest the production fit moves the SFAP amplitude by 15 % (median; p90 58 %), 5 poles by 18 %, 7 poles by 21 %, while their waveforms on the finest mesh agree with the production recipe's to r = 0.9986 / 0.9965 and p2p 0.998 / 0.995 — every extra pole is another degree of freedom for the greedy fitter to land on a different local solution. The instability is flat in depth (12–20 % per 2 mm bin for the production fit), unlike the raw-φ SFAP whose change grows from 29 % at 3–5 mm to 130 % at 15–17 mm as the ripple becomes the larger part of φ″. The only mesh-stable variant is the Butterworth (6 % median, r = 0.9994), and it is stable because its 68 mm cut-off removes the physical φ″ along with the ripple: on the finest mesh its SFAP correlates with the recipe's at r = 0.75 (p10 0.63) at 0.37× the amplitude (0.24–0.58). Between the two finest meshes the production fit is at 4.7 % / r = 0.9973 (median), i.e. it does converge with the mesh — the ripple it has to absorb shrinks — but 12–20 % of the amplitude at the current mesh is the fitter's choice of solution.
+
+### (iv) The residual spectrum along z: no mesh-scale peak
+
+Hann-tapered amplitude spectrum of φ − fit over the whole fibre (200 samples), relative to p2p(φ). Peak wavelength below 40 mm and the power fractions in the > 40 / 15–40 / 6–15 / < 6 mm bands:
+
+| fibre (depth) | peak λ (mm) at 0.05 / 0.03 / 0.02 / 0.015 / 0.012 | band fractions on 0.03 | on 0.012 |
+|---|---|---|---|
+| #48 (4.2) | 6 / 9 / 13 / 15 / 23 | 0.07 / 0.15 / 0.58 / 0.20 | 0.11 / 0.31 / 0.45 / 0.13 |
+| #131 (6.0) | 9 / 10 / 20 / 17 / 23 | 0.08 / 0.21 / 0.60 / 0.11 | 0.14 / 0.49 / 0.27 / 0.10 |
+| #306 (8.1) | 20 / 10 / 11 / 26 / 5 | 0.09 / 0.26 / 0.59 / 0.07 | 0.07 / 0.09 / 0.29 / 0.56 |
+| #484 (9.9) | 10 / 9 / 4 / 26 / 26 | 0.04 / 0.17 / 0.72 / 0.06 | 0.31 / 0.41 / 0.11 / 0.17 |
+| #474 (12.5) | 26 / 26 / 12 / 19 / 26 | 0.14 / 0.18 / 0.58 / 0.10 | 0.24 / 0.23 / 0.17 / 0.36 |
+| #452 (15.8) | 34 / 15 / 23 / 21 / 21 | 0.06 / 0.32 / 0.60 / 0.02 | 0.07 / 0.59 / 0.27 / 0.07 |
+
+| bed-mean spectrum (637 fibres) | peak λ (mm) | amplitude / p2p at λ = 6 / 10 / 20 / 40 mm |
+|---|---|---|
+| 0.05 (36 k cells) | 10 | 0.075 / 0.151 / 0.144 / 0.121 |
+| 0.03 (46 k cells) | 17 | 0.070 / 0.130 / 0.153 / 0.116 |
+| 0.02 (99 k cells) | 23 | 0.062 / 0.081 / 0.121 / 0.110 |
+| 0.015 (172 k cells) | 23 | 0.043 / 0.057 / 0.091 / 0.098 |
+| 0.012 (354 k cells) | 34 | 0.029 / 0.041 / 0.082 / 0.097 |
+
+There is no mesh wavelength: per fibre the peak wanders over 4–34 mm without tracking the level, and the bed-mean spectrum is a broad hump whose peak moves *up* from 10 to 34 mm as the mesh is refined because the short waves are what refinement removes — the amplitude at 6 / 10 mm falls 2.4× / 3.1× from 0.03 to 0.012 while the amplitude at 40 mm falls 1.20×. The 6–15 mm band holds 58–72 % of the residual power on the current mesh and 11–45 % on the finest, where the > 15 mm part (the fixed component of (i)) takes over. The '~8 mm structure' is as absent on the forearm as on the cylinder.
+
+### What the waveforms add on the cylinder (Task A panel)
+
+`cyl[depth][mesh]` holds the same set for the cylinder against the oracle. Two things the metric tables did not show. First, the 3-monopole fit tracks the FEM φ to 0.50 % rms of the centre value at 10 mm on 0.3 (0.07 % on 0.2) and that residual is only partly shared between meshes (r = 0.57 / 0.69 between 0.42, 0.3 and 0.24, none with 0.2), while at 20 mm it is 0.4 % on every mesh with r = 0.78–0.97 between them (misfit — but a harmless one: r(φ″) = 1.000, SFAP within 3–6 % of the oracle). Second, at 10 mm with σ_s = 1 mm the fitted FEM φ″ matches the oracle's to r = 0.999 and the SFAP to r = 0.998 (amplitude 0.87 / 0.83× at matched φ peak on 0.3 / 0.2), whereas σ_s = 5 mm gives r(φ″) = 0.91 with a φ″ trough 1.5× the oracle's and an SFAP 2.0× the oracle's (1.5× at 7 mm, 1.8× at 13 mm, 1.04× at 20 mm) — on every mesh. So the shallow-depth r(φ″) = 0.92 of A1.1b, which §3.2 and §5.1 attribute to the 3-monopole model, is the σ_s = 5 mm blob source (its centroid sits inside the tissue and sharpens φ about the electrode); the fit reproduces that sharper φ faithfully. What the fit *does* contribute, on the cylinder and on the forearm alike, is the mesh-to-mesh jitter of the solution it lands on.
+
+### Verdict
+
+On real anatomy the 3-monopole model's residual is mostly mesh ripple — it halves from the current to the finest mesh and is uncorrelated between meshes (median r = 0.36 over the bed), with a fixed 0.3–0.5 % component emerging only at the fine end — but the recipe's SFAP amplitude is decided by which solution the greedy fitter lands on: 15 % (median, up to 3×) between the current and the finest mesh at every depth, more poles making it worse (18 % / 21 %), and the one mesh-stable conditioning (6 %, Butterworth 0.03) buys it by removing the physical φ″ (r = 0.75, 0.37× amplitude). The fix is therefore in the fitter, not in the model order or the mesh — a multi-start or regularised fit on the converged φ — and the cylinder waveforms show the shallow-depth shape disagreement with the oracle to be the σ_s = 5 mm source, not the fit.
