@@ -1,0 +1,143 @@
+{
+ "_meta": {
+  "subject": "S01",
+  "files": [
+   "forearm_S01_segmentation.nii.gz"
+  ],
+  "convention": "ITK-SNAP integer labels. 1 = fiducial markers (treat as background); 2, 3 = bone; 15, 25 = fat; all other non-zero labels are muscles."
+ },
+ "labels": {
+  "0": {
+   "name": "Clear Label",
+   "kind": "background"
+  },
+  "1": {
+   "name": "Markers",
+   "kind": "fiducial"
+  },
+  "2": {
+   "name": "Radius",
+   "kind": "bone"
+  },
+  "3": {
+   "name": "Ulna",
+   "kind": "bone"
+  },
+  "4": {
+   "name": "Supinator",
+   "kind": "muscle",
+   "abbrev": "SUP",
+   "compartment": "posterior"
+  },
+  "5": {
+   "name": "Anconeus",
+   "kind": "muscle",
+   "abbrev": "ANC",
+   "compartment": "posterior"
+  },
+  "6": {
+   "name": "ExtensorCarpiUlnaris",
+   "kind": "muscle",
+   "abbrev": "ECU",
+   "compartment": "posterior"
+  },
+  "7": {
+   "name": "FlexorDigitorumProfundus",
+   "kind": "muscle",
+   "abbrev": "FDP",
+   "compartment": "anterior"
+  },
+  "8": {
+   "name": "FlexorCarpiUlnaris",
+   "kind": "muscle",
+   "abbrev": "FCU",
+   "compartment": "anterior"
+  },
+  "9": {
+   "name": "ExtensorDigitorum",
+   "kind": "muscle",
+   "abbrev": "ED",
+   "compartment": "posterior"
+  },
+  "10": {
+   "name": "ExtensorDigitiMinimi",
+   "kind": "muscle",
+   "abbrev": "EDM",
+   "compartment": "posterior"
+  },
+  "11": {
+   "name": "Brachioradialis",
+   "kind": "muscle",
+   "abbrev": "BR",
+   "compartment": "posterior"
+  },
+  "12": {
+   "name": "ExtensorCarpiRadialisLongus+Brevis",
+   "kind": "muscle",
+   "abbrev": "ECRL+ECRB",
+   "compartment": "posterior"
+  },
+  "14": {
+   "name": "PalmarisLongus",
+   "kind": "muscle",
+   "abbrev": "PL",
+   "compartment": "anterior"
+  },
+  "15": {
+   "name": "Internal Fat",
+   "kind": "fat"
+  },
+  "16": {
+   "name": "FlexorCarpiRadialis",
+   "kind": "muscle",
+   "abbrev": "FCR",
+   "compartment": "anterior"
+  },
+  "17": {
+   "name": "FlexorDigitorumSuperficialis",
+   "kind": "muscle",
+   "abbrev": "FDS",
+   "compartment": "anterior"
+  },
+  "18": {
+   "name": "ExtensorIndicis",
+   "kind": "muscle",
+   "abbrev": "EI",
+   "compartment": "posterior"
+  },
+  "19": {
+   "name": "ExtensorPollicisLongus",
+   "kind": "muscle",
+   "abbrev": "EPL",
+   "compartment": "posterior"
+  },
+  "20": {
+   "name": "AbductorPollicisLongus",
+   "kind": "muscle",
+   "abbrev": "APL",
+   "compartment": "posterior"
+  },
+  "21": {
+   "name": "PronatorTeres",
+   "kind": "muscle",
+   "abbrev": "PT",
+   "compartment": "anterior"
+  },
+  "22": {
+   "name": "FlexorPollicisLongus",
+   "kind": "muscle",
+   "abbrev": "FPL",
+   "compartment": "anterior"
+  },
+  "23": {
+   "name": "PronatorQuadratus",
+   "kind": "muscle",
+   "abbrev": "PQ",
+   "compartment": "anterior"
+  },
+  "25": {
+   "name": "Skin Fat",
+   "kind": "fat"
+  }
+ }
+}
